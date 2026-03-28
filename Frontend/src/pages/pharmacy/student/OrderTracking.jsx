@@ -57,9 +57,16 @@ const OrderTracking = () => {
               <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Order {order.id}</p>
             </div>
           </div>
-          <span className="px-4 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-100">
-            {order.status}
-          </span>
+          <div className="flex items-center gap-3">
+            {order.isPrescription && (
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100 uppercase tracking-wider">
+                Prescription Order
+              </span>
+            )}
+            <span className="px-4 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-100">
+              {order.status}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -125,8 +132,14 @@ const OrderTracking = () => {
           {/* Order Details */}
           <div className="md:col-span-2 space-y-8">
             <section className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-slate-100">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-slate-900">Order Items</h2>
+                {order.isPrescription && (
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Verified by Pharmacist</span>
+                  </div>
+                )}
               </div>
               <div className="divide-y divide-slate-100">
                 {order.items.map((item, idx) => {

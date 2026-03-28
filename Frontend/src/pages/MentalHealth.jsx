@@ -26,7 +26,7 @@ export default function MentalHealthHub() {
   ];
 
   return (
-    <div className="pt-28 pb-12 px-6 max-w-7xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-7xl mx-auto min-h-screen bg-primary-bg">
       <header className="mb-20 text-center max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}

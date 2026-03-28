@@ -101,4 +101,4 @@ function resolveMongoUriFromEnv() {
   return raw ? raw.trim().replace(/^\uFEFF/, '') : raw;
 }
 
-module.exports = { normalizeMongoUri, resolveMongoUriFromEnv };
+export default { normalizeMongoUri, resolveMongoUriFromEnv };

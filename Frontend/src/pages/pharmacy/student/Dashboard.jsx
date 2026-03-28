@@ -57,7 +57,7 @@ const PharmacyDashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       {/* Top Banner & Search */}
-      <div className="bg-white border-b border-slate-200 pt-12 pb-16 px-6">
+      <div className="bg-white border-b border-slate-200 pt-36 pb-20 px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}

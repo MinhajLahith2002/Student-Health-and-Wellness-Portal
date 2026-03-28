@@ -157,6 +157,119 @@ const seedData = {
       usage: 'Take 1 tablet every 4 to 6 hours.',
       sideEffects: 'Upset stomach, mild heartburn, nausea.',
       storage: 'Store in a cool, dry place.',
+      image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Daily Multivitamin',
+      strength: '100% DV',
+      manufacturer: 'Nature Made',
+      price: 15.99,
+      stock: 80,
+      reorderLevel: 15,
+      requiresPrescription: false,
+      category: 'Vitamins',
+      description: 'Complete multivitamin for daily health support.',
+      usage: 'Take 1 tablet daily with a meal.',
+      sideEffects: 'Mild stomach upset.',
+      storage: 'Store in a cool, dry place.',
+      image: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Vitamin C 1000mg',
+      strength: '1000mg',
+      manufacturer: 'Centrum',
+      price: 12.50,
+      stock: 120,
+      reorderLevel: 20,
+      requiresPrescription: false,
+      category: 'Vitamins',
+      description: 'High-potency Vitamin C for immune support.',
+      usage: 'Take 1 tablet per day.',
+      sideEffects: 'None known.',
+      storage: 'Store at room temperature.',
+      image: 'https://images.unsplash.com/photo-1631549916768-4119cb8e0f72?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Fish Oil Omega-3',
+      strength: '1200mg',
+      manufacturer: 'Nordic Naturals',
+      price: 18.25,
+      stock: 60,
+      reorderLevel: 10,
+      requiresPrescription: false,
+      category: 'Vitamins',
+      description: 'Supports heart, brain, and eye health.',
+      usage: 'Take 2 capsules daily with food.',
+      sideEffects: 'Fishy aftertaste.',
+      storage: 'Keep in a cool, dark place.',
+      image: 'https://images.unsplash.com/photo-1559839734-2b71f1e59816?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Hand Sanitizer 500ml',
+      strength: '70% Alcohol',
+      manufacturer: 'Purell',
+      price: 6.50,
+      stock: 300,
+      reorderLevel: 50,
+      requiresPrescription: false,
+      category: 'Hygiene',
+      description: 'Kills 99.99% of germs while keeping hands soft.',
+      usage: 'Apply small amount and rub on hands until dry.',
+      sideEffects: 'Skin dryness.',
+      storage: 'Keep away from fire or flame.',
+      image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'First Aid Kit Professional',
+      strength: '100 Pieces',
+      manufacturer: 'Johnson & Johnson',
+      price: 24.99,
+      stock: 40,
+      reorderLevel: 8,
+      requiresPrescription: false,
+      category: 'First Aid',
+      description: 'Complete kit for cuts, scrapes, and minor injuries.',
+      usage: 'Apply as needed for minor wounds.',
+      sideEffects: 'None.',
+      storage: 'Keep in a dry, accessible place.',
+      image: 'https://images.unsplash.com/photo-1599806112334-d01d17564103?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Face Masks - 50 Pack',
+      strength: '3-Layer Protection',
+      manufacturer: 'MedSupply',
+      price: 14.50,
+      stock: 100,
+      reorderLevel: 20,
+      requiresPrescription: false,
+      category: 'Hygiene',
+      description: 'Disposable masks with elastic ear loops.',
+      usage: 'Cover nose and mouth.',
+      sideEffects: 'None.',
+      storage: 'Store in a clean, dry place.',
+      image: 'https://images.unsplash.com/photo-1550133730-695473e544be?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Digital Thermometer',
+      strength: 'LCD Display',
+      manufacturer: 'Braun',
+      price: 29.99,
+      stock: 25,
+      reorderLevel: 5,
+      requiresPrescription: false,
+      category: 'Wellness',
+      description: 'Accurate and fast temp readings for all ages.',
+      usage: 'Oral or underarm use.',
+      sideEffects: 'None.',
+      storage: 'Keep in protective case.',
+      image: 'https://images.unsplash.com/photo-1584622781464-111162447959?auto=format&fit=crop&q=80&w=400',
       isActive: true
     }
   ],
@@ -213,7 +326,7 @@ const seedData = {
  * @param {Object} models - Mongoose models
  */
 const seedDatabase = async (models) => {
-  const { User, Medicine, FAQ, Settings } = models;
+  const { User, Medicine, FAQ, Settings, Order, Prescription } = models;
   
   try {
     // Check if admin exists and sync credentials
@@ -222,73 +335,104 @@ const seedDatabase = async (models) => {
       await User.create(seedData.admin);
       console.log('Admin user created');
     } else {
-      // Always update admin name and password to match current .env settings
       adminUser.name = seedData.admin.name;
       adminUser.password = seedData.admin.password;
       await adminUser.save();
-      console.log('Admin user synced with latest credentials');
+      console.log('Admin user synced');
     }
     
-    // Check if doctors exist and sync first doctor's credentials
+    // Seed doctors
     for (let i = 0; i < seedData.doctors.length; i++) {
       const doctor = seedData.doctors[i];
-      const doctorUser = await User.findOne({ email: doctor.email });
-      if (!doctorUser) {
+      if (!await User.findOne({ email: doctor.email })) {
         await User.create(doctor);
         console.log(`Doctor ${doctor.name} created`);
-      } else if (i === 0) {
-        // Only sync the first doctor with .env for simplicity
-        doctorUser.password = doctor.password;
-        await doctorUser.save();
-        console.log('Default Doctor synced with latest credentials');
       }
     }
     
-    // Check if students exist
+    // Seed students
     for (const student of seedData.students) {
-      const studentExists = await User.findOne({ email: student.email });
-      if (!studentExists) {
+      if (!await User.findOne({ email: student.email })) {
         await User.create(student);
         console.log(`Student ${student.name} created`);
       }
     }
     
-    // Check if pharmacist exists and sync credentials
-    const pharmacistUser = await User.findOne({ email: seedData.pharmacist.email });
-    if (!pharmacistUser) {
+    // Seed pharmacist
+    if (!await User.findOne({ email: seedData.pharmacist.email })) {
       await User.create(seedData.pharmacist);
       console.log('Pharmacist created');
-    } else {
-      pharmacistUser.password = seedData.pharmacist.password;
-      await pharmacistUser.save();
-      console.log('Pharmacist synced with latest credentials');
     }
     
     // Seed medicines
     for (const medicine of seedData.medicines) {
-      const medicineExists = await Medicine.findOne({ name: medicine.name });
-      if (!medicineExists) {
+      if (!await Medicine.findOne({ name: medicine.name })) {
         await Medicine.create(medicine);
         console.log(`Medicine ${medicine.name} created`);
       }
     }
-    
-    // Seed FAQs
-    for (const faq of seedData.faqs) {
-      const faqExists = await FAQ.findOne({ question: faq.question });
-      if (!faqExists) {
-        await FAQ.create(faq);
-        console.log(`FAQ created: ${faq.question}`);
+
+    // Seed sample prescriptions and orders for John Doe
+    const student = await User.findOne({ email: 'john.doe@student.edu' });
+    const doctor = await User.findOne({ role: 'doctor' });
+    const meds = await Medicine.find({}).limit(3);
+
+    if (student && doctor && meds.length > 0) {
+      // Seed sample prescription if none exist for this student
+      if (!await Prescription.findOne({ studentId: student._id })) {
+        await Prescription.create({
+          studentId: student._id,
+          studentName: student.name,
+          doctorId: doctor._id,
+          doctorName: doctor.name,
+          status: 'Approved',
+          medicines: [
+            { name: meds[0].name, dosage: '500mg', duration: '5 days', frequency: 'Twice daily', instructions: 'Take after meals' }
+          ],
+          notes: 'Standard prescription for seasonal allergy.'
+        });
+        console.log('Sample prescription created for John Doe');
+      }
+
+      // Seed sample orders if none exist
+      if (!await Order.findOne({ studentId: student._id })) {
+        // Ongoing order
+        await Order.create({
+          studentId: student._id,
+          studentName: student.name,
+          studentEmail: student.email,
+          items: [{ medicineId: meds[0]._id, name: meds[0].name, price: meds[0].price, quantity: 1 }],
+          subtotal: meds[0].price,
+          total: meds[0].price + 2.50,
+          status: 'Dispatched',
+          paymentMethod: 'Campus Card',
+          paymentStatus: 'Paid',
+          address: student.address
+        });
+
+        // Past order
+        await Order.create({
+          studentId: student._id,
+          studentName: student.name,
+          studentEmail: student.email,
+          items: [{ medicineId: meds[1]._id, name: meds[1].name, price: meds[1].price, quantity: 2 }],
+          subtotal: meds[1].price * 2,
+          total: (meds[1].price * 2) + 2.50,
+          status: 'Delivered',
+          paymentMethod: 'Credit Card',
+          paymentStatus: 'Paid',
+          address: student.address
+        });
+        console.log('Sample orders created for John Doe');
       }
     }
     
-    // Seed settings
+    // Seed FAQs and Settings
+    for (const faq of seedData.faqs) {
+      if (!await FAQ.findOne({ question: faq.question })) await FAQ.create(faq);
+    }
     for (const setting of seedData.settings) {
-      const settingExists = await Settings.findOne({ key: setting.key });
-      if (!settingExists) {
-        await Settings.create(setting);
-        console.log(`Setting created: ${setting.key}`);
-      }
+      if (!await Settings.findOne({ key: setting.key })) await Settings.create(setting);
     }
     
     console.log('Database seeded successfully');

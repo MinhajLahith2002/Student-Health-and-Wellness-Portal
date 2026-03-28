@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "seed": "node src/scripts/seed.js",
+    "seed": "node scripts/seed.js",
     "seed:dev": "NODE_ENV=development node src/scripts/seed.js",
     "seed:prod": "NODE_ENV=production node src/scripts/seed.js",
     "start": "node server.js"

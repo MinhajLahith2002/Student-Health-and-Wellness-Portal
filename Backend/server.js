@@ -18,6 +18,8 @@ import User from './models/User.js';
 import Medicine from './models/Medicine.js';
 import FAQ from './models/FAQ.js';
 import Settings from './models/Settings.js';
+import Order from './models/Order.js';
+import Prescription from './models/Prescription.js';
 import seedData from './config/seedData.js';
 
 const { logger, morganStream } = loggerModule;
@@ -34,8 +36,8 @@ const app = express();
 // Connect to DB and seed default data
 connectDB().then(async () => {
   try {
-    await seedDatabase({ User, Medicine, FAQ, Settings });
-    logger.info('✅ Database seeded (default users ready)');
+    await seedDatabase({ User, Medicine, FAQ, Settings, Order, Prescription });
+    logger.info('✅ Database seeded (default users and demo data ready)');
   } catch (err) {
     logger.warn('Seed skipped or failed:', err.message);
   }

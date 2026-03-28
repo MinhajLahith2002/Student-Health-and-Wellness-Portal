@@ -66,69 +66,33 @@ export default function Navbar() {
   const navLinks = getNavLinks();
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const mainPaths = navLinks.map(l => l.path);
+  const mainPaths = [...navLinks.map(l => l.path), '/dashboard'];
   const isMainPage = mainPaths.includes(location.pathname) || isAuthPage;
 
   if (!isMainPage) {
     return (
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled ? "nav-blur py-3" : "bg-transparent py-5"
+        scrolled ? "nav-blur py-3" : "nav-blur py-4"
       }`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          {/* <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
             <button 
+              type="button"
               onClick={() => navigate(-1)} 
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-accent-primary hover:text-white text-primary-text transition-colors shadow-sm backdrop-blur-md border border-border-gray/20"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-secondary-bg hover:bg-accent-primary hover:text-white text-primary-text transition-all duration-300 shadow-sm border border-border-gray/20 group"
               title="Go back"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5 group-active:-translate-x-1 transition-transform" />
             </button>
             
-            <Link to="/" className="hidden sm:flex items-center gap-2.5 group">
-              <div className="w-9 h-9 bg-accent-primary rounded-[10px] flex items-center justify-center text-white font-bold shadow-lg shadow-accent-primary/10 group-hover:scale-105 transition-transform">C</div>
-              <span className="font-semibold text-xl tracking-tight text-primary-text">CampusHealth</span>
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <div className="w-8 h-8 bg-accent-primary rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-accent-primary/10 group-hover:scale-105 transition-transform text-sm">C</div>
+              <span className="font-semibold text-lg tracking-tight text-primary-text hidden sm:inline">CampusHealth</span>
             </Link>
-          </div> */}
-          
-          <div className="flex items-center gap-4">
-            {booting ? (
-              <span className="text-secondary-text text-sm">Loading…</span>
-            ) : user ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate(redirectPathForRole(user.role))}
-                  className="text-[13px] font-medium text-secondary-text hover:text-primary-text transition-colors max-w-[140px] truncate"
-                  title={user.email}
-                >
-                  {user.name}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    logout();
-                    navigate("/");
-                  }}
-                  className="inline-flex items-center gap-1.5 py-2 px-4 rounded-full border border-border-gray/40 text-[13px] font-semibold text-primary-text hover:bg-secondary-bg transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Log out</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="text-[13px] font-semibold text-secondary-text hover:text-primary-text transition-colors"
-                >
-                  Sign in
-                </Link>
-                <Link to="/register" className="apple-button-primary py-2 px-6 text-[13px] font-semibold inline-block text-center hidden sm:inline-block">
-                  Register
-                </Link>
-              </>
-            )}
           </div>
+          
+          {/* Right side is intentionally empty for sub-pages per user request */}
+          <div className="flex items-center gap-4"></div>
         </div>
       </nav>
     );

@@ -28,6 +28,35 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('campus');
   const [address] = useState('Dorm A, Room 302');
   const [placedOrderId, setPlacedOrderId] = useState('');
+  const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '', name: '' });
+
+  const formatCardNumber = (val) => {
+    const v = val.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.slice(i, i + 4));
+    }
+    if (parts.length > 0) return parts.join(' ');
+    else return v;
+  };
+
+  const formatExpiry = (val) => {
+    const v = val.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (v.length >= 2) return v.slice(0, 2) + '/' + v.slice(2, 4);
+    return v;
+  };
+
+  const isCardValid = useMemo(() => {
+    if (paymentMethod !== 'card') return true;
+    return (
+      cardDetails.number.replace(/\s/g, '').length === 16 &&
+      cardDetails.expiry.length === 5 &&
+      cardDetails.cvv.length >= 3 &&
+      cardDetails.name.trim().length > 2
+    );
+  }, [paymentMethod, cardDetails]);
 
   // Mock cart items
   const [cartItems, setCartItems] = useState(() => {
@@ -149,18 +178,9 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <h1 className="text-xl font-bold text-slate-900">Checkout</h1>
-        </div>
+    <div className="min-h-screen bg-slate-50 pt-28 pb-20 px-6">
+      <div className="max-w-7xl mx-auto mb-12">
+        <h1 className="text-5xl font-bold text-slate-900 tracking-tight">Checkout</h1>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-10">
@@ -280,6 +300,68 @@ const Checkout = () => {
                   </button>
                 ))}
               </div>
+
+              {/* Card Details Form */}
+              <AnimatePresence>
+                {paymentMethod === 'card' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Card Number</label>
+                          <input 
+                            type="text"
+                            value={cardDetails.number}
+                            onChange={(e) => setCardDetails({ ...cardDetails, number: formatCardNumber(e.target.value) })}
+                            placeholder="0000 0000 0000 0000"
+                            maxLength="19"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 transition-colors font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cardholder Name</label>
+                          <input 
+                            type="text"
+                            value={cardDetails.name}
+                            onChange={(e) => setCardDetails({ ...cardDetails, name: e.target.value })}
+                            placeholder="FULL NAME"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Expiry Date</label>
+                          <input 
+                            type="text"
+                            value={cardDetails.expiry}
+                            onChange={(e) => setCardDetails({ ...cardDetails, expiry: formatExpiry(e.target.value) })}
+                            placeholder="MM/YY"
+                            maxLength="5"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CVV</label>
+                          <input 
+                            type="password"
+                            value={cardDetails.cvv}
+                            onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })}
+                            placeholder="000"
+                            maxLength="4"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </section>
           </div>
 
@@ -322,11 +404,11 @@ const Checkout = () => {
 
               <button 
                 onClick={handlePlaceOrder}
-                disabled={isProcessing}
+                disabled={isProcessing || !isCardValid}
                 className={cn(
                   "w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg",
-                  isProcessing 
-                    ? "bg-slate-100 text-slate-400" 
+                  isProcessing || !isCardValid
+                    ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
                     : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100"
                 )}
               >

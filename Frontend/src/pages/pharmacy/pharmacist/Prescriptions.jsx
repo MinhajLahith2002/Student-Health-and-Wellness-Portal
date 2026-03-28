@@ -26,6 +26,8 @@ const PrescriptionProcessing = () => {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [selectedItems, setSelectedItems] = useState([]);
 
   const tabs = ['Pending', 'Approved', 'Rejected'];
 
@@ -33,8 +35,22 @@ const PrescriptionProcessing = () => {
   const currentPrescription = MOCK_PRESCRIPTIONS.find(p => p.id === selectedPrescription);
 
   const handleVerify = (id) => {
-    // Simulate verification
-    alert(`Prescription ${id} verified successfully!`);
+    if (selectedItems.length === 0) {
+      alert("Please select at least one medicine to approve the prescription.");
+      return;
+    }
+    // Simulate verification and order creation
+    setIsApproveModalOpen(false);
+    alert(`Prescription ${id} verified! Order created with ${selectedItems.length} items.`);
+    // In a real app, this would call apiFetch('/prescriptions/approve', { items: selectedItems })
+  };
+
+  const toggleItem = (med) => {
+    setSelectedItems(prev => 
+      prev.find(i => i.id === med.id) 
+        ? prev.filter(i => i.id !== med.id)
+        : [...prev, { ...med, quantity: 1 }]
+    );
   };
 
   const handleReject = (id) => {
@@ -233,10 +249,10 @@ const PrescriptionProcessing = () => {
                               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Decision</p>
                               <div className="grid grid-cols-1 gap-4">
                                 <button 
-                                  onClick={() => handleVerify(currentPrescription.id)}
+                                  onClick={() => setIsApproveModalOpen(true)}
                                   className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
                                 >
-                                  <CheckCircle2 className="w-6 h-6" /> Approve & Create Order
+                                  <CheckCircle2 className="w-6 h-6" /> Approve & Select Medicines
                                 </button>
                                 <button 
                                   onClick={() => setIsRejectModalOpen(true)}
@@ -378,6 +394,76 @@ const PrescriptionProcessing = () => {
                     Confirm Reject
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Approve Modal - Medicine Selection */}
+      <AnimatePresence>
+        {isApproveModalOpen && currentPrescription && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsApproveModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[40px] p-10 shadow-2xl max-h-[90vh] flex flex-col"
+            >
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Approve Prescription</h2>
+              <p className="text-slate-500 mb-8 font-medium italic">Select medicines to include in the order for {currentPrescription.studentName}</p>
+              
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3 mb-8 no-scrollbar">
+                {import.meta.env.MODE === 'development' && !MOCK_MEDICINES ? <p>Loading medicines...</p> : 
+                  (MOCK_MEDICINES || []).map((med) => (
+                    <button
+                      key={med.id}
+                      onClick={() => toggleItem(med)}
+                      className={cn(
+                        "w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center gap-4",
+                        selectedItems.find(i => i.id === med.id)
+                          ? "border-emerald-500 bg-emerald-50/50"
+                          : "border-slate-100 hover:border-emerald-200"
+                      )}
+                    >
+                      <div className="w-12 h-12 bg-slate-100 rounded-xl overflow-hidden shrink-0">
+                        <img src={med.image} alt={med.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-slate-900">{med.name}</h4>
+                        <p className="text-xs text-slate-500">{med.strength} • ${med.price}</p>
+                      </div>
+                      <div className={cn(
+                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                        selectedItems.find(i => i.id === med.id) ? "bg-emerald-500 border-emerald-500" : "border-slate-200"
+                      )}>
+                        {selectedItems.find(i => i.id === med.id) && <CheckCircle2 className="w-4 h-4 text-white" />}
+                      </div>
+                    </button>
+                  ))
+                }
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                <button 
+                  onClick={() => setIsApproveModalOpen(false)}
+                  className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={selectedItems.length === 0}
+                  onClick={() => handleVerify(currentPrescription.id)}
+                  className="py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Confirm & Create Order
+                </button>
               </div>
             </motion.div>
           </div>

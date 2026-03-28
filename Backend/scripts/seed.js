@@ -1,32 +1,32 @@
-import { connect } from 'mongoose';
+import connectDB from '../config/database.js';
 import { config } from 'dotenv';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 import mongoUriUtils from '../utils/mongoUri.js';
 import User from '../models/User.js';
 import Medicine from '../models/Medicine.js';
 import FAQ from '../models/FAQ.js';
 import Settings from '../models/Settings.js';
+import Order from '../models/Order.js';
+import Prescription from '../models/Prescription.js';
 import seedData from '../config/seedData.js';
 
 const { normalizeMongoUri, resolveMongoUriFromEnv } = mongoUriUtils;
 const { seedDatabase } = seedData;
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 // Load environment variables
-config({ path: join(__dirname, '../../.env') });
+config({ path: join(__dirname, '../.env') });
 
 // Database connection
-const connectDB = async () => {
+const runSeed = async () => {
   try {
-    const mongoUri = normalizeMongoUri(resolveMongoUriFromEnv());
-    if (!mongoUri) {
-      throw new Error('No MongoDB URI set (MONGODB_URI, MONGO_URI, or DATABASE_URL)');
-    }
-    await connect(mongoUri);
-    console.log('MongoDB Connected');
-    
-    // Run seed
-    await seedDatabase({ User, Medicine, FAQ, Settings });
+    await connectDB();
+    await seedDatabase({ User, Medicine, FAQ, Settings, Order, Prescription });
+    console.log('✅ Database seeded (default users and demo data ready)');
     
     console.log('Seeding completed');
     process.exit(0);

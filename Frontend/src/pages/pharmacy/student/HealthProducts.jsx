@@ -80,41 +80,38 @@ const HealthProducts = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/student/pharmacy')}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <h1 className="text-xl font-bold text-slate-900">Health Products</h1>
+    <div className="min-h-screen bg-slate-50 pt-28 pb-20 px-6">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-12 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          <div>
+            <h1 className="text-5xl font-bold text-slate-900 tracking-tight mb-3">Health Products</h1>
+            <p className="text-lg text-slate-500 max-w-xl leading-relaxed">Explore our curated selection of vitamins, wellness essentials, and personal care products.</p>
           </div>
           
-          <div className="flex-1 max-w-xl relative hidden md:block">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input 
-              type="text"
-              placeholder="Search vitamins, wellness, personal care..."
-              className="w-full pl-12 pr-4 py-3 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex items-center gap-4 w-full lg:w-auto">
+            <div className="relative flex-1 lg:w-96">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input 
+                type="text"
+                placeholder="Search products..."
+                className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm transition-all"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <Link 
+              to="/student/pharmacy/checkout" 
+              className="relative p-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm text-slate-600 group"
+            >
+              <ShoppingCart className="w-6 h-6 group-hover:scale-110 transition-transform" />
+              <span className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                {cartCount}
+              </span>
+            </Link>
           </div>
+        </header>
 
-          <Link to="/student/pharmacy/checkout" className="relative p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600">
-            <ShoppingCart className="w-6 h-6" />
-            <span className="absolute top-0 right-0 w-5 h-5 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-              {cartCount}
-            </span>
-          </Link>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Category Chips */}
         <div className="flex overflow-x-auto pb-6 gap-3 no-scrollbar mb-8">
           {categories.map((cat) => (

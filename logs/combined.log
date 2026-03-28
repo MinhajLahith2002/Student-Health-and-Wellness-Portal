@@ -2613,3 +2613,988 @@
 2026-03-28 20:37:23 [INFO]: WebSocket ready for connections
 2026-03-28 20:37:26 [INFO]: ✅ Database connected
 2026-03-28 20:37:34 [INFO]: ✅ Database seeded (default users ready)
+2026-03-28 20:43:46 [INFO]: POST /api/auth/login
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:43:47 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:43:51 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:43:51 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:43:52 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:43:52 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:44:22 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:44:22 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:44:23 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:44:23 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:36 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:36 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:48 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:49 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:50 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:50 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:56 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:56 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:56 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:48:57 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:08 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:08 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:08 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:09 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:12 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:12 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:12 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:12 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:14 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:14 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:14 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:15 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:15 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:15 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:26 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:26 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:27 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:49:27 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:34 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:34 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:36 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:37 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:40 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:40 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:41 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:42 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:44 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:44 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:45 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:46 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:49 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:49 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:50 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:50 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:51 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:51 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:52 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:52 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:54 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:54 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:55 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:55 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:55 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:59:55 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:00:03 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:00:03 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:00:04 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:00:04 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:00:11 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:00:11 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:00:12 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:00:12 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:10:07 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:10:07 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:10:09 [INFO]: POST /api/auth/login
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:10:32 [INFO]: POST /api/auth/login
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:10:55 [INFO]: Received shutdown signal, closing server...
+2026-03-28 21:10:59 [INFO]: Server running on port 5000
+2026-03-28 21:10:59 [INFO]: Environment: development
+2026-03-28 21:10:59 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:10:59 [INFO]: WebSocket ready for connections
+2026-03-28 21:11:00 [INFO]: ✅ Database connected
+2026-03-28 21:11:08 [INFO]: ✅ Database seeded (default users ready)
+2026-03-28 21:11:20 [INFO]: POST /api/auth/login
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:11:21 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:11:23 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:11:23 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:11:24 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:11:24 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:17 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:17 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:18 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:18 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:18 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:18 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:18 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:19 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:21 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:21 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:22 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:13:22 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:11 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:12 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:13 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:13 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:13 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:14 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:14 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:14 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:16 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:16 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:16 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:17 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:35 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:35 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:36 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:17:36 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:18:22 [INFO]: Server running on port 5000
+2026-03-28 21:18:22 [INFO]: Environment: development
+2026-03-28 21:18:22 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:18:22 [INFO]: WebSocket ready for connections
+2026-03-28 21:18:31 [INFO]: ✅ Database connected
+2026-03-28 21:18:44 [INFO]: Server running on port 5000
+2026-03-28 21:18:44 [INFO]: Environment: development
+2026-03-28 21:18:44 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:18:44 [INFO]: WebSocket ready for connections
+2026-03-28 21:18:50 [INFO]: ✅ Database connected
+2026-03-28 21:19:01 [INFO]: ✅ Database seeded (default users ready)
+2026-03-28 21:19:27 [INFO]: Server running on port 5000
+2026-03-28 21:19:27 [INFO]: Environment: development
+2026-03-28 21:19:27 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:19:27 [INFO]: WebSocket ready for connections
+2026-03-28 21:19:32 [INFO]: ✅ Database connected
+2026-03-28 21:19:40 [INFO]: ✅ Database seeded (default users ready)
+2026-03-28 21:20:06 [INFO]: Server running on port 5000
+2026-03-28 21:20:06 [INFO]: Environment: development
+2026-03-28 21:20:06 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:20:06 [INFO]: WebSocket ready for connections
+2026-03-28 21:20:08 [INFO]: ✅ Database connected
+2026-03-28 21:20:18 [INFO]: ✅ Database seeded (default users ready)
+2026-03-28 21:20:24 [INFO]: Server running on port 5000
+2026-03-28 21:20:24 [INFO]: Environment: development
+2026-03-28 21:20:24 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:20:24 [INFO]: WebSocket ready for connections
+2026-03-28 21:20:29 [INFO]: ✅ Database connected
+2026-03-28 21:20:38 [INFO]: ✅ Database seeded (default users ready)
+2026-03-28 21:21:45 [INFO]: Server running on port 5000
+2026-03-28 21:21:45 [INFO]: Environment: development
+2026-03-28 21:21:45 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:21:45 [INFO]: WebSocket ready for connections
+2026-03-28 21:21:54 [INFO]: ✅ Database connected
+2026-03-28 21:22:00 [INFO]: Server running on port 5000
+2026-03-28 21:22:00 [INFO]: Environment: development
+2026-03-28 21:22:00 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:22:00 [INFO]: WebSocket ready for connections
+2026-03-28 21:22:03 [INFO]: ✅ Database connected
+2026-03-28 21:22:12 [INFO]: ✅ Database seeded (default users and demo data ready)
+2026-03-28 21:22:21 [INFO]: ✅ Database connected
+2026-03-28 21:23:57 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:23:58 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:23:59 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:23:59 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:23:59 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:23:59 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:23:59 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:00 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:04 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:04 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:04 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:04 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:20 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:20 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:20 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:21 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:28 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:28 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:28 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:28 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:32 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:32 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:32 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:33 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:38 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:38 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:39 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:39 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:40 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:24:40 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:25:13 [INFO]: POST /api/orders
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:25:27 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:25:27 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:25:28 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:25:28 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:25:29 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:25:29 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:12 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:12 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:13 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:13 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:13 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:13 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:13 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:14 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:16 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:16 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:16 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:17 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:20 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:30:21 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:31:08 [INFO]: POST /api/orders
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:31:26 [INFO]: POST /api/orders
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:31:27 [INFO]: POST /api/orders
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:31:30 [INFO]: POST /api/orders
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:33:21 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:33:21 [INFO]: GET /api/medicines?limit=200
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:33:29 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:33:29 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:33:30 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:33:30 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:34:20 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:34:20 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:34:21 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:34:21 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:40:46 [INFO]: Received shutdown signal, closing server...
+2026-03-28 21:40:50 [INFO]: Server running on port 5000
+2026-03-28 21:40:50 [INFO]: Environment: development
+2026-03-28 21:40:50 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 21:40:50 [INFO]: WebSocket ready for connections
+2026-03-28 21:40:56 [INFO]: ✅ Database connected
+2026-03-28 21:41:00 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:01 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:01 [INFO]: ✅ Database seeded (default users and demo data ready)
+2026-03-28 21:41:01 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:01 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:01 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:07 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:07 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:09 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:09 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:09 [INFO]: GET /api/medicines?limit=8
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 21:41:10 [INFO]: GET /api/orders?limit=10
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}

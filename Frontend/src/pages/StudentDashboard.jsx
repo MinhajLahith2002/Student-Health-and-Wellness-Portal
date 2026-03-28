@@ -86,7 +86,7 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="pt-28 pb-12 px-6 max-w-7xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-7xl mx-auto min-h-screen bg-primary-bg">
       <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <motion.div 

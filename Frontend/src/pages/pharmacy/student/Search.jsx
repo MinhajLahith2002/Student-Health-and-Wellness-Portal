@@ -34,37 +34,43 @@ const MedicineSearch = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Search Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 items-center">
-          <form onSubmit={handleSearch} className="flex-1 relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input 
-              type="text"
-              placeholder="Search medicines..."
-              className="w-full pl-12 pr-4 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </form>
-          <div className="flex gap-2 w-full md:w-auto">
+    <div className="min-h-screen bg-slate-50 pt-32 pb-20 px-6">
+      <div className="max-w-7xl mx-auto mb-12">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10">
+          <div>
+            <h1 className="text-5xl font-bold text-slate-900 tracking-tight mb-3">Medicine Search</h1>
+            <p className="text-lg text-slate-500 max-w-xl leading-relaxed">Search for medicines, supplements, and healthcare products.</p>
+          </div>
+          <div className="flex items-center gap-4 w-full md:w-auto">
             <button 
               onClick={() => setIsFilterOpen(true)}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors"
+              className="flex items-center justify-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 group"
             >
-              <Filter className="w-4 h-4" /> Filters
+              <Filter className="w-5 h-5 group-hover:rotate-12 transition-transform" /> 
+              <span>Filters</span>
             </button>
-            <div className="relative">
-              <Link to="/student/pharmacy/checkout" className="flex items-center justify-center w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-                  2
-                </span>
-              </Link>
-            </div>
+            <Link 
+              to="/student/pharmacy/checkout" 
+              className="relative p-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm text-slate-600 group"
+            >
+              <ShoppingCart className="w-6 h-6 group-hover:scale-110 transition-transform" />
+              <span className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                2
+              </span>
+            </Link>
           </div>
-        </div>
+        </header>
+
+        <form onSubmit={handleSearch} className="relative w-full shadow-2xl shadow-emerald-900/5 rounded-3xl group">
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+          <input 
+            type="text"
+            placeholder="Search for medicines, categories, or manufacturers..."
+            className="w-full pl-16 pr-6 py-6 bg-white border-none rounded-3xl text-lg focus:ring-2 focus:ring-emerald-500 transition-all placeholder:text-slate-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">

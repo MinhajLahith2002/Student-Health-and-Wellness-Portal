@@ -14,7 +14,10 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from '../../../hooks/useForm';
+import { apiFetch } from '../../../lib/api';
+import { cn } from '../../../lib/utils';
 
 const MedicineEditor = () => {
   const { id } = useParams();
