@@ -214,6 +214,8 @@ const startServer = (port, attempt = 0) => {
   });
 };
 
-startServer(DEFAULT_PORT);
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  startServer(DEFAULT_PORT);
+}
 
 export { app, server, io };

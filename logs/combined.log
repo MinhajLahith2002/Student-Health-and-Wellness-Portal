@@ -2536,3 +2536,80 @@
   "ip": "::1",
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
 }
+2026-03-28 20:05:39 [INFO]: POST /api/auth/login
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:05:40 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:09:28 [INFO]: POST /api/auth/login
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:09:29 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:09:46 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:09:46 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:09:54 [INFO]: POST /api/auth/login
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:09:55 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:11:49 [INFO]: POST /api/auth/register
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:12:01 [INFO]: POST /api/auth/login
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:12:02 [INFO]: GET /api/users/profile
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0"
+}
+2026-03-28 20:36:55 [INFO]: Server running on port 5000
+2026-03-28 20:36:55 [INFO]: Environment: development
+2026-03-28 20:36:55 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 20:36:55 [INFO]: WebSocket ready for connections
+2026-03-28 20:36:58 [INFO]: ✅ Database connected
+2026-03-28 20:37:02 [INFO]: Server running on port 5000
+2026-03-28 20:37:02 [INFO]: Environment: development
+2026-03-28 20:37:02 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 20:37:02 [INFO]: WebSocket ready for connections
+2026-03-28 20:37:05 [INFO]: ✅ Database connected
+2026-03-28 20:37:12 [INFO]: ✅ Database seeded (default users ready)
+2026-03-28 20:37:15 [INFO]: Server running on port 5000
+2026-03-28 20:37:15 [INFO]: Environment: development
+2026-03-28 20:37:15 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 20:37:15 [INFO]: WebSocket ready for connections
+2026-03-28 20:37:18 [INFO]: ✅ Database connected
+2026-03-28 20:37:23 [INFO]: Server running on port 5000
+2026-03-28 20:37:23 [INFO]: Environment: development
+2026-03-28 20:37:23 [INFO]: API URL: http://localhost:5000/api
+2026-03-28 20:37:23 [INFO]: WebSocket ready for connections
+2026-03-28 20:37:26 [INFO]: ✅ Database connected
+2026-03-28 20:37:34 [INFO]: ✅ Database seeded (default users ready)

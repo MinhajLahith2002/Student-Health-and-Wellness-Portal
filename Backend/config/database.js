@@ -29,12 +29,12 @@ const connectDB = async () => {
         return;
       } catch (retryError) {
         logger.error(`❌ MongoDB Connection Error (after DNS fallback): ${retryError.message}`);
-        process.exit(1);
+        throw retryError;
       }
     }
 
     logger.error(`❌ MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
+    throw error;
   }
 };
 
