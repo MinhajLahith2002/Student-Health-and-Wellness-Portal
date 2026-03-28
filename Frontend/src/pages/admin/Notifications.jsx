@@ -17,19 +17,43 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 import { apiFetch } from '../../lib/api';
+
+import { useForm } from '../../hooks/useForm';
 
 const NotificationsHub = () => {
   const [selectedId, setSelectedId] = useState('');
   const [notifications, setNotifications] = useState([]);
-  const [form, setForm] = useState({
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState('');
+
+  const validate = (values) => {
+    const errors = {};
+    if (!values.title?.trim()) errors.title = "Title is required";
+    if (!values.message?.trim()) {
+      errors.message = "Message content is required";
+    } else if (values.message.length > 250) {
+      errors.message = "Message cannot exceed 250 characters";
+    }
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    setValues,
+    resetForm,
+    setFieldValue
+  } = useForm({
     title: '',
     message: '',
     target: 'All Users'
-  });
-  const [error, setError] = useState('');
+  }, validate);
 
   useEffect(() => {
     let active = true;
@@ -54,24 +78,39 @@ const NotificationsHub = () => {
     [notifications, selectedId]
   );
 
+  useEffect(() => {
+    if (selectedNotification) {
+      setValues({
+        title: selectedNotification.title,
+        message: selectedNotification.message,
+        target: selectedNotification.target
+      });
+    } else {
+      resetForm();
+    }
+  }, [selectedNotification, setValues, resetForm]);
+
   const handleSend = async () => {
     setError('');
-    try {
-      const created = await apiFetch('/notifications', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: form.title,
-          message: form.message,
-          target: form.target,
-          type: 'system'
-        })
-      });
-      setNotifications((prev) => [created, ...prev]);
-      setSelectedId(created._id);
-      setForm({ title: '', message: '', target: 'All Users' });
-    } catch (err) {
-      setError(err.message || 'Failed to send notification');
-    }
+    handleSubmit(async (data) => {
+      setIsSending(true);
+      try {
+        const created = await apiFetch('/notifications', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...data,
+            type: 'system'
+          })
+        });
+        setNotifications((prev) => [created, ...prev]);
+        setSelectedId(created._id);
+        resetForm();
+      } catch (err) {
+        setError(err.message || 'Failed to send notification');
+      } finally {
+        setIsSending(false);
+      }
+    });
   };
 
   const handleDelete = async () => {
@@ -87,7 +126,7 @@ const NotificationsHub = () => {
   };
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -169,30 +208,46 @@ const NotificationsHub = () => {
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
                   {/* Form */}
-                  <div className="space-y-8">
+                  <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="space-y-8">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notification Title</label>
                       <input 
+                        name="title"
                         type="text" 
-                        value={selectedNotification?.title || form.title}
-                        onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                        className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900" 
+                        value={values.title}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        className={cn(
+                          "w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900",
+                          errors.title && touched.title && "border-rose-500 bg-rose-50/10"
+                        )}
                         placeholder="Enter title..." 
                       />
+                      {errors.title && touched.title && (
+                        <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.title}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Message Content</label>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(selectedNotification?.message || form.message || '').length} / 250</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{values.message.length} / 250</span>
                       </div>
                       <textarea 
+                        name="message"
                         rows={5}
-                        value={selectedNotification?.message || form.message}
-                        onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
-                        className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600 resize-none" 
+                        value={values.message}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        className={cn(
+                          "w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600 resize-none",
+                          errors.message && touched.message && "border-rose-500 bg-rose-50/10"
+                        )}
                         placeholder="Type your message here..." 
                       />
+                      {errors.message && touched.message && (
+                        <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.message}</p>
+                      )}
                     </div>
 
                     <div className="space-y-4">
@@ -200,7 +255,14 @@ const NotificationsHub = () => {
                       <div className="grid grid-cols-2 gap-3">
                         {["All Users", "All Students", "All Doctors", "Specific Role"].map(t => (
                           <label key={t} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all border-2 border-transparent has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
-                            <input type="radio" name="target" checked={(selectedNotification?.target || form.target) === t} onChange={() => setForm((p) => ({ ...p, target: t }))} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-600" />
+                            <input 
+                              type="radio" 
+                              name="target" 
+                              value={t}
+                              checked={values.target === t} 
+                              onChange={() => setFieldValue('target', t)} 
+                              className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-600" 
+                            />
                             <span className="text-xs font-bold text-slate-600">{t}</span>
                           </label>
                         ))}
@@ -208,13 +270,22 @@ const NotificationsHub = () => {
                     </div>
 
                     <div className="pt-6 flex gap-4">
-                      <button className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[24px] font-bold hover:bg-slate-200 transition-all">Save as Draft</button>
-                      <button onClick={handleSend} type="button" className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3">
-                        <Send className="w-5 h-5" />
-                        Send Now
+                      <button type="button" onClick={() => resetForm()} className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[24px] font-bold hover:bg-slate-200 transition-all">Clear Form</button>
+                      <button 
+                        type="button" 
+                        onClick={handleSend} 
+                        disabled={isSending}
+                        className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50"
+                      >
+                        {isSending ? (
+                          <Bell className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Send className="w-5 h-5" />
+                        )}
+                        {isSending ? 'Sending...' : 'Send Now'}
                       </button>
                     </div>
-                  </div>
+                  </form>
 
                   {/* Preview */}
                   <div className="hidden xl:block">
@@ -258,7 +329,7 @@ const NotificationsHub = () => {
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
-    </AdminLayout>
+    </>
   );
 };
 

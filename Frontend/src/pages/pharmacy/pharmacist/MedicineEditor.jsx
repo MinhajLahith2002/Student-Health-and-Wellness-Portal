@@ -14,8 +14,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { apiFetch } from '../../../lib/api';
+import { useForm } from '../../../hooks/useForm';
 
 const MedicineEditor = () => {
   const { id } = useParams();
@@ -24,15 +23,44 @@ const MedicineEditor = () => {
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [newAlt, setNewAlt] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-  const [formData, setFormData] = useState({
+  const validate = (values) => {
+    const errors = {};
+    if (!values.name?.trim()) errors.name = 'Medicine name is required';
+    if (!values.strength?.trim()) errors.strength = 'Strength is required';
+    if (!values.manufacturer?.trim()) errors.manufacturer = 'Manufacturer is required';
+    if (!values.price || isNaN(Number(values.price)) || Number(values.price) < 0) {
+      errors.price = 'Price must be a positive number';
+    }
+    if (!values.stock || isNaN(Number(values.stock)) || Number(values.stock) < 0) {
+      errors.stock = 'Stock must be a non-negative integer';
+    }
+    if (!values.category) errors.category = 'Category is required';
+    if (!values.description?.trim()) errors.description = 'Description is required';
+    if (!values.usage?.trim()) errors.usage = 'Usage instructions are required';
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    setValues,
+    setFieldValue
+  } = useForm({
     name: '',
     strength: '',
     manufacturer: '',
     price: '',
     category: 'Pain Relief',
     stock: '',
-    reorderLevel: '',
+    reorderLevel: '20',
     requiresPrescription: false,
     description: '',
     usage: '',
@@ -40,12 +68,7 @@ const MedicineEditor = () => {
     storage: '',
     image: '',
     genericAlternatives: []
-  });
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState('');
-  const [validationErrors, setValidationErrors] = useState({});
+  }, validate);
 
   useEffect(() => {
     if (!isEditing) return;
@@ -54,14 +77,14 @@ const MedicineEditor = () => {
       try {
         const med = await apiFetch(`/medicines/${id}`);
         if (!active) return;
-        setFormData({
+        setValues({
           name: med.name || '',
           strength: med.strength || '',
           manufacturer: med.manufacturer || '',
           price: String(med.price ?? ''),
           category: med.category || 'Pain Relief',
           stock: String(med.stock ?? ''),
-          reorderLevel: String(med.reorderLevel ?? ''),
+          reorderLevel: String(med.reorderLevel ?? '20'),
           requiresPrescription: !!med.requiresPrescription,
           description: med.description || '',
           usage: med.usage || '',
@@ -77,22 +100,15 @@ const MedicineEditor = () => {
     return () => {
       active = false;
     };
-  }, [id, isEditing]);
-
-  const handleInputChange = (e) => {
-    const { name, value, type } = e.target;
-    const val = type === 'checkbox' ? e.target.checked : value;
-    setFormData(prev => ({ ...prev, [name]: val }));
-  };
+  }, [id, isEditing, setValues]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      // Create local preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image: reader.result }));
+        setFieldValue('image', reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -100,102 +116,62 @@ const MedicineEditor = () => {
 
   const handleAddAlt = () => {
     if (newAlt.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        genericAlternatives: [...prev.genericAlternatives, newAlt.trim()]
-      }));
+      setFieldValue('genericAlternatives', [...values.genericAlternatives, newAlt.trim()]);
       setNewAlt('');
     }
   };
 
-  const validateForm = () => {
-    const errors = {};
-    if (!formData.name?.trim()) errors.name = 'Medicine name is required';
-    if (!formData.strength?.trim()) errors.strength = 'Strength is required';
-    if (!formData.manufacturer?.trim()) errors.manufacturer = 'Manufacturer is required';
-    if (!formData.price || isNaN(Number(formData.price)) || Number(formData.price) < 0) {
-      errors.price = 'Price must be a positive number';
-    }
-    if (!formData.stock || isNaN(Number(formData.stock)) || Number(formData.stock) < 0) {
-      errors.stock = 'Stock must be a non-negative integer';
-    }
-    if (!formData.category) errors.category = 'Category is required';
-    if (!formData.description?.trim()) errors.description = 'Description is required';
-    if (!formData.usage?.trim()) errors.usage = 'Usage instructions are required';
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
   const handleSave = async (e) => {
-    e.preventDefault();
-    setError('');
-    setValidationErrors({});
+    if (e) e.preventDefault();
+    
+    handleSubmit(async (data) => {
+      setError('');
+      setIsSaving(true);
+      try {
+        const formDataPayload = new FormData();
+        
+        // Append all text fields
+        formDataPayload.append('name', data.name.trim());
+        formDataPayload.append('strength', data.strength.trim());
+        formDataPayload.append('manufacturer', data.manufacturer.trim());
+        formDataPayload.append('price', String(data.price));
+        formDataPayload.append('category', data.category);
+        formDataPayload.append('stock', String(data.stock));
+        formDataPayload.append('reorderLevel', String(data.reorderLevel || 20));
+        formDataPayload.append('requiresPrescription', String(!!data.requiresPrescription));
+        formDataPayload.append('description', data.description.trim());
+        formDataPayload.append('usage', data.usage.trim());
+        formDataPayload.append('sideEffects', data.sideEffects?.trim() || '');
+        formDataPayload.append('storage', data.storage?.trim() || '');
+        
+        formDataPayload.append('genericAlternatives', JSON.stringify(data.genericAlternatives));
 
-    if (!validateForm()) {
-      setError('Please correct the errors in the form.');
-      return;
-    }
+        if (selectedFile) {
+          formDataPayload.append('image', selectedFile);
+        } else if (data.image && typeof data.image === 'string' && !data.image.startsWith('data:')) {
+          formDataPayload.append('image', data.image);
+        }
 
-    setIsSaving(true);
-    try {
-      // Use FormData for multipart/form-data support (for images)
-      const data = new FormData();
-      
-      // Append all fields
-      data.append('name', formData.name.trim());
-      data.append('strength', formData.strength.trim());
-      data.append('manufacturer', formData.manufacturer.trim());
-      data.append('price', String(formData.price));
-      data.append('category', formData.category);
-      data.append('stock', String(formData.stock));
-      data.append('reorderLevel', String(formData.reorderLevel || 20));
-      data.append('requiresPrescription', String(!!formData.requiresPrescription));
-      data.append('description', formData.description.trim());
-      data.append('usage', formData.usage.trim());
-      data.append('sideEffects', formData.sideEffects?.trim() || '');
-      data.append('storage', formData.storage?.trim() || '');
-      
-      // Generic alternatives as JSON string
-      data.append('genericAlternatives', JSON.stringify(formData.genericAlternatives));
-
-      // Append image if a new one was selected
-      if (selectedFile) {
-        data.append('image', selectedFile);
-      } else if (formData.image && typeof formData.image === 'string' && !formData.image.startsWith('data:')) {
-        // Carry over existing image URL if no new file
-        data.append('image', formData.image);
-      }
-
-      if (isEditing) {
-        await apiFetch(`/medicines/${id}`, {
-          method: 'PUT',
-          body: data // apiFetch handles setting headers for FormData
-        });
-      } else {
-        await apiFetch('/medicines', {
-          method: 'POST',
-          body: data
-        });
-      }
-      setIsSaving(false);
-      setIsSuccess(true);
-      setTimeout(() => {
-        navigate('/pharmacist/inventory');
-      }, 1200);
-    } catch (err) {
-      setIsSaving(false);
-      if (err.data?.errors) {
-        const backendErrors = {};
-        err.data.errors.forEach(e => {
-          backendErrors[e.field] = e.message;
-        });
-        setValidationErrors(backendErrors);
-        setError('Server validation failed. Please check the fields.');
-      } else {
+        if (isEditing) {
+          await apiFetch(`/medicines/${id}`, {
+            method: 'PUT',
+            body: formDataPayload
+          });
+        } else {
+          await apiFetch('/medicines', {
+            method: 'POST',
+            body: formDataPayload
+          });
+        }
+        setIsSaving(false);
+        setIsSuccess(true);
+        setTimeout(() => navigate('/pharmacist/inventory'), 1200);
+      } catch (err) {
+        setIsSaving(false);
         setError(err.message || 'Failed to save medicine');
+        console.error("Save Error:", err);
       }
-    }
+    });
   };
 
   return (
@@ -271,11 +247,14 @@ const MedicineEditor = () => {
               />
               <div 
                 onClick={() => document.getElementById('medicine-image')?.click()}
-                className="aspect-square bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-emerald-400 transition-all"
+                className={cn(
+                  "aspect-square bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-emerald-400 transition-all",
+                  errors.image && "border-rose-500 bg-rose-50/10"
+                )}
               >
-                {formData.image ? (
+                {values.image ? (
                   <>
-                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={values.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Upload className="w-10 h-10 text-white" />
                     </div>
@@ -303,8 +282,8 @@ const MedicineEditor = () => {
                   <input 
                     type="checkbox" 
                     name="requiresPrescription"
-                    checked={formData.requiresPrescription}
-                    onChange={handleInputChange}
+                    checked={values.requiresPrescription}
+                    onChange={handleChange}
                     className="w-6 h-6 rounded-lg text-emerald-600 focus:ring-emerald-500 border-slate-300"
                   />
                 </label>
@@ -318,12 +297,12 @@ const MedicineEditor = () => {
                   </div>
                   <div className="space-y-3">
                     <div className="flex flex-wrap gap-2">
-                      {formData.genericAlternatives.map((alt, i) => (
+                      {values.genericAlternatives.map((alt, i) => (
                         <span key={i} className="px-2 py-1 bg-white text-emerald-700 text-[10px] font-bold rounded-md border border-emerald-200 flex items-center gap-1">
                           {alt} 
                           <X 
                             className="w-3 h-3 cursor-pointer" 
-                            onClick={() => setFormData(prev => ({ ...prev, genericAlternatives: prev.genericAlternatives.filter((_, idx) => idx !== i) }))} 
+                            onClick={() => setFieldValue('genericAlternatives', values.genericAlternatives.filter((_, idx) => idx !== i))} 
                           />
                         </span>
                       ))}
@@ -361,44 +340,60 @@ const MedicineEditor = () => {
                   <input 
                     type="text" 
                     name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
+                    value={values.name}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="e.g., Paracetamol"
-                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.name ? 'ring-2 ring-rose-500' : ''}`}
+                    className={cn(
+                      "w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700",
+                      errors.name && touched.name && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
+                    )}
                   />
-                  {validationErrors.name && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.name}</p>}
+                  {errors.name && touched.name && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.name}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Strength / Dosage</label>
                   <input 
                     type="text" 
                     name="strength"
-                    value={formData.strength}
-                    onChange={handleInputChange}
+                    value={values.strength}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="e.g., 500mg"
-                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.strength ? 'ring-2 ring-rose-500' : ''}`}
+                    className={cn(
+                      "w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700",
+                      errors.strength && touched.strength && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
+                    )}
                   />
-                  {validationErrors.strength && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.strength}</p>}
+                  {errors.strength && touched.strength && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.strength}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Manufacturer</label>
                   <input 
                     type="text" 
                     name="manufacturer"
-                    value={formData.manufacturer}
-                    onChange={handleInputChange}
+                    value={values.manufacturer}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="e.g., GSK Pharmaceuticals"
-                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.manufacturer ? 'ring-2 ring-rose-500' : ''}`}
+                    className={cn(
+                      "w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700",
+                      errors.manufacturer && touched.manufacturer && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
+                    )}
                   />
-                  {validationErrors.manufacturer && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.manufacturer}</p>}
+                  {errors.manufacturer && touched.manufacturer && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.manufacturer}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Category</label>
                   <select 
                     name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.category ? 'ring-2 ring-rose-500' : ''}`}
+                    value={values.category}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={cn(
+                      "w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700",
+                      errors.category && touched.category && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
+                    )}
                   >
                     <option value="Pain Relief">Pain Relief</option>
                     <option value="Antibiotics">Antibiotics</option>
@@ -406,19 +401,24 @@ const MedicineEditor = () => {
                     <option value="Cold & Flu">Cold & Flu</option>
                     <option value="Vitamins">Vitamins</option>
                   </select>
+                  {errors.category && touched.category && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.category}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Price ($)</label>
                   <input 
                     type="number" 
                     name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
+                    value={values.price}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="0.00"
                     step="0.01"
-                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.price ? 'ring-2 ring-rose-500' : ''}`}
+                    className={cn(
+                      "w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700",
+                      errors.price && touched.price && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
+                    )}
                   />
-                  {validationErrors.price && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.price}</p>}
+                  {errors.price && touched.price && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.price}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -426,20 +426,25 @@ const MedicineEditor = () => {
                     <input 
                       type="number" 
                       name="stock"
-                      value={formData.stock}
-                      onChange={handleInputChange}
+                      value={values.stock}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       placeholder="0"
-                      className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.stock ? 'ring-2 ring-rose-500' : ''}`}
+                      className={cn(
+                        "w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700",
+                        errors.stock && touched.stock && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
+                      )}
                     />
-                    {validationErrors.stock && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.stock}</p>}
+                    {errors.stock && touched.stock && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.stock}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Reorder Level</label>
                     <input 
                       type="number" 
                       name="reorderLevel"
-                      value={formData.reorderLevel}
-                      onChange={handleInputChange}
+                      value={values.reorderLevel}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       placeholder="10"
                       className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700"
                     />
@@ -455,30 +460,39 @@ const MedicineEditor = () => {
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Description</label>
                   <textarea 
                     name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
+                    value={values.description}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="Brief overview of the medicine..."
-                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px] ${validationErrors.description ? 'ring-2 ring-rose-500' : ''}`}
+                    className={cn(
+                      "w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px]",
+                      errors.description && touched.description && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
+                    )}
                   />
-                  {validationErrors.description && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.description}</p>}
+                  {errors.description && touched.description && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.description}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Usage Instructions</label>
                   <textarea 
                     name="usage"
-                    value={formData.usage}
-                    onChange={handleInputChange}
+                    value={values.usage}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="How should the patient take this medicine?"
-                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px] ${validationErrors.usage ? 'ring-2 ring-rose-500' : ''}`}
+                    className={cn(
+                      "w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px]",
+                      errors.usage && touched.usage && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
+                    )}
                   />
-                  {validationErrors.usage && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.usage}</p>}
+                  {errors.usage && touched.usage && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.usage}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Side Effects</label>
                   <textarea 
                     name="sideEffects"
-                    value={formData.sideEffects}
-                    onChange={handleInputChange}
+                    value={values.sideEffects}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="Common side effects to watch out for..."
                     className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px]"
                   />
@@ -487,8 +501,9 @@ const MedicineEditor = () => {
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Storage</label>
                   <textarea 
                     name="storage"
-                    value={formData.storage}
-                    onChange={handleInputChange}
+                    value={values.storage}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
                     placeholder="Storage conditions (e.g., room temperature, refrigerate)..."
                     className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[80px]"
                   />

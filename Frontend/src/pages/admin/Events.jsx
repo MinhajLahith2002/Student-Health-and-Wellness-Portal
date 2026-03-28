@@ -19,12 +19,13 @@ import {
   Grid
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 import { apiFetch } from '../../lib/api';
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+import { useForm } from '../../hooks/useForm';
 
 const EventManager = () => {
   const [view, setView] = useState('calendar');
@@ -32,14 +33,35 @@ const EventManager = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({
+
+  const validate = (values) => {
+    const errors = {};
+    if (!values.title) errors.title = "Event title is required";
+    if (!values.description) errors.description = "Description is required";
+    if (!values.date) errors.date = "Date is required";
+    if (!values.time) errors.time = "Time is required";
+    if (!values.location) errors.location = "Location is required";
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    isSubmitting,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    resetForm,
+    setValues
+  } = useForm({
     title: '',
     description: '',
     date: '',
     time: '',
     location: '',
     target: 'All Students'
-  });
+  }, validate);
 
   useEffect(() => {
     let active = true;
@@ -78,12 +100,11 @@ const EventManager = () => {
     };
   });
 
-  const handleCreateEvent = async (e) => {
-    e.preventDefault();
+  const handleCreateEvent = async (data) => {
     setError('');
     try {
       const payload = {
-        ...form,
+        ...data,
         status: 'Published',
         color: 'blue'
       };
@@ -92,8 +113,8 @@ const EventManager = () => {
         body: JSON.stringify(payload)
       });
       setEvents((prev) => [created, ...prev]);
+      resetForm();
       setShowAddModal(false);
-      setForm({ title: '', description: '', date: '', time: '', location: '', target: 'All Students' });
     } catch (err) {
       setError(err.message || 'Failed to create event');
     }
@@ -109,7 +130,7 @@ const EventManager = () => {
   };
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -139,7 +160,10 @@ const EventManager = () => {
               </button>
             </div>
             <button 
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                resetForm();
+                setShowAddModal(true);
+              }}
               className="px-8 py-4 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
@@ -301,24 +325,82 @@ const EventManager = () => {
                   </button>
                 </div>
 
-                <form onSubmit={handleCreateEvent} className="space-y-8">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit(handleCreateEvent);
+                }} className="space-y-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Event Title</label>
-                    <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} type="text" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900" placeholder="e.g. Flu Shot Clinic" />
+                    <input 
+                      name="title"
+                      value={values.title} 
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      type="text" 
+                      className={cn(
+                        "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900",
+                        errors.title && touched.title && "border-rose-500 bg-rose-50/10"
+                      )}
+                      placeholder="e.g. Flu Shot Clinic" 
+                    />
+                    {errors.title && touched.title && (
+                      <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.title}</p>
+                    )}
                   </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</label>
-                    <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600" placeholder="Event details..." />
+                    <textarea 
+                      name="description"
+                      value={values.description} 
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className={cn(
+                        "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600",
+                        errors.description && touched.description && "border-rose-500 bg-rose-50/10"
+                      )}
+                      placeholder="Event details..." 
+                    />
+                    {errors.description && touched.description && (
+                      <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.description}</p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</label>
-                      <input value={form.date} onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))} type="date" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" />
+                      <input 
+                        name="date"
+                        value={values.date} 
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        type="date" 
+                        className={cn(
+                          "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600",
+                          errors.date && touched.date && "border-rose-500 bg-rose-50/10"
+                        )}
+                      />
+                      {errors.date && touched.date && (
+                        <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.date}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time Range</label>
-                      <input value={form.time} onChange={(e) => setForm((p) => ({ ...p, time: e.target.value }))} type="text" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" placeholder="e.g. 09:00 AM - 04:00 PM" />
+                      <input 
+                        name="time"
+                        value={values.time} 
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        type="text" 
+                        className={cn(
+                          "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600",
+                          errors.time && touched.time && "border-rose-500 bg-rose-50/10"
+                        )}
+                        placeholder="e.g. 09:00 AM - 04:00 PM" 
+                      />
+                      {errors.time && touched.time && (
+                        <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.time}</p>
+                      )}
                     </div>
                   </div>
 
@@ -326,13 +408,33 @@ const EventManager = () => {
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</label>
                     <div className="relative">
                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                      <input value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} type="text" className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" placeholder="e.g. Campus Health Center" />
+                      <input 
+                        name="location"
+                        value={values.location} 
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        type="text" 
+                        className={cn(
+                          "w-full pl-12 pr-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600",
+                          errors.location && touched.location && "border-rose-500 bg-rose-50/10"
+                        )}
+                        placeholder="e.g. Campus Health Center" 
+                      />
                     </div>
+                    {errors.location && touched.location && (
+                      <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.location}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target Audience</label>
-                    <select value={form.target} onChange={(e) => setForm((p) => ({ ...p, target: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600">
+                    <select 
+                      name="target"
+                      value={values.target} 
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600"
+                    >
                       <option>All Students</option>
                       <option>All Users</option>
                       <option>Specific Groups</option>
@@ -341,9 +443,13 @@ const EventManager = () => {
 
                   <div className="pt-6 flex gap-4">
                     <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[24px] font-bold hover:bg-slate-200 transition-all">Cancel</button>
-                    <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3">
+                    <button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50"
+                    >
                       <Save className="w-5 h-5" />
-                      Save Event
+                      {isSubmitting ? 'Saving...' : 'Save Event'}
                     </button>
                   </div>
                 </form>
@@ -352,7 +458,7 @@ const EventManager = () => {
           </div>
         )}
       </AnimatePresence>
-    </AdminLayout>
+    </>
   );
 };
 

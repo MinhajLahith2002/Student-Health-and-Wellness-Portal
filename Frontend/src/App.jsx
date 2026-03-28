@@ -122,7 +122,7 @@ function AppLayout() {
 
           {/* ── Admin Portal ────────────────────────────────────── */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><AdminDashboard /></AdminWrapped></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><UserDirectory /></AdminWrapped></ProtectedRoute>} />
           <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><NotificationsHub /></AdminWrapped></ProtectedRoute>} />
           <Route path="/admin/resources" element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><HealthResources /></AdminWrapped></ProtectedRoute>} />
@@ -135,7 +135,7 @@ function AppLayout() {
 
           {/* ── Pharmacist Portal ────────────────────────────────── */}
           <Route path="/pharmacist" element={<Navigate to="/pharmacist/dashboard" replace />} />
-          <Route path="/pharmacist/dashboard" element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/pharmacist/dashboard" element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><AdminDashboard /></AdminWrapped></ProtectedRoute>} />
           <Route path="/pharmacist/inventory" element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><InventoryManagement /></AdminWrapped></ProtectedRoute>} />
           <Route path="/pharmacist/medicines/new" element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><MedicineEditor /></AdminWrapped></ProtectedRoute>} />
           <Route path="/pharmacist/medicines/edit/:id" element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><MedicineEditor /></AdminWrapped></ProtectedRoute>} />
@@ -144,7 +144,7 @@ function AppLayout() {
 
           {/* ── Doctor Portal ────────────────────────────────────── */}
           <Route path="/doctor" element={<Navigate to="/doctor/dashboard" replace />} />
-          <Route path="/doctor/dashboard" element={<ProtectedRoute allowedRoles={['doctor']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/doctor/dashboard" element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><AdminDashboard /></AdminWrapped></ProtectedRoute>} />
           <Route path="/doctor/appointments" element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><DoctorAppointmentDashboard /></AdminWrapped></ProtectedRoute>} />
           <Route path="/doctor/consultation/:id" element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><ConsultationRoom /></AdminWrapped></ProtectedRoute>} />
           <Route path="/doctor/patients" element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><PatientRecords /></AdminWrapped></ProtectedRoute>} />

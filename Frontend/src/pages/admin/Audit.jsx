@@ -17,7 +17,6 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 
 const MOCK_LOGS = [
@@ -45,7 +44,7 @@ const AuditLogs = () => {
   });
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -166,7 +165,7 @@ const AuditLogs = () => {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 };
 

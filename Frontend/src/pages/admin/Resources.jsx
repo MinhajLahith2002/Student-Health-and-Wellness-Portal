@@ -19,7 +19,6 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 
 const MOCK_RESOURCES = [
@@ -30,10 +29,36 @@ const MOCK_RESOURCES = [
   { id: 5, title: "Campus Safety Tips", type: "Article", category: "Safety", status: "Published", lastUpdated: "2026-02-10", author: "Admin" },
 ];
 
+import { useForm } from '../../hooks/useForm';
+
 const HealthResources = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("All Types");
   const [showAddModal, setShowAddModal] = useState(false);
+
+  const validate = (values) => {
+    const errors = {};
+    if (!values.title) errors.title = "Resource title is required";
+    if (!values.type) errors.type = "Resource type is required";
+    if (!values.category) errors.category = "Category is required";
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    isSubmitting,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    resetForm
+  } = useForm({
+    title: '',
+    type: 'Article',
+    category: 'Mental Health',
+    publishImmediately: true
+  }, validate);
 
   const types = ["All Types", "Article", "Video", "Infographic"];
 
@@ -44,7 +69,7 @@ const HealthResources = () => {
   });
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -53,7 +78,10 @@ const HealthResources = () => {
             <p className="text-slate-500 mt-2 text-lg">Publish and manage self-help articles, videos, and guides.</p>
           </div>
           <button 
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
             className="px-8 py-4 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
@@ -183,7 +211,14 @@ const HealthResources = () => {
                   </button>
                 </div>
 
-                <form className="space-y-10">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit((data) => {
+                    console.log("Creating Resource:", data);
+                    resetForm();
+                    setShowAddModal(false);
+                  });
+                }} className="space-y-10">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     {/* Left: Metadata */}
                     <div className="lg:col-span-1 space-y-8">
@@ -197,7 +232,13 @@ const HealthResources = () => {
 
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Type</label>
-                        <select className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600">
+                        <select 
+                          name="type"
+                          value={values.type}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600"
+                        >
                           <option>Article</option>
                           <option>Video</option>
                           <option>Infographic</option>
@@ -206,7 +247,13 @@ const HealthResources = () => {
 
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</label>
-                        <select className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600">
+                        <select 
+                          name="category"
+                          value={values.category}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600"
+                        >
                           <option>Mental Health</option>
                           <option>Nutrition</option>
                           <option>General Health</option>
@@ -221,7 +268,13 @@ const HealthResources = () => {
                         </div>
                         <label className="flex items-center justify-between mt-4 cursor-pointer">
                           <span className="text-xs font-bold text-slate-600">Publish Immediately</span>
-                          <input type="checkbox" className="w-5 h-5 rounded text-blue-600 focus:ring-blue-600 border-slate-300" />
+                          <input 
+                            type="checkbox" 
+                            name="publishImmediately"
+                            checked={values.publishImmediately}
+                            onChange={handleChange}
+                            className="w-5 h-5 rounded text-blue-600 focus:ring-blue-600 border-slate-300" 
+                          />
                         </label>
                       </div>
                     </div>
@@ -230,7 +283,21 @@ const HealthResources = () => {
                     <div className="lg:col-span-2 space-y-8">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Resource Title</label>
-                        <input type="text" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900 text-xl" placeholder="e.g. 10 Tips for Better Sleep" />
+                        <input 
+                          name="title"
+                          value={values.title}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          type="text" 
+                          className={cn(
+                            "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900 text-xl",
+                            errors.title && touched.title && "border-rose-500 bg-rose-50/10"
+                          )}
+                          placeholder="e.g. 10 Tips for Better Sleep" 
+                        />
+                        {errors.title && touched.title && (
+                          <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.title}</p>
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -244,7 +311,13 @@ const HealthResources = () => {
 
                   <div className="pt-6 flex gap-4">
                     <button type="button" onClick={() => setShowAddModal(false)} className="px-10 py-5 bg-slate-100 text-slate-600 rounded-[24px] font-bold hover:bg-slate-200 transition-all">Cancel</button>
-                    <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Create Resource</button>
+                    <button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Creating...' : 'Create Resource'}
+                    </button>
                   </div>
                 </form>
               </div>
@@ -252,7 +325,7 @@ const HealthResources = () => {
           </div>
         )}
       </AnimatePresence>
-    </AdminLayout>
+    </>
   );
 };
 

@@ -24,7 +24,6 @@ import {
   Tooltip as RechartsTooltip 
 } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 
 const MOCK_FEEDBACK = [
@@ -41,15 +40,52 @@ const SENTIMENT_DATA = [
   { name: 'Critical', value: 15, color: '#EF4444' },
 ];
 
+import { useForm } from '../../hooks/useForm';
+
 const FeedbackManager = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validate = (values) => {
+    const errors = {};
+    if (!values.response?.trim()) {
+      errors.response = "Response content is required";
+    } else if (values.response.trim().length < 10) {
+      errors.response = "Response must be at least 10 characters";
+    }
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    resetForm
+  } = useForm({
+    response: ''
+  }, validate);
+
+  const handleResponseSubmit = (e) => {
+    if (e) e.preventDefault();
+    handleSubmit(async (data) => {
+      setIsSubmitting(true);
+      console.log("Submitting Response for feedback:", selectedFeedback.id, data);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsSubmitting(false);
+      setShowReplyModal(false);
+      resetForm();
+    });
+  };
 
   const tabs = ["All", "Appointments", "Mental Health", "Pharmacy"];
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -243,22 +279,41 @@ const FeedbackManager = () => {
                   <p className="text-slate-600 font-medium italic">"{selectedFeedback?.comment}"</p>
                 </div>
 
-                <form className="space-y-8">
+                <form onSubmit={handleResponseSubmit} className="space-y-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Your Response</label>
                     <textarea 
+                      name="response"
+                      value={values.response}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
                       rows={5} 
-                      className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600 resize-none" 
+                      className={cn(
+                        "w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600 resize-none",
+                        errors.response && touched.response && "border-rose-500 bg-rose-50/10"
+                      )}
                       placeholder="Type your reply to the user..." 
                     />
-                    <p className="text-[10px] text-slate-400 font-medium">This response will be sent to the user via notification and email.</p>
+                    {errors.response && touched.response ? (
+                      <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.response}</p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 font-medium">This response will be sent to the user via notification and email.</p>
+                    )}
                   </div>
 
                   <div className="pt-6 flex gap-4">
                     <button type="button" onClick={() => setShowReplyModal(false)} className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[24px] font-bold hover:bg-slate-200 transition-all">Cancel</button>
-                    <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3">
-                      <Reply className="w-5 h-5" />
-                      Send Response
+                    <button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
+                        <TrendingUp className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Reply className="w-5 h-5" />
+                      )}
+                      {isSubmitting ? 'Sending...' : 'Send Response'}
                     </button>
                   </div>
                 </form>
@@ -267,7 +322,7 @@ const FeedbackManager = () => {
           </div>
         )}
       </AnimatePresence>
-    </AdminLayout>
+    </>
   );
 };
 

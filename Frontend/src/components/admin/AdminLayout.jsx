@@ -29,7 +29,7 @@ const AdminLayout = ({ children }) => {
       >
         <TopBar />
         
-        <div className="flex-1 p-8 max-w-[1440px] mx-auto w-full">
+        <div className="flex-1 p-8 w-full">
           {/* Breadcrumbs */}
           <div className="flex items-center gap-2 mb-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
             <span>{breadcrumbRoot}</span>

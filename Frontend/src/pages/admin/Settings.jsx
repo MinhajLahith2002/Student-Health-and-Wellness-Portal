@@ -21,13 +21,42 @@ import {
   Key
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
+
+import { useForm } from '../../hooks/useForm';
 
 const SystemSettings = () => {
   const [activeSection, setActiveSection] = useState("General");
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const validate = (values) => {
+    const errors = {};
+    if (activeSection === 'General') {
+      if (!values.platformName) errors.platformName = "Platform Name is required";
+      if (!values.supportEmail) {
+        errors.supportEmail = "Support Email is required";
+      } else if (!/\S+@\S+\.\S+/.test(values.supportEmail)) {
+        errors.supportEmail = "Invalid email format";
+      }
+    }
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    setValues
+  } = useForm({
+    platformName: 'CampusHealth',
+    supportEmail: 'support@campushealth.edu',
+    language: 'English (US)',
+    timezone: '(GMT-05:00) Eastern Time (US & Canada)'
+  }, validate);
 
   const sections = [
     { id: "General", icon: Globe, label: "General Settings", description: "Platform name, timezone, and language." },
@@ -38,16 +67,19 @@ const SystemSettings = () => {
   ];
 
   const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
+    handleSubmit(async (data) => {
+      setIsSaving(true);
+      console.log("Saving Settings:", data);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
       setIsSaving(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
-    }, 1500);
+    });
   };
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -110,11 +142,37 @@ const SystemSettings = () => {
                     <div className="grid grid-cols-2 gap-8">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Platform Name</label>
-                        <input type="text" defaultValue="CampusHealth" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900" />
+                        <input 
+                          name="platformName"
+                          value={values.platformName}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          type="text" 
+                          className={cn(
+                            "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900 text-xl",
+                            errors.platformName && touched.platformName && "border-rose-500 bg-rose-50/10"
+                          )}
+                        />
+                        {errors.platformName && touched.platformName && (
+                          <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.platformName}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Support Email</label>
-                        <input type="email" defaultValue="support@campushealth.edu" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900" />
+                        <input 
+                          name="supportEmail"
+                          value={values.supportEmail}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          type="email" 
+                          className={cn(
+                            "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900 text-xl",
+                            errors.supportEmail && touched.supportEmail && "border-rose-500 bg-rose-50/10"
+                          )}
+                        />
+                        {errors.supportEmail && touched.supportEmail && (
+                          <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.supportEmail}</p>
+                        )}
                       </div>
                     </div>
 
@@ -207,7 +265,7 @@ const SystemSettings = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </AdminLayout>
+    </>
   );
 };
 

@@ -17,7 +17,6 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 
 const REPORT_TYPES = [
@@ -50,7 +49,7 @@ const ReportsGenerator = () => {
   };
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -236,7 +235,7 @@ const ReportsGenerator = () => {
           </div>
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 };
 

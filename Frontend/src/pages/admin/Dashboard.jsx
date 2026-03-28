@@ -37,7 +37,6 @@ import {
 } from 'recharts';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -204,7 +203,7 @@ const AdminDashboard = () => {
   const { user } = useAuth();
 
   return (
-    <AdminLayout>
+    <>
       {user?.role === 'pharmacist' ? (
         <PharmacistDashboardContent user={user} />
       ) : user?.role === 'doctor' ? (
@@ -370,7 +369,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 };
 

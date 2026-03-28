@@ -12,7 +12,6 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 
 const MOCK_FAQS = [
@@ -22,10 +21,35 @@ const MOCK_FAQS = [
   { id: 4, question: "What should I do in an emergency?", answer: "For immediate life-threatening emergencies, call campus security at 911 or visit the nearest emergency room. You can also use our 'First Aid' guide for minor issues.", category: "Emergency" },
 ];
 
+import { useForm } from '../../hooks/useForm';
+
 const FAQManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  const validate = (values) => {
+    const errors = {};
+    if (!values.question) errors.question = "Question is required";
+    if (!values.answer) errors.answer = "Answer is required";
+    if (!values.category) errors.category = "Category is required";
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    isSubmitting,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    resetForm
+  } = useForm({
+    question: '',
+    answer: '',
+    category: 'General'
+  }, validate);
 
   const filteredFaqs = MOCK_FAQS.filter(faq => 
     faq.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -33,7 +57,7 @@ const FAQManager = () => {
   );
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -42,7 +66,10 @@ const FAQManager = () => {
             <p className="text-slate-500 mt-2 text-lg">Maintain a searchable knowledge base for common student questions.</p>
           </div>
           <button 
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
             className="px-8 py-4 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
@@ -159,15 +186,42 @@ const FAQManager = () => {
                   </button>
                 </div>
 
-                <form className="space-y-8">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit((data) => {
+                    console.log("Saving FAQ:", data);
+                    resetForm();
+                    setShowAddModal(false);
+                  });
+                }} className="space-y-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Question</label>
-                    <input type="text" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900" placeholder="e.g. How do I book an appointment?" />
+                    <input 
+                      name="question"
+                      value={values.question}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      type="text" 
+                      className={cn(
+                        "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900",
+                        errors.question && touched.question && "border-rose-500 bg-rose-50/10"
+                      )}
+                      placeholder="e.g. How do I book an appointment?" 
+                    />
+                    {errors.question && touched.question && (
+                      <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.question}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</label>
-                    <select className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600">
+                    <select 
+                      name="category"
+                      value={values.category}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600"
+                    >
                       <option>General</option>
                       <option>Security</option>
                       <option>Pharmacy</option>
@@ -177,14 +231,32 @@ const FAQManager = () => {
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Answer</label>
-                    <textarea rows={4} className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600 resize-none" placeholder="Provide a detailed answer..." />
+                    <textarea 
+                      name="answer"
+                      value={values.answer}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      rows={4} 
+                      className={cn(
+                        "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600 resize-none",
+                        errors.answer && touched.answer && "border-rose-500 bg-rose-50/10"
+                      )}
+                      placeholder="Provide a detailed answer..." 
+                    />
+                    {errors.answer && touched.answer && (
+                      <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.answer}</p>
+                    )}
                   </div>
 
                   <div className="pt-6 flex gap-4">
                     <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[24px] font-bold hover:bg-slate-200 transition-all">Cancel</button>
-                    <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3">
+                    <button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50"
+                    >
                       <Save className="w-5 h-5" />
-                      Save FAQ
+                      {isSubmitting ? 'Saving...' : 'Save FAQ'}
                     </button>
                   </div>
                 </form>
@@ -193,7 +265,7 @@ const FAQManager = () => {
           </div>
         )}
       </AnimatePresence>
-    </AdminLayout>
+    </>
   );
 };
 

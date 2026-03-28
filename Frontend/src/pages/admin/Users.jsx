@@ -18,7 +18,6 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
 
 const MOCK_USERS = [
@@ -31,12 +30,41 @@ const MOCK_USERS = [
   { id: 7, name: "David Miller", email: "david@example.com", role: "Admin", status: "Active", lastActive: "Just now", avatar: "DM" },
 ];
 
+import { useForm } from '../../hooks/useForm';
+
 const UserDirectory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState("All Roles");
   const [showAddModal, setShowAddModal] = useState(false);
 
   const roles = ["All Roles", "Student", "Doctor", "Counselor", "Pharmacist", "Admin"];
+
+  const validate = (values) => {
+    const errors = {};
+    if (!values.name) errors.name = "Full Name is required";
+    if (!values.email) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(values.email)) {
+      errors.email = "Invalid email format";
+    }
+    if (!values.role) errors.role = "User role is required";
+    return errors;
+  };
+
+  const {
+    values,
+    errors,
+    touched,
+    isSubmitting,
+    handleChange,
+    handleBlur,
+    handleSubmit,
+    resetForm
+  } = useForm({
+    name: '',
+    email: '',
+    role: 'Student'
+  }, validate);
 
   const filteredUsers = MOCK_USERS.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -45,8 +73,16 @@ const UserDirectory = () => {
     return matchesSearch && matchesRole;
   });
 
+  const handleCreateUser = async (data) => {
+    // Simulate API call
+    console.log("Creating user:", data);
+    // In a real app, this would be an axios.post
+    resetForm();
+    setShowAddModal(false);
+  };
+
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -55,7 +91,10 @@ const UserDirectory = () => {
             <p className="text-slate-500 mt-2 text-lg">Manage all platform users and their permissions.</p>
           </div>
           <button 
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
             className="px-8 py-4 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
           >
             <UserPlus className="w-5 h-5" />
@@ -208,15 +247,46 @@ const UserDirectory = () => {
                   </button>
                 </div>
 
-                <form className="space-y-6">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit(handleCreateUser);
+                }} className="space-y-6">
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Name</label>
-                      <input type="text" className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium" placeholder="e.g. John Doe" />
+                      <input 
+                        name="name"
+                        value={values.name}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        type="text" 
+                        className={cn(
+                          "w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium",
+                          errors.name && touched.name && "border-rose-500 bg-rose-50/10"
+                        )}
+                        placeholder="e.g. John Doe" 
+                      />
+                      {errors.name && touched.name && (
+                        <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.name}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
-                      <input type="email" className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium" placeholder="e.g. john@example.com" />
+                      <input 
+                        name="email"
+                        value={values.email}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        type="email" 
+                        className={cn(
+                          "w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium",
+                          errors.email && touched.email && "border-rose-500 bg-rose-50/10"
+                        )}
+                        placeholder="e.g. john@example.com" 
+                      />
+                      {errors.email && touched.email && (
+                        <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.email}</p>
+                      )}
                     </div>
                   </div>
 
@@ -224,9 +294,22 @@ const UserDirectory = () => {
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Assign Role</label>
                     <div className="grid grid-cols-3 gap-3">
                       {roles.slice(1).map(role => (
-                        <label key={role} className="relative flex items-center justify-center p-4 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-all border-2 border-transparent has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
-                          <input type="radio" name="role" className="hidden" />
-                          <span className="text-xs font-bold text-slate-600">{role}</span>
+                        <label key={role} className={cn(
+                          "relative flex items-center justify-center p-4 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-all border-2 border-transparent",
+                          values.role === role && "border-blue-600 bg-blue-50"
+                        )}>
+                          <input 
+                            type="radio" 
+                            name="role" 
+                            value={role}
+                            checked={values.role === role}
+                            onChange={handleChange}
+                            className="hidden" 
+                          />
+                          <span className={cn(
+                            "text-xs font-bold",
+                            values.role === role ? "text-blue-600" : "text-slate-600"
+                          )}>{role}</span>
                         </label>
                       ))}
                     </div>
@@ -234,7 +317,13 @@ const UserDirectory = () => {
 
                   <div className="pt-6 flex gap-4">
                     <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all">Cancel</button>
-                    <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Create User</button>
+                    <button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+                    >
+                      {isSubmitting ? 'Creating...' : 'Create User'}
+                    </button>
                   </div>
                 </form>
               </div>
@@ -242,7 +331,7 @@ const UserDirectory = () => {
           </div>
         )}
       </AnimatePresence>
-    </AdminLayout>
+    </>
   );
 };
 
