@@ -12,6 +12,7 @@ export default function AuthPage() {
   const mode = location.pathname === '/register' ? 'register' : 'login';
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   if (!booting && isAuthenticated && user) {
     return <Navigate to={redirectPathForRole(user.role)} replace />;
@@ -30,7 +31,7 @@ export default function AuthPage() {
     setSubmitting(true);
     try {
       const data = await login(loginEmail.trim(), loginPassword);
-      navigate(from || data.redirectTo || '/dashboard', { replace: true });
+      navigate(from || data.redirectTo || '/', { replace: true });
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -43,12 +44,16 @@ export default function AuthPage() {
     setError('');
     setSubmitting(true);
     try {
-      const data = await register({
+      await register({
         name: regName.trim(),
         email: regEmail.trim(),
         password: regPassword,
       });
-      navigate(from || data.redirectTo || '/dashboard', { replace: true });
+      setSuccess('Account created successfully! Please sign in.');
+      setRegName('');
+      setRegEmail('');
+      setRegPassword('');
+      navigate('/login', { replace: true });
     } catch (err) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -91,6 +96,7 @@ export default function AuthPage() {
             type="button"
             onClick={() => {
               setError('');
+              setSuccess('');
               navigate('/login', { replace: true });
             }}
             className={`flex-1 py-2.5 text-sm font-semibold rounded-full transition-all ${
@@ -103,6 +109,7 @@ export default function AuthPage() {
             type="button"
             onClick={() => {
               setError('');
+              setSuccess('');
               navigate('/register', { replace: true });
             }}
             className={`flex-1 py-2.5 text-sm font-semibold rounded-full transition-all ${
@@ -119,6 +126,15 @@ export default function AuthPage() {
             className="mb-6 text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3"
           >
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div
+            role="alert"
+            className="mb-6 text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl px-4 py-3"
+          >
+            {success}
           </div>
         )}
 

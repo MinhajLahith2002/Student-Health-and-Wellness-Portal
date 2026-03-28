@@ -1,15 +1,27 @@
 import { motion } from "motion/react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Menu, X, LogOut, Heart, Pill, Calendar, LayoutDashboard, ArrowLeft } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Menu, X, LogOut, Heart, Pill, Calendar, LayoutDashboard, ArrowLeft, User as UserIcon, ChevronDown } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const dropdownRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, booting, logout, redirectPathForRole } = useAuth();
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -40,14 +52,15 @@ export default function Navbar() {
       ];
     }
 
-    // Default for students and guests (Home Navbar)
-    return [
+    // Default for students and guests
+    const links = [
       { name: "Home", path: "/", icon: null },
-      { name: "Dashboard", path: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
       { name: "Appointments", path: "/student/appointments", icon: <Calendar className="w-4 h-4" /> },
       { name: "Mental Health", path: "/mental-health", icon: <Heart className="w-4 h-4" /> },
       { name: "Pharmacy", path: "/pharmacy", icon: <Pill className="w-4 h-4" /> },
     ];
+
+    return links;
   };
 
   const navLinks = getNavLinks();
@@ -152,27 +165,59 @@ export default function Navbar() {
           {booting ? (
             <span className="text-secondary-text text-sm">Loading…</span>
           ) : user ? (
-            <>
+            <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
-                onClick={() => navigate(redirectPathForRole(user.role))}
-                className="text-[13px] font-medium text-secondary-text hover:text-primary-text transition-colors max-w-[140px] truncate"
-                title={user.email}
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2.5 p-1 pr-3 rounded-full hover:bg-secondary-bg transition-all duration-300 border border-transparent hover:border-border-gray/20"
               >
-                {user.name}
+                <div className="w-9 h-9 rounded-full overflow-hidden bg-accent-primary/10 flex items-center justify-center border border-accent-primary/20">
+                  {user.profileImage ? (
+                    <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <UserIcon className="w-5 h-5 text-accent-primary" />
+                  )}
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-[13px] font-semibold text-primary-text leading-none">{user.name}</span>
+                  <span className="text-[11px] text-secondary-text mt-0.5 capitalize">{user.role}</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-secondary-text transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  logout();
-                  navigate("/");
-                }}
-                className="inline-flex items-center gap-1.5 py-2 px-4 rounded-full border border-border-gray/40 text-[13px] font-semibold text-primary-text hover:bg-secondary-bg transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-                Log out
-              </button>
-            </>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 origin-top-right bg-white rounded-2xl shadow-2xl border border-border-gray/10 py-2.5 z-50 animate-in fade-in zoom-in duration-200">
+                  <div className="px-4 py-2 border-b border-border-gray/5 mb-1.5">
+                    <p className="text-[11px] font-medium text-secondary-text uppercase tracking-wider mb-0.5">Account</p>
+                    <p className="text-[13px] font-semibold text-primary-text truncate">{user.email}</p>
+                  </div>
+                  
+                  <Link
+                    to={redirectPathForRole(user.role)}
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-[14px] text-primary-text hover:bg-secondary-bg transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-secondary-text" />
+                    Dashboard
+                  </Link>
+
+                  <div className="my-1.5 border-t border-border-gray/5"></div>
+
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsDropdownOpen(false);
+                      navigate("/");
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-[14px] text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <>
               <Link
@@ -215,18 +260,28 @@ export default function Navbar() {
           ))}
           <div className="pt-8 border-t border-border-gray/10 flex flex-col gap-3">
             {user ? (
-              <button
-                type="button"
-                onClick={() => {
-                  logout();
-                  setIsOpen(false);
-                  navigate("/");
-                }}
-                className="apple-button-primary w-full py-4 text-lg inline-flex items-center justify-center gap-2"
-              >
-                <LogOut className="w-5 h-5" />
-                Log out
-              </button>
+              <>
+                <Link 
+                  to={redirectPathForRole(user.role)}
+                  onClick={() => setIsOpen(false)}
+                  className="apple-button-secondary w-full py-4 text-lg inline-flex items-center justify-center gap-2"
+                >
+                  <LayoutDashboard className="w-5 h-5" />
+                  Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setIsOpen(false);
+                    navigate("/");
+                  }}
+                  className="apple-button-primary w-full py-4 text-lg inline-flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 border-red-500 text-white"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Log out
+                </button>
+              </>
             ) : (
               <>
                 <Link to="/login" onClick={() => setIsOpen(false)} className="apple-button-secondary w-full py-4 text-lg text-center block">

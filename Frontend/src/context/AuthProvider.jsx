@@ -15,7 +15,7 @@ function redirectPathForRole(role) {
     case 'counselor':
       return '/mental-health';
     default:
-      return '/dashboard';
+      return '/';
   }
 }
 
@@ -56,6 +56,7 @@ export function AuthProvider({ children }) {
             email: u.email,
             role: u.role,
             isVerified: u.isVerified,
+            profileImage: u.profileImage,
           };
           setUser(normalized);
           localStorage.setItem(STORAGE_USER, JSON.stringify(normalized));
@@ -100,15 +101,7 @@ export function AuthProvider({ children }) {
       body: JSON.stringify(body),
     });
 
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-    }
-    if (data.user) {
-      localStorage.setItem(STORAGE_USER, JSON.stringify(data.user));
-      setUser(data.user);
-    }
-    return { ...data, redirectTo: redirectPathForRole(data.user?.role) };
+    return data;
   }, []);
 
   const value = useMemo(
