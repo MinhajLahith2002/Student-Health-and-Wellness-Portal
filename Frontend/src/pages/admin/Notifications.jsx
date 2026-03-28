@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   Bell, 
   Send, 
@@ -19,21 +19,72 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
-
-const MOCK_NOTIFICATIONS = [
-  { id: 1, title: "Flu Shot Clinic Tomorrow", message: "Don't forget to visit the campus clinic for your free flu shot starting at 9 AM.", target: "All Students", status: "Sent", date: "2026-02-27 10:00 AM" },
-  { id: 2, title: "Mental Health Awareness Week", message: "Join us for a series of workshops and talks focused on mental well-being.", target: "All Users", status: "Scheduled", date: "2026-03-01 09:00 AM" },
-  { id: 3, title: "New Counselor Available", message: "We've added a new counselor to our team. Book your appointment now.", target: "Specific Role", status: "Draft", date: "—" },
-  { id: 4, title: "System Maintenance", message: "The platform will be down for maintenance this Sunday from 2 AM to 4 AM.", target: "All Users", status: "Sent", date: "2026-02-25 11:30 PM" },
-];
+import { apiFetch } from '../../lib/api';
 
 const NotificationsHub = () => {
-  const [selectedId, setSelectedId] = useState(1);
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
-  const [target, setTarget] = useState("All Students");
+  const [selectedId, setSelectedId] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [form, setForm] = useState({
+    title: '',
+    message: '',
+    target: 'All Users'
+  });
+  const [error, setError] = useState('');
 
-  const selectedNotification = MOCK_NOTIFICATIONS.find(n => n.id === selectedId);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await apiFetch('/notifications?limit=100');
+        if (!active) return;
+        const rows = Array.isArray(data?.notifications) ? data.notifications : [];
+        setNotifications(rows);
+        if (rows[0]?._id) setSelectedId(rows[0]._id);
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load notifications');
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const selectedNotification = useMemo(
+    () => notifications.find((n) => n._id === selectedId) || null,
+    [notifications, selectedId]
+  );
+
+  const handleSend = async () => {
+    setError('');
+    try {
+      const created = await apiFetch('/notifications', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: form.title,
+          message: form.message,
+          target: form.target,
+          type: 'system'
+        })
+      });
+      setNotifications((prev) => [created, ...prev]);
+      setSelectedId(created._id);
+      setForm({ title: '', message: '', target: 'All Users' });
+    } catch (err) {
+      setError(err.message || 'Failed to send notification');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedNotification?._id) return;
+    try {
+      await apiFetch(`/notifications/${selectedNotification._id}`, { method: 'DELETE' });
+      const next = notifications.filter((n) => n._id !== selectedNotification._id);
+      setNotifications(next);
+      setSelectedId(next[0]?._id || '');
+    } catch (err) {
+      setError(err.message || 'Failed to delete notification');
+    }
+  };
 
   return (
     <AdminLayout>
@@ -65,10 +116,10 @@ const NotificationsHub = () => {
             </div>
 
             <div className="space-y-4">
-              {MOCK_NOTIFICATIONS.map((notif) => (
+              {notifications.map((notif) => (
                 <button
-                  key={notif.id}
-                  onClick={() => setSelectedId(notif.id)}
+                  key={notif._id}
+                  onClick={() => setSelectedId(notif._id)}
                   className={cn(
                     "w-full p-6 rounded-[24px] border-2 text-left transition-all relative group",
                     selectedId === notif.id 
@@ -85,7 +136,7 @@ const NotificationsHub = () => {
                     )}>
                       {notif.status}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{notif.date.split(' ')[0]}</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(notif.createdAt).toLocaleDateString()}</span>
                   </div>
                   <h3 className="font-bold text-slate-900 truncate">{notif.title}</h3>
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">{notif.message}</p>
@@ -110,7 +161,7 @@ const NotificationsHub = () => {
                     <button className="p-3 bg-slate-50 text-slate-600 rounded-2xl hover:bg-slate-100 transition-all">
                       <Eye className="w-5 h-5" />
                     </button>
-                    <button className="p-3 bg-slate-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-all">
+                    <button onClick={handleDelete} className="p-3 bg-slate-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-all">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -123,7 +174,8 @@ const NotificationsHub = () => {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notification Title</label>
                       <input 
                         type="text" 
-                        value={selectedNotification?.title || ""}
+                        value={selectedNotification?.title || form.title}
+                        onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
                         className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900" 
                         placeholder="Enter title..." 
                       />
@@ -132,11 +184,12 @@ const NotificationsHub = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Message Content</label>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">0 / 250</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(selectedNotification?.message || form.message || '').length} / 250</span>
                       </div>
                       <textarea 
                         rows={5}
-                        value={selectedNotification?.message || ""}
+                        value={selectedNotification?.message || form.message}
+                        onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
                         className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600 resize-none" 
                         placeholder="Type your message here..." 
                       />
@@ -147,7 +200,7 @@ const NotificationsHub = () => {
                       <div className="grid grid-cols-2 gap-3">
                         {["All Users", "All Students", "All Doctors", "Specific Role"].map(t => (
                           <label key={t} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all border-2 border-transparent has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
-                            <input type="radio" name="target" checked={selectedNotification?.target === t} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-600" />
+                            <input type="radio" name="target" checked={(selectedNotification?.target || form.target) === t} onChange={() => setForm((p) => ({ ...p, target: t }))} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-600" />
                             <span className="text-xs font-bold text-slate-600">{t}</span>
                           </label>
                         ))}
@@ -156,7 +209,7 @@ const NotificationsHub = () => {
 
                     <div className="pt-6 flex gap-4">
                       <button className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-[24px] font-bold hover:bg-slate-200 transition-all">Save as Draft</button>
-                      <button className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3">
+                      <button onClick={handleSend} type="button" className="flex-1 py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3">
                         <Send className="w-5 h-5" />
                         Send Now
                       </button>
@@ -203,6 +256,7 @@ const NotificationsHub = () => {
             </div>
           </div>
         </div>
+        {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
     </AdminLayout>
   );

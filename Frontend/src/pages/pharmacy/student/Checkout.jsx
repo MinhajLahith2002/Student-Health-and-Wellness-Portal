@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   ShoppingCart, 
   Trash2, 
@@ -18,39 +18,81 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { MOCK_MEDICINES } from '../../../constants/mockPharmacyData';
 import { cn } from '../../../lib/utils';
+import { apiFetch } from '../../../lib/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('campus');
-  const [address, setAddress] = useState('Dorm A, Room 302');
+  const [address] = useState('Dorm A, Room 302');
+  const [placedOrderId, setPlacedOrderId] = useState('');
 
   // Mock cart items
-  const [cartItems, setCartItems] = useState([
-    { ...MOCK_MEDICINES[0], quantity: 2 },
-    { ...MOCK_MEDICINES[1], quantity: 1 }
-  ]);
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const raw = localStorage.getItem('pharmacy_cart');
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // fall through to defaults
+    }
+    return [{ ...MOCK_MEDICINES[0], quantity: 2 }, { ...MOCK_MEDICINES[1], quantity: 1 }];
+  });
+
+  const backendPaymentMethod = useMemo(() => {
+    if (paymentMethod === 'campus') return 'Campus Card';
+    if (paymentMethod === 'card') return 'Credit Card';
+    return 'Cash on Delivery';
+  }, [paymentMethod]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const deliveryFee = 2.50;
   const total = subtotal + deliveryFee;
 
   const updateQuantity = (id, delta) => {
-    setCartItems(prev => prev.map(item => 
-      item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-    ));
+    setCartItems((prev) => {
+      const next = prev.map((item) =>
+        item.id === id || item._id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
+      );
+      localStorage.setItem('pharmacy_cart', JSON.stringify(next));
+      return next;
+    });
   };
 
   const removeItem = (id) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
+    setCartItems((prev) => {
+      const next = prev.filter((item) => item.id !== id && item._id !== id);
+      localStorage.setItem('pharmacy_cart', JSON.stringify(next));
+      return next;
+    });
   };
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    setIsProcessing(false);
-    setIsSuccess(true);
+    setError('');
+    try {
+      const items = cartItems.map((item) => ({
+        medicineId: item._id || item.id,
+        quantity: Number(item.quantity) || 1
+      }));
+      const order = await apiFetch('/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          items,
+          address,
+          paymentMethod: backendPaymentMethod
+        })
+      });
+      localStorage.removeItem('pharmacy_cart');
+      setPlacedOrderId(order._id || order.orderId);
+      setIsSuccess(true);
+    } catch (err) {
+      setError(err.message || 'Failed to place order');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (isSuccess) {
@@ -65,13 +107,13 @@ const Checkout = () => {
             <CheckCircle2 className="w-10 h-10 text-emerald-600" />
           </div>
           <h2 className="text-3xl font-bold text-slate-900 mb-4">Order Placed!</h2>
-          <p className="text-slate-500 mb-2">Order ID: #ORD-99281</p>
+          <p className="text-slate-500 mb-2">Order ID: #{placedOrderId || 'N/A'}</p>
           <p className="text-slate-500 mb-8 leading-relaxed">
             Your order has been received and is being processed. You can track its status in real-time.
           </p>
           <div className="space-y-4">
             <button 
-              onClick={() => navigate('/student/pharmacy/order/ORD-99281')}
+              onClick={() => navigate(`/student/pharmacy/order/${placedOrderId}`)}
               className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
             >
               Track Order
@@ -137,7 +179,7 @@ const Checkout = () => {
               </div>
               <div className="divide-y divide-slate-100">
                 {cartItems.map((item) => (
-                  <div key={item.id} className="p-6 flex gap-6 group">
+                  <div key={item._id || item.id} className="p-6 flex gap-6 group">
                     <div className="w-24 h-24 bg-slate-100 rounded-2xl overflow-hidden shrink-0">
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     </div>
@@ -159,21 +201,21 @@ const Checkout = () => {
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center gap-3 bg-slate-50 p-1 rounded-lg">
                           <button 
-                            onClick={() => updateQuantity(item.id, -1)}
+                            onClick={() => updateQuantity(item._id || item.id, -1)}
                             className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-slate-600 hover:text-emerald-600 shadow-sm transition-colors"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
                           <span className="w-6 text-center font-bold text-slate-900 text-sm">{item.quantity}</span>
                           <button 
-                            onClick={() => updateQuantity(item.id, 1)}
+                            onClick={() => updateQuantity(item._id || item.id, 1)}
                             className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-slate-600 hover:text-emerald-600 shadow-sm transition-colors"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
                         <button 
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => removeItem(item._id || item.id)}
                           className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -298,6 +340,7 @@ const Checkout = () => {
                   </>
                 )}
               </button>
+              {error && <p className="mt-4 text-sm text-rose-600">{error}</p>}
 
               <div className="mt-6 flex items-center justify-center gap-2 text-slate-400 text-xs font-medium">
                 <ShieldCheck className="w-4 h-4" /> Secure Checkout Guaranteed

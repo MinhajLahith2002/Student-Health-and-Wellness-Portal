@@ -15,17 +15,15 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MOCK_MEDICINES } from '../../../constants/mockPharmacyData';
-import { cn } from '../../../lib/utils';
+import { apiFetch } from '../../../lib/api';
 
 const MedicineEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditing = !!id;
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [newAlt, setNewAlt] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -44,28 +42,41 @@ const MedicineEditor = () => {
     genericAlternatives: []
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
+
   useEffect(() => {
-    if (isEditing) {
-      const med = MOCK_MEDICINES.find(m => m.id === id);
-      if (med) {
+    if (!isEditing) return;
+    let active = true;
+    (async () => {
+      try {
+        const med = await apiFetch(`/medicines/${id}`);
+        if (!active) return;
         setFormData({
-          name: med.name,
-          strength: med.strength,
-          manufacturer: med.manufacturer,
-          price: med.price.toString(),
-          category: med.category,
-          stock: med.stock.toString(),
-          reorderLevel: med.reorderLevel.toString(),
-          requiresPrescription: med.requiresPrescription,
-          description: med.description,
-          usage: med.usage,
-          sideEffects: med.sideEffects,
-          storage: med.storage,
+          name: med.name || '',
+          strength: med.strength || '',
+          manufacturer: med.manufacturer || '',
+          price: String(med.price ?? ''),
+          category: med.category || 'Pain Relief',
+          stock: String(med.stock ?? ''),
+          reorderLevel: String(med.reorderLevel ?? ''),
+          requiresPrescription: !!med.requiresPrescription,
+          description: med.description || '',
+          usage: med.usage || '',
+          sideEffects: med.sideEffects || '',
+          storage: med.storage || '',
           image: med.image || '',
-          genericAlternatives: med.genericAlternatives || []
+          genericAlternatives: Array.isArray(med.genericAlternatives) ? med.genericAlternatives : []
         });
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load medicine');
       }
-    }
+    })();
+    return () => {
+      active = false;
+    };
   }, [id, isEditing]);
 
   const handleInputChange = (e) => {
@@ -74,16 +85,117 @@ const MedicineEditor = () => {
     setFormData(prev => ({ ...prev, [name]: val }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      // Create local preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddAlt = () => {
+    if (newAlt.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        genericAlternatives: [...prev.genericAlternatives, newAlt.trim()]
+      }));
+      setNewAlt('');
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.name?.trim()) errors.name = 'Medicine name is required';
+    if (!formData.strength?.trim()) errors.strength = 'Strength is required';
+    if (!formData.manufacturer?.trim()) errors.manufacturer = 'Manufacturer is required';
+    if (!formData.price || isNaN(Number(formData.price)) || Number(formData.price) < 0) {
+      errors.price = 'Price must be a positive number';
+    }
+    if (!formData.stock || isNaN(Number(formData.stock)) || Number(formData.stock) < 0) {
+      errors.stock = 'Stock must be a non-negative integer';
+    }
+    if (!formData.category) errors.category = 'Category is required';
+    if (!formData.description?.trim()) errors.description = 'Description is required';
+    if (!formData.usage?.trim()) errors.usage = 'Usage instructions are required';
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
+    setError('');
+    setValidationErrors({});
+
+    if (!validateForm()) {
+      setError('Please correct the errors in the form.');
+      return;
+    }
+
     setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsSaving(false);
-    setIsSuccess(true);
-    setTimeout(() => {
-      navigate('/pharmacist/inventory');
-    }, 2000);
+    try {
+      // Use FormData for multipart/form-data support (for images)
+      const data = new FormData();
+      
+      // Append all fields
+      data.append('name', formData.name.trim());
+      data.append('strength', formData.strength.trim());
+      data.append('manufacturer', formData.manufacturer.trim());
+      data.append('price', String(formData.price));
+      data.append('category', formData.category);
+      data.append('stock', String(formData.stock));
+      data.append('reorderLevel', String(formData.reorderLevel || 20));
+      data.append('requiresPrescription', String(!!formData.requiresPrescription));
+      data.append('description', formData.description.trim());
+      data.append('usage', formData.usage.trim());
+      data.append('sideEffects', formData.sideEffects?.trim() || '');
+      data.append('storage', formData.storage?.trim() || '');
+      
+      // Generic alternatives as JSON string
+      data.append('genericAlternatives', JSON.stringify(formData.genericAlternatives));
+
+      // Append image if a new one was selected
+      if (selectedFile) {
+        data.append('image', selectedFile);
+      } else if (formData.image && typeof formData.image === 'string' && !formData.image.startsWith('data:')) {
+        // Carry over existing image URL if no new file
+        data.append('image', formData.image);
+      }
+
+      if (isEditing) {
+        await apiFetch(`/medicines/${id}`, {
+          method: 'PUT',
+          body: data // apiFetch handles setting headers for FormData
+        });
+      } else {
+        await apiFetch('/medicines', {
+          method: 'POST',
+          body: data
+        });
+      }
+      setIsSaving(false);
+      setIsSuccess(true);
+      setTimeout(() => {
+        navigate('/pharmacist/inventory');
+      }, 1200);
+    } catch (err) {
+      setIsSaving(false);
+      if (err.data?.errors) {
+        const backendErrors = {};
+        err.data.errors.forEach(e => {
+          backendErrors[e.field] = e.message;
+        });
+        setValidationErrors(backendErrors);
+        setError('Server validation failed. Please check the fields.');
+      } else {
+        setError(err.message || 'Failed to save medicine');
+      }
+    }
   };
 
   return (
@@ -123,6 +235,15 @@ const MedicineEditor = () => {
 
       <div className="max-w-5xl mx-auto px-8 py-10">
         <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 p-6 bg-rose-50 border border-rose-100 rounded-3xl text-rose-700"
+            >
+              <p className="font-bold">{error}</p>
+            </motion.div>
+          )}
           {isSuccess && (
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
@@ -141,7 +262,17 @@ const MedicineEditor = () => {
           <div className="lg:col-span-1 space-y-8">
             <section className="bg-white rounded-[40px] border border-slate-200 shadow-sm p-8">
               <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Medicine Image</h3>
-              <div className="aspect-square bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-emerald-400 transition-all">
+              <input 
+                type="file" 
+                id="medicine-image" 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              <div 
+                onClick={() => document.getElementById('medicine-image')?.click()}
+                className="aspect-square bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer hover:border-emerald-400 transition-all"
+              >
                 {formData.image ? (
                   <>
                     <img src={formData.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -185,22 +316,35 @@ const MedicineEditor = () => {
                       Generic Alternatives
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.genericAlternatives.map((alt, i) => (
-                      <span key={i} className="px-2 py-1 bg-white text-emerald-700 text-[10px] font-bold rounded-md border border-emerald-200 flex items-center gap-1">
-                        {alt} 
-                        <X 
-                          className="w-3 h-3 cursor-pointer" 
-                          onClick={() => setFormData(prev => ({ ...prev, genericAlternatives: prev.genericAlternatives.filter((_, idx) => idx !== i) }))} 
-                        />
-                      </span>
-                    ))}
-                    <button 
-                      type="button"
-                      className="px-2 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded-md flex items-center gap-1 hover:bg-emerald-700"
-                    >
-                      <Plus className="w-3 h-3" /> Add
-                    </button>
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      {formData.genericAlternatives.map((alt, i) => (
+                        <span key={i} className="px-2 py-1 bg-white text-emerald-700 text-[10px] font-bold rounded-md border border-emerald-200 flex items-center gap-1">
+                          {alt} 
+                          <X 
+                            className="w-3 h-3 cursor-pointer" 
+                            onClick={() => setFormData(prev => ({ ...prev, genericAlternatives: prev.genericAlternatives.filter((_, idx) => idx !== i) }))} 
+                          />
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 text-xs">
+                      <input 
+                        type="text"
+                        value={newAlt}
+                        onChange={(e) => setNewAlt(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddAlt())}
+                        placeholder="Add alternative..."
+                        className="flex-1 px-2 py-1 bg-white border border-emerald-100 rounded-md focus:ring-1 focus:ring-emerald-500 outline-none"
+                      />
+                      <button 
+                        type="button"
+                        onClick={handleAddAlt}
+                        className="px-2 py-1 bg-emerald-600 text-white font-bold rounded-md hover:bg-emerald-700 flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> Add
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -220,8 +364,9 @@ const MedicineEditor = () => {
                     value={formData.name}
                     onChange={handleInputChange}
                     placeholder="e.g., Paracetamol"
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700"
+                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.name ? 'ring-2 ring-rose-500' : ''}`}
                   />
+                  {validationErrors.name && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.name}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Strength / Dosage</label>
@@ -231,8 +376,9 @@ const MedicineEditor = () => {
                     value={formData.strength}
                     onChange={handleInputChange}
                     placeholder="e.g., 500mg"
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700"
+                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.strength ? 'ring-2 ring-rose-500' : ''}`}
                   />
+                  {validationErrors.strength && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.strength}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Manufacturer</label>
@@ -242,8 +388,9 @@ const MedicineEditor = () => {
                     value={formData.manufacturer}
                     onChange={handleInputChange}
                     placeholder="e.g., GSK Pharmaceuticals"
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700"
+                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.manufacturer ? 'ring-2 ring-rose-500' : ''}`}
                   />
+                  {validationErrors.manufacturer && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.manufacturer}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Category</label>
@@ -251,7 +398,7 @@ const MedicineEditor = () => {
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700"
+                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.category ? 'ring-2 ring-rose-500' : ''}`}
                   >
                     <option value="Pain Relief">Pain Relief</option>
                     <option value="Antibiotics">Antibiotics</option>
@@ -269,8 +416,9 @@ const MedicineEditor = () => {
                     onChange={handleInputChange}
                     placeholder="0.00"
                     step="0.01"
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700"
+                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.price ? 'ring-2 ring-rose-500' : ''}`}
                   />
+                  {validationErrors.price && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.price}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -281,8 +429,9 @@ const MedicineEditor = () => {
                       value={formData.stock}
                       onChange={handleInputChange}
                       placeholder="0"
-                      className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700"
+                      className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-slate-700 ${validationErrors.stock ? 'ring-2 ring-rose-500' : ''}`}
                     />
+                    {validationErrors.stock && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.stock}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Reorder Level</label>
@@ -309,8 +458,9 @@ const MedicineEditor = () => {
                     value={formData.description}
                     onChange={handleInputChange}
                     placeholder="Brief overview of the medicine..."
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px]"
+                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px] ${validationErrors.description ? 'ring-2 ring-rose-500' : ''}`}
                   />
+                  {validationErrors.description && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.description}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Usage Instructions</label>
@@ -319,8 +469,9 @@ const MedicineEditor = () => {
                     value={formData.usage}
                     onChange={handleInputChange}
                     placeholder="How should the patient take this medicine?"
-                    className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px]"
+                    className={`w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[100px] ${validationErrors.usage ? 'ring-2 ring-rose-500' : ''}`}
                   />
+                  {validationErrors.usage && <p className="text-rose-500 text-[10px] font-bold px-2">{validationErrors.usage}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Side Effects</label>

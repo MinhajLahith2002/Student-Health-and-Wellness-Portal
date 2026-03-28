@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   Calendar as CalendarIcon, 
   Plus, 
@@ -21,24 +21,51 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
-
-const MOCK_EVENTS = [
-  { id: 1, title: "Flu Shot Clinic", date: "2026-03-05", time: "09:00 AM - 04:00 PM", location: "Campus Health Center", target: "All Students", color: "blue" },
-  { id: 2, title: "Mental Health Workshop", date: "2026-03-08", time: "02:00 PM - 03:30 PM", location: "Student Union Room 204", target: "All Students", color: "purple" },
-  { id: 3, title: "Yoga & Mindfulness", date: "2026-03-12", time: "05:00 PM - 06:00 PM", location: "Campus Green", target: "All Users", color: "emerald" },
-  { id: 4, title: "Nutrition Seminar", date: "2026-03-15", time: "11:00 AM - 12:30 PM", location: "Online (Zoom)", target: "All Students", color: "amber" },
-];
+import { apiFetch } from '../../lib/api';
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const EventManager = () => {
   const [view, setView] = useState('calendar');
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 1)); // March 2026
+  const [currentDate] = useState(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    location: '',
+    target: 'All Students'
+  });
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await apiFetch('/events?upcoming=false&limit=200');
+        if (active) setEvents(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load events');
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+  const eventsWithDateKey = useMemo(
+    () =>
+      events.map((event) => ({
+        ...event,
+        dateKey: new Date(event.date).toISOString().split('T')[0]
+      })),
+    [events]
+  );
 
   const calendarDays = Array.from({ length: 42 }, (_, i) => {
     const day = i - firstDayOfMonth + 1;
@@ -47,9 +74,39 @@ const EventManager = () => {
       day,
       date,
       isCurrentMonth: day > 0 && day <= daysInMonth,
-      events: MOCK_EVENTS.filter(e => e.date === date.toISOString().split('T')[0])
+      events: eventsWithDateKey.filter((e) => e.dateKey === date.toISOString().split('T')[0])
     };
   });
+
+  const handleCreateEvent = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const payload = {
+        ...form,
+        status: 'Published',
+        color: 'blue'
+      };
+      const created = await apiFetch('/events', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      setEvents((prev) => [created, ...prev]);
+      setShowAddModal(false);
+      setForm({ title: '', description: '', date: '', time: '', location: '', target: 'All Students' });
+    } catch (err) {
+      setError(err.message || 'Failed to create event');
+    }
+  };
+
+  const handleDeleteEvent = async (id) => {
+    try {
+      await apiFetch(`/events/${id}`, { method: 'DELETE' });
+      setEvents((prev) => prev.filter((ev) => ev._id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete event');
+    }
+  };
 
   return (
     <AdminLayout>
@@ -172,8 +229,8 @@ const EventManager = () => {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-4"
             >
-              {MOCK_EVENTS.map((event) => (
-                <div key={event.id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all">
+              {eventsWithDateKey.map((event) => (
+                <div key={event._id} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all">
                   <div className="flex items-center gap-6">
                     <div className={cn(
                       "w-16 h-16 rounded-2xl flex flex-col items-center justify-center",
@@ -207,7 +264,7 @@ const EventManager = () => {
                     <button className="p-3 bg-slate-50 text-slate-600 rounded-2xl hover:bg-slate-100 transition-all">
                       <Edit2 className="w-5 h-5" />
                     </button>
-                    <button className="p-3 bg-slate-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-all">
+                    <button onClick={() => handleDeleteEvent(event._id)} className="p-3 bg-slate-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-all">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
@@ -216,6 +273,7 @@ const EventManager = () => {
             </motion.div>
           )}
         </AnimatePresence>
+        {error && <p className="text-sm text-rose-600">{error}</p>}
       </div>
 
       {/* Add Event Modal Placeholder */}
@@ -243,20 +301,24 @@ const EventManager = () => {
                   </button>
                 </div>
 
-                <form className="space-y-8">
+                <form onSubmit={handleCreateEvent} className="space-y-8">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Event Title</label>
-                    <input type="text" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900" placeholder="e.g. Flu Shot Clinic" />
+                    <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} type="text" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900" placeholder="e.g. Flu Shot Clinic" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</label>
+                    <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium text-slate-600" placeholder="Event details..." />
                   </div>
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</label>
-                      <input type="date" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" />
+                      <input value={form.date} onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))} type="date" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time Range</label>
-                      <input type="text" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" placeholder="e.g. 09:00 AM - 04:00 PM" />
+                      <input value={form.time} onChange={(e) => setForm((p) => ({ ...p, time: e.target.value }))} type="text" className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" placeholder="e.g. 09:00 AM - 04:00 PM" />
                     </div>
                   </div>
 
@@ -264,13 +326,13 @@ const EventManager = () => {
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Location</label>
                     <div className="relative">
                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                      <input type="text" className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" placeholder="e.g. Campus Health Center" />
+                      <input value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} type="text" className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600" placeholder="e.g. Campus Health Center" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target Audience</label>
-                    <select className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600">
+                    <select value={form.target} onChange={(e) => setForm((p) => ({ ...p, target: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600">
                       <option>All Students</option>
                       <option>All Users</option>
                       <option>Specific Groups</option>

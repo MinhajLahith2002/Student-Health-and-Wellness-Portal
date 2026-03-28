@@ -1,48 +1,8 @@
 import { motion } from "motion/react";
-import { 
-  Calendar, 
-  Heart, 
-  Pill, 
-  ArrowRight, 
-  CheckCircle2, 
-  Users, 
-  ShieldCheck, 
-  MessageSquare,
-  Activity,
-  Zap,
-  Globe,
-  Lock
-} from "lucide-react";
+import { MessageSquare, Activity, Globe, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function LandingPage() {
-  const features = [
-    {
-      title: "Medical Care",
-      description: "Book physical or video consultations with campus doctors in seconds. Get the care you need, when you need it.",
-      icon: <Calendar className="w-6 h-6 text-accent-primary" />,
-      image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=800",
-      link: "/dashboard",
-      color: "bg-accent-primary/10"
-    },
-    {
-      title: "Mental Wellness",
-      description: "Access counseling, mood tracking, and anonymous peer support. Your mental health is our priority.",
-      icon: <Heart className="w-6 h-6 text-accent-purple" />,
-      image: "https://images.unsplash.com/photo-1527137342181-19aab11a8ee1?auto=format&fit=crop&q=80&w=800",
-      link: "/mental-health",
-      color: "bg-accent-purple/10"
-    },
-    {
-      title: "Campus Pharmacy",
-      description: "Order prescriptions and health products for campus delivery. Fast, secure, and convenient.",
-      icon: <Pill className="w-6 h-6 text-accent-green" />,
-      image: "https://images.unsplash.com/photo-1586015555751-63bb77f4322a?auto=format&fit=crop&q=80&w=800",
-      link: "/pharmacy",
-      color: "bg-accent-green/10"
-    }
-  ];
-
   return (
     <div className="min-h-screen bg-primary-bg">
       {/* Hero Section */}

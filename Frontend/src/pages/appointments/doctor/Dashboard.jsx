@@ -39,7 +39,7 @@ const DoctorDashboard = () => {
             className="flex gap-4"
           >
             <Link 
-              to="/doctor/availability"
+              to="/admin/doctor/appointments"
               className="px-8 py-4 bg-white border border-[#F0F0F3] text-[#18181B] rounded-full font-bold hover:bg-[#F4F4F8] transition-all shadow-sm flex items-center gap-2"
             >
               <Calendar className="w-5 h-5" />
@@ -98,7 +98,7 @@ const DoctorDashboard = () => {
                     </div>
                     <div className="flex items-center gap-4">
                       <Link 
-                        to={`/doctor/consultation/${appointment.id}`}
+                        to={`/admin/doctor/consultation/${appointment.id}`}
                         className="px-6 py-3 bg-[#2563EB] text-white rounded-2xl font-bold text-sm hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-100"
                       >
                         Start Consultation
@@ -138,7 +138,7 @@ const DoctorDashboard = () => {
                 </div>
               ))}
               <Link 
-                to="/doctor/queue"
+                to="/admin/doctor/appointments"
                 className="w-full py-4 bg-[#F4F4F8] text-[#18181B] rounded-2xl font-bold text-sm text-center hover:bg-[#EBEBEF] transition-all block"
               >
                 View Full Queue

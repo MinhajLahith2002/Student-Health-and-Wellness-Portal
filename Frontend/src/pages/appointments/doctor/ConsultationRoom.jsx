@@ -87,7 +87,7 @@ const ConsultationRoom = () => {
             {isVideoOff ? <VideoOff className="w-6 h-6" /> : <VideoIcon className="w-6 h-6" />}
           </button>
           <button 
-            onClick={() => navigate('/doctor/dashboard')}
+            onClick={() => navigate('/admin/doctor/appointments')}
             className="w-16 h-16 bg-rose-600 text-white rounded-full flex items-center justify-center hover:bg-rose-700 transition-all shadow-xl shadow-rose-900/20"
           >
             <PhoneOff className="w-7 h-7" />

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Search, 
   ShoppingCart, 
@@ -14,91 +14,70 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '../../../lib/utils';
+import { apiFetch } from '../../../lib/api';
 
 const HealthProducts = () => {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [cartCount, setCartCount] = useState(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('pharmacy_cart') || '[]');
+      return Array.isArray(parsed)
+        ? parsed.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+        : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [products, setProducts] = useState([]);
+  const [error, setError] = useState('');
 
   const categories = ['All', 'Vitamins', 'First Aid', 'Personal Care', 'Hygiene', 'Wellness'];
 
-  const products = [
-    {
-      id: 'p1',
-      name: 'Multivitamin Complex',
-      brand: 'NatureWise',
-      price: 24.99,
-      category: 'Vitamins',
-      rating: 4.8,
-      reviews: 124,
-      image: 'https://picsum.photos/seed/vitamins/400/400',
-      description: 'Daily multivitamin for energy and immune support.'
-    },
-    {
-      id: 'p2',
-      name: 'First Aid Kit (Compact)',
-      brand: 'RedCross',
-      price: 15.50,
-      category: 'First Aid',
-      rating: 4.9,
-      reviews: 85,
-      image: 'https://picsum.photos/seed/firstaid/400/400',
-      description: 'Essential supplies for minor injuries and emergencies.'
-    },
-    {
-      id: 'p3',
-      name: 'Organic Hand Sanitizer',
-      brand: 'PureLife',
-      price: 4.25,
-      category: 'Hygiene',
-      rating: 4.7,
-      reviews: 210,
-      image: 'https://picsum.photos/seed/sanitizer/400/400',
-      description: 'Kills 99.9% of germs with natural ingredients.'
-    },
-    {
-      id: 'p4',
-      name: 'Sleep Support Melatonin',
-      brand: 'RestWell',
-      price: 12.99,
-      category: 'Wellness',
-      rating: 4.5,
-      reviews: 56,
-      image: 'https://picsum.photos/seed/sleep/400/400',
-      description: 'Helps you fall asleep faster and stay asleep longer.'
-    },
-    {
-      id: 'p5',
-      name: 'Vitamin C 1000mg',
-      brand: 'NatureWise',
-      price: 18.25,
-      category: 'Vitamins',
-      rating: 4.8,
-      reviews: 142,
-      image: 'https://picsum.photos/seed/vitaminc/400/400',
-      description: 'High-potency immune system support.'
-    },
-    {
-      id: 'p6',
-      name: 'Moisturizing Lotion',
-      brand: 'SoftSkin',
-      price: 9.99,
-      category: 'Personal Care',
-      rating: 4.6,
-      reviews: 98,
-      image: 'https://picsum.photos/seed/lotion/400/400',
-      description: '24-hour hydration for dry and sensitive skin.'
-    }
-  ];
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await apiFetch('/medicines?limit=200');
+        if (!active) return;
+        setProducts(Array.isArray(data?.medicines) ? data.medicines : []);
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load products');
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+    return products.filter((p) => {
       const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           p.brand.toLowerCase().includes(searchQuery.toLowerCase());
+                           p.manufacturer.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [selectedCategory, searchQuery]);
+  }, [products, selectedCategory, searchQuery]);
+
+  const addToCart = (product) => {
+    const key = 'pharmacy_cart';
+    let current = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+      if (Array.isArray(parsed)) current = parsed;
+    } catch {
+      current = [];
+    }
+    const existing = current.find((c) => (c._id || c.id) === product._id);
+    const next = existing
+      ? current.map((c) =>
+          (c._id || c.id) === product._id ? { ...c, quantity: (c.quantity || 1) + 1 } : c
+        )
+      : [...current, { ...product, quantity: 1 }];
+    localStorage.setItem(key, JSON.stringify(next));
+    setCartCount(next.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0));
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -129,7 +108,7 @@ const HealthProducts = () => {
           <Link to="/student/pharmacy/checkout" className="relative p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600">
             <ShoppingCart className="w-6 h-6" />
             <span className="absolute top-0 right-0 w-5 h-5 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-              2
+              {cartCount}
             </span>
           </Link>
         </div>
@@ -163,7 +142,7 @@ const HealthProducts = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                key={product.id}
+                key={product._id}
                 className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col"
               >
                 <div className="aspect-square bg-slate-50 relative overflow-hidden">
@@ -179,7 +158,7 @@ const HealthProducts = () => {
                     </button>
                   </div>
                   <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-slate-900 text-[10px] font-bold rounded-full flex items-center shadow-sm">
-                    <Star className="w-3 h-3 text-amber-500 mr-1 fill-amber-500" /> {product.rating} ({product.reviews})
+                    <Star className="w-3 h-3 text-amber-500 mr-1 fill-amber-500" /> 4.7 (Live)
                   </div>
                 </div>
                 
@@ -187,7 +166,7 @@ const HealthProducts = () => {
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">{product.category}</span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{product.brand}</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{product.manufacturer}</span>
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-emerald-600 transition-colors">{product.name}</h3>
                     <p className="text-sm text-slate-500 leading-relaxed line-clamp-2">{product.description}</p>
@@ -198,7 +177,7 @@ const HealthProducts = () => {
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Price</span>
                       <span className="text-2xl font-bold text-slate-900">${product.price}</span>
                     </div>
-                    <button className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
+                    <button onClick={() => addToCart(product)} className="w-14 h-14 bg-emerald-600 text-white rounded-2xl flex items-center justify-center hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
                       <Plus className="w-6 h-6" />
                     </button>
                   </div>
@@ -226,6 +205,7 @@ const HealthProducts = () => {
             </button>
           </div>
         )}
+        {error && <p className="mt-4 text-sm text-rose-600">{error}</p>}
 
         {/* Promo Banner */}
         <section className="mt-20 bg-slate-900 rounded-[40px] p-12 md:p-20 text-white relative overflow-hidden">

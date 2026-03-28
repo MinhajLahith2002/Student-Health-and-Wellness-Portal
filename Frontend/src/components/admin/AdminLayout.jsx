@@ -3,10 +3,19 @@ import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+
+const ROLE_BREADCRUMB = {
+  admin: 'Admin',
+  doctor: 'Doctor Portal',
+  pharmacist: 'Pharmacist Portal',
+};
 
 const AdminLayout = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
+  const breadcrumbRoot = ROLE_BREADCRUMB[user?.role] || 'Admin';
 
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex">
@@ -23,7 +32,7 @@ const AdminLayout = ({ children }) => {
         <div className="flex-1 p-8 max-w-[1440px] mx-auto w-full">
           {/* Breadcrumbs */}
           <div className="flex items-center gap-2 mb-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
-            <span>Admin</span>
+            <span>{breadcrumbRoot}</span>
             {location.pathname.split('/').filter(Boolean).slice(1).map((path, i) => (
               <React.Fragment key={i}>
                 <span className="text-slate-300">/</span>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Search, 
   Filter, 
@@ -14,32 +14,64 @@ import {
   Upload,
   ChevronLeft
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate, Link } from 'react-router-dom';
-import { MOCK_MEDICINES } from '../../../constants/mockPharmacyData';
+import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../../../lib/utils';
+import { apiFetch } from '../../../lib/api';
 
 const InventoryManagement = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [medicines, setMedicines] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const categories = ['All', 'Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins'];
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await apiFetch('/medicines?limit=200');
+        if (!active) return;
+        setMedicines(Array.isArray(data?.medicines) ? data.medicines : []);
+      } catch (err) {
+        if (!active) return;
+        setError(err.message || 'Failed to load medicines');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filteredMedicines = useMemo(() => {
-    return MOCK_MEDICINES.filter(med => {
+    return medicines.filter((med) => {
       const matchesSearch = med.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            med.manufacturer.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || med.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [medicines, searchQuery, selectedCategory]);
 
   const lowStockItems = useMemo(() => 
-    MOCK_MEDICINES.filter(m => m.stock <= m.reorderLevel),
-    []
+    medicines.filter((m) => m.stock <= m.reorderLevel),
+    [medicines]
   );
+
+  const handleDelete = async (id) => {
+    try {
+      await apiFetch(`/medicines/${id}`, { method: 'DELETE' });
+      setMedicines((prev) => prev.filter((m) => m._id !== id));
+    } catch (err) {
+      setError(err.message || 'Delete failed');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -95,7 +127,7 @@ const InventoryManagement = () => {
                 </p>
                 <div className="flex flex-wrap gap-2 mt-3">
                   {lowStockItems.map((item) => (
-                    <span key={item.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">
+                    <span key={item._id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold">
                       {item.name}: <span className="text-rose-600">{item.stock}</span> left (min: {item.reorderLevel})
                     </span>
                   ))}
@@ -103,7 +135,7 @@ const InventoryManagement = () => {
               </div>
             </div>
             <button
-              onClick={() => navigate(`/pharmacist/medicines/edit/${lowStockItems[0].id}`)}
+              onClick={() => navigate(`/pharmacist/medicines/edit/${lowStockItems[0]._id}`)}
               className="shrink-0 px-6 py-3 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-all"
             >
               Restock Now
@@ -161,7 +193,7 @@ const InventoryManagement = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredMedicines.map((med) => (
-                  <tr key={med.id} className={cn(
+                  <tr key={med._id} className={cn(
                     "hover:bg-slate-50 transition-colors group",
                     med.stock <= med.reorderLevel ? "bg-amber-50/30" : ""
                   )}>
@@ -222,12 +254,12 @@ const InventoryManagement = () => {
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button 
-                          onClick={() => navigate(`/pharmacist/medicines/edit/${med.id}`)}
+                          onClick={() => navigate(`/pharmacist/medicines/edit/${med._id}`)}
                           className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                        <button onClick={() => handleDelete(med._id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
                           <Trash2 className="w-4 h-4" />
                         </button>
                         <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all">
@@ -252,6 +284,8 @@ const InventoryManagement = () => {
             </div>
           </div>
         </div>
+        {loading && <p className="text-sm text-slate-500 mt-4">Loading inventory...</p>}
+        {error && <p className="text-sm text-rose-600 mt-4">{error}</p>}
       </div>
     </div>
   );

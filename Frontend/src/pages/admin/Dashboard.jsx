@@ -12,7 +12,12 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronRight,
-  MoreVertical
+  MoreVertical,
+  Package,
+  ClipboardList,
+  Stethoscope,
+  Video,
+  FileText,
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -31,8 +36,10 @@ import {
   Cell
 } from 'recharts';
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { cn } from '../../lib/utils';
+import { useAuth } from '../../hooks/useAuth';
 
 const MOCK_STATS = [
   { label: "Total Users", value: "12,482", trend: "+12.5%", isUp: true, icon: Users, color: "blue" },
@@ -114,203 +121,255 @@ const StatCard = ({ stat, index }) => (
   </motion.div>
 );
 
+// ─── Pharmacist Welcome Dashboard ───────────────────────────────────────────
+const PharmacistDashboardContent = ({ user }) => (
+  <div className="space-y-8">
+    <div>
+      <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Pharmacist Dashboard</h1>
+      <p className="text-slate-500 mt-2 text-lg">Welcome, {user?.name}. Manage prescriptions, orders and inventory.</p>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {[
+        { label: 'Pending Prescriptions', icon: ClipboardList, to: '/admin/pharmacist/prescriptions', color: 'emerald' },
+        { label: 'Orders to Process',     icon: ShoppingBag,   to: '/admin/pharmacist/orders',        color: 'blue' },
+        { label: 'Inventory Management',  icon: Package,       to: '/admin/pharmacist/inventory',     color: 'amber' },
+      ].map((item, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.1 }}
+          className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group cursor-pointer"
+        >
+          <Link to={item.to} className="flex flex-col gap-4">
+            <div className={cn(
+              'w-14 h-14 rounded-xl flex items-center justify-center',
+              item.color === 'emerald' ? 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white' :
+              item.color === 'blue'    ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' :
+                                        'bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white',
+              'transition-colors'
+            )}>
+              <item.icon className="w-7 h-7" />
+            </div>
+            <p className="text-lg font-bold text-slate-900">{item.label}</p>
+            <p className="text-sm text-slate-500 flex items-center gap-1">Go to section <ChevronRight className="w-4 h-4" /></p>
+          </Link>
+        </motion.div>
+      ))}
+    </div>
+  </div>
+);
+
+// ─── Doctor Welcome Dashboard ────────────────────────────────────────────────
+const DoctorDashboardContent = ({ user }) => (
+  <div className="space-y-8">
+    <div>
+      <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Doctor Portal</h1>
+      <p className="text-slate-500 mt-2 text-lg">Welcome, Dr. {user?.name}. Here's your workspace.</p>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {[
+        { label: 'Today\'s Appointments', icon: Calendar,    to: '/admin/doctor/appointments', color: 'blue' },
+        { label: 'Patient Records',        icon: Users,       to: '/admin/doctor/patients',     color: 'indigo' },
+        { label: 'Consultation Room',      icon: Video,       to: '/admin/doctor/consultation', color: 'emerald' },
+      ].map((item, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.1 }}
+          className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group cursor-pointer"
+        >
+          <Link to={item.to} className="flex flex-col gap-4">
+            <div className={cn(
+              'w-14 h-14 rounded-xl flex items-center justify-center',
+              item.color === 'blue'   ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' :
+              item.color === 'indigo' ? 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white' :
+                                       'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white',
+              'transition-colors'
+            )}>
+              <item.icon className="w-7 h-7" />
+            </div>
+            <p className="text-lg font-bold text-slate-900">{item.label}</p>
+            <p className="text-sm text-slate-500 flex items-center gap-1">Go to section <ChevronRight className="w-4 h-4" /></p>
+          </Link>
+        </motion.div>
+      ))}
+    </div>
+  </div>
+);
+
+// ─── Main Dashboard component ────────────────────────────────────────────────
 const AdminDashboard = () => {
+  const { user } = useAuth();
+
   return (
     <AdminLayout>
-      <div className="space-y-10">
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Super Dashboard</h1>
-            <p className="text-slate-500 mt-2 text-lg">Welcome back, Admin. Here's what's happening today.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-white border border-slate-100 rounded-xl flex items-center gap-2 shadow-sm">
-              <Clock className="w-4 h-4 text-slate-400" />
-              <span className="text-sm font-bold text-slate-600">Last updated: Just now</span>
+      {user?.role === 'pharmacist' ? (
+        <PharmacistDashboardContent user={user} />
+      ) : user?.role === 'doctor' ? (
+        <DoctorDashboardContent user={user} />
+      ) : (
+        <div className="space-y-10">
+          {/* Page Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Super Dashboard</h1>
+              <p className="text-slate-500 mt-2 text-lg">Welcome back, {user?.name || 'Admin'}. Here's what's happening today.</p>
             </div>
-            <button className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Generate Report
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          {MOCK_STATS.map((stat, i) => (
-            <StatCard key={i} stat={stat} index={i} />
-          ))}
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Chart */}
-          <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Platform Growth</h3>
-                <p className="text-sm text-slate-500 mt-1">User signups over the last 7 months</p>
+            <div className="flex items-center gap-3">
+              <div className="px-4 py-2 bg-white border border-slate-100 rounded-xl flex items-center gap-2 shadow-sm">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <span className="text-sm font-bold text-slate-600">Last updated: Just now</span>
               </div>
-              <select className="px-4 py-2 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-600/20">
-                <option>Last 7 months</option>
-                <option>Last 12 months</option>
-                <option>All time</option>
-              </select>
-            </div>
-            <div className="h-[350px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={USER_SIGNUP_DATA}>
-                  <defs>
-                    <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563EB" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }}
-                    dy={10}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="students" 
-                    stroke="#2563EB" 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorStudents)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Secondary Chart */}
-          <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Appointments</h3>
-                <p className="text-sm text-slate-500 mt-1">Daily trend this week</p>
-              </div>
-              <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                <MoreVertical className="w-5 h-5 text-slate-400" />
-              </button>
-            </div>
-            <div className="h-[350px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={APPOINTMENT_DATA}>
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }}
-                    dy={10}
-                  />
-                  <Tooltip 
-                    cursor={{ fill: '#F8FAFC' }}
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Bar 
-                    dataKey="appointments" 
-                    fill="#2563EB" 
-                    radius={[6, 6, 0, 0]} 
-                    barSize={30}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Section: Activity & Alerts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Recent Activity */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-900">Recent Activity</h3>
-              <button className="text-sm font-bold text-blue-600 hover:underline">View All</button>
-            </div>
-            <div className="divide-y divide-slate-50">
-              {RECENT_ACTIVITY.map((activity) => (
-                <div key={activity.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center",
-                      activity.type === 'user' ? "bg-blue-50 text-blue-600" :
-                      activity.type === 'order' ? "bg-emerald-50 text-emerald-600" :
-                      activity.type === 'event' ? "bg-indigo-50 text-indigo-600" :
-                      "bg-slate-50 text-slate-600"
-                    )}>
-                      {activity.type === 'user' ? <Users className="w-5 h-5" /> :
-                       activity.type === 'order' ? <ShoppingBag className="w-5 h-5" /> :
-                       activity.type === 'event' ? <Calendar className="w-5 h-5" /> :
-                       <Activity className="w-5 h-5" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">
-                        <span className="text-blue-600">{activity.user}</span> {activity.action}
-                      </p>
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">{activity.time}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Critical Alerts */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-900">Critical Alerts</h3>
-              <span className="px-2 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-full uppercase tracking-widest">
-                {ALERTS.length} Active
-              </span>
-            </div>
-            <div className="p-6 space-y-4">
-              {ALERTS.map((alert) => (
-                <div key={alert.id} className={cn(
-                  "p-4 rounded-xl border flex items-start gap-3",
-                  alert.level === 'error' ? "bg-rose-50 border-rose-100" :
-                  alert.level === 'warning' ? "bg-amber-50 border-amber-100" :
-                  "bg-blue-50 border-blue-100"
-                )}>
-                  <AlertCircle className={cn(
-                    "w-5 h-5 shrink-0 mt-0.5",
-                    alert.level === 'error' ? "text-rose-600" :
-                    alert.level === 'warning' ? "text-amber-600" :
-                    "text-blue-600"
-                  )} />
-                  <div className="flex-1">
-                    <p className={cn(
-                      "text-sm font-bold",
-                      alert.level === 'error' ? "text-rose-900" :
-                      alert.level === 'warning' ? "text-amber-900" :
-                      "text-blue-900"
-                    )}>
-                      {alert.title}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1 font-medium">{alert.time}</p>
-                  </div>
-                </div>
-              ))}
-              <button className="w-full py-4 mt-4 bg-slate-50 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">
-                View All Alerts
+              <button className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Generate Report
               </button>
             </div>
           </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            {MOCK_STATS.map((stat, i) => (
+              <StatCard key={i} stat={stat} index={i} />
+            ))}
+          </div>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Chart */}
+            <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Platform Growth</h3>
+                  <p className="text-sm text-slate-500 mt-1">User signups over the last 7 months</p>
+                </div>
+                <select className="px-4 py-2 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-600/20">
+                  <option>Last 7 months</option>
+                  <option>Last 12 months</option>
+                  <option>All time</option>
+                </select>
+              </div>
+              <div className="h-[350px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={USER_SIGNUP_DATA}>
+                    <defs>
+                      <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }} />
+                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                    <Area type="monotone" dataKey="students" stroke="#2563EB" strokeWidth={3} fillOpacity={1} fill="url(#colorStudents)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Secondary Chart */}
+            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Appointments</h3>
+                  <p className="text-sm text-slate-500 mt-1">Daily trend this week</p>
+                </div>
+                <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                  <MoreVertical className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+              <div className="h-[350px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={APPOINTMENT_DATA}>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }} dy={10} />
+                    <Tooltip cursor={{ fill: '#F8FAFC' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="appointments" fill="#2563EB" radius={[6, 6, 0, 0]} barSize={30} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Section: Activity & Alerts */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Recent Activity */}
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-slate-900">Recent Activity</h3>
+                <button className="text-sm font-bold text-blue-600 hover:underline">View All</button>
+              </div>
+              <div className="divide-y divide-slate-50">
+                {RECENT_ACTIVITY.map((activity) => (
+                  <div key={activity.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        'w-10 h-10 rounded-xl flex items-center justify-center',
+                        activity.type === 'user'  ? 'bg-blue-50 text-blue-600' :
+                        activity.type === 'order' ? 'bg-emerald-50 text-emerald-600' :
+                        activity.type === 'event' ? 'bg-indigo-50 text-indigo-600' :
+                        'bg-slate-50 text-slate-600'
+                      )}>
+                        {activity.type === 'user'  ? <Users className="w-5 h-5" /> :
+                         activity.type === 'order' ? <ShoppingBag className="w-5 h-5" /> :
+                         activity.type === 'event' ? <Calendar className="w-5 h-5" /> :
+                         <Activity className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">
+                          <span className="text-blue-600">{activity.user}</span> {activity.action}
+                        </p>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">{activity.time}</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Critical Alerts */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-slate-900">Critical Alerts</h3>
+                <span className="px-2 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-full uppercase tracking-widest">
+                  {ALERTS.length} Active
+                </span>
+              </div>
+              <div className="p-6 space-y-4">
+                {ALERTS.map((alert) => (
+                  <div key={alert.id} className={cn(
+                    'p-4 rounded-xl border flex items-start gap-3',
+                    alert.level === 'error'   ? 'bg-rose-50 border-rose-100' :
+                    alert.level === 'warning' ? 'bg-amber-50 border-amber-100' :
+                    'bg-blue-50 border-blue-100'
+                  )}>
+                    <AlertCircle className={cn(
+                      'w-5 h-5 shrink-0 mt-0.5',
+                      alert.level === 'error'   ? 'text-rose-600' :
+                      alert.level === 'warning' ? 'text-amber-600' :
+                      'text-blue-600'
+                    )} />
+                    <div className="flex-1">
+                      <p className={cn(
+                        'text-sm font-bold',
+                        alert.level === 'error'   ? 'text-rose-900' :
+                        alert.level === 'warning' ? 'text-amber-900' :
+                        'text-blue-900'
+                      )}>{alert.title}</p>
+                      <p className="text-xs text-slate-500 mt-1 font-medium">{alert.time}</p>
+                    </div>
+                  </div>
+                ))}
+                <button className="w-full py-4 mt-4 bg-slate-50 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">
+                  View All Alerts
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </AdminLayout>
   );
 };

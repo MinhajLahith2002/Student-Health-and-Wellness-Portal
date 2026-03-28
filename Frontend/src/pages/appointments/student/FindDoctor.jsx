@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MOCK_DOCTORS } from '../../../constants/mockAppointmentData';
-import { cn } from '../../../lib/utils';
 
 const FindDoctor = () => {
   const [searchQuery, setSearchQuery] = useState('');

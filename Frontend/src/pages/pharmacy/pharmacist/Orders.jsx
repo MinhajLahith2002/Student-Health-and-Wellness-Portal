@@ -50,7 +50,7 @@ const OrderManagement = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => navigate('/pharmacist/dashboard')}
+              onClick={() => navigate('/admin/dashboard')}
               className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
             >
               <ChevronLeft className="w-6 h-6" />

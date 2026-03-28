@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, Upload, Package, ShieldAlert, MapPin, ShoppingBag, ArrowRight, Clock, CheckCircle2, ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MOCK_ORDERS, MOCK_MEDICINES } from '../../../constants/mockPharmacyData';
+import { apiFetch } from '../../../lib/api';
 
-const QuickActionCard = ({ icon: Icon, title, description, to }) => (
+const QuickActionCard = ({ icon, title, description, to }) => (
   <Link to={to} className="block">
     <motion.div 
       whileHover={{ scale: 1.02, translateY: -4 }}
       className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group"
     >
       <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
-        <Icon className="w-6 h-6 text-emerald-600" />
+        {React.createElement(icon, { className: 'w-6 h-6 text-emerald-600' })}
       </div>
       <h3 className="text-lg font-semibold text-slate-900 mb-1">{title}</h3>
       <p className="text-sm text-slate-500 leading-relaxed">{description}</p>
@@ -21,6 +21,9 @@ const QuickActionCard = ({ icon: Icon, title, description, to }) => (
 
 const PharmacyDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [ongoingOrders, setOngoingOrders] = useState([]);
+  const [popularMedicines, setPopularMedicines] = useState([]);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSearch = (e) => {
@@ -30,7 +33,26 @@ const PharmacyDashboard = () => {
     }
   };
 
-  const ongoingOrders = MOCK_ORDERS.filter(o => o.status !== "DELIVERED" && o.status !== "CANCELLED");
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [ordersData, medData] = await Promise.all([
+          apiFetch('/orders?limit=10'),
+          apiFetch('/medicines?limit=8')
+        ]);
+        if (!active) return;
+        const orders = Array.isArray(ordersData?.orders) ? ordersData.orders : [];
+        setOngoingOrders(orders.filter((o) => o.status !== 'Delivered' && o.status !== 'Cancelled'));
+        setPopularMedicines(Array.isArray(medData?.medicines) ? medData.medicines.slice(0, 4) : []);
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load pharmacy dashboard');
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -115,14 +137,14 @@ const PharmacyDashboard = () => {
             <div className="flex overflow-x-auto pb-4 gap-6 no-scrollbar">
               {ongoingOrders.map((order) => (
                 <motion.div 
-                  key={order.id}
+                  key={order._id}
                   whileHover={{ y: -4 }}
                   className="min-w-[320px] bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Order {order.id}</span>
-                      <h3 className="font-semibold text-slate-900">{order.items.length} Items</h3>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Order {order.orderId || order._id}</span>
+                      <h3 className="font-semibold text-slate-900">{(order.items || []).length} Items</h3>
                     </div>
                     <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full">
                       {order.status}
@@ -133,7 +155,7 @@ const PharmacyDashboard = () => {
                     Estimated delivery: 30 mins
                   </div>
                   <Link 
-                    to={`/student/pharmacy/order/${order.id}`}
+                    to={`/student/pharmacy/order/${order._id}`}
                     className="w-full py-3 bg-slate-900 text-white rounded-xl font-medium flex items-center justify-center hover:bg-slate-800 transition-colors"
                   >
                     Track Order
@@ -153,9 +175,9 @@ const PharmacyDashboard = () => {
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {MOCK_MEDICINES.slice(0, 4).map((med) => (
+            {popularMedicines.map((med) => (
               <motion.div 
-                key={med.id}
+                key={med._id}
                 whileHover={{ y: -4 }}
                 className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm group"
               >
@@ -178,7 +200,7 @@ const PharmacyDashboard = () => {
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-emerald-600">${med.price}</span>
                     <Link 
-                      to={`/student/pharmacy/medicine/${med.id}`}
+                      to={`/student/pharmacy/medicine/${med._id}`}
                       className="p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
                     >
                       <ChevronRight className="w-5 h-5" />
@@ -189,6 +211,7 @@ const PharmacyDashboard = () => {
             ))}
           </div>
         </section>
+        {error && <p className="text-sm text-rose-600">{error}</p>}
 
         {/* Health Tips */}
         <section className="bg-emerald-900 rounded-3xl p-8 md:p-12 text-white relative overflow-hidden">
