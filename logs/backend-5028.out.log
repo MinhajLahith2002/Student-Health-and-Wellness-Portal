@@ -1,0 +1,20 @@
+[32minfo[39m: ✅ Database connected {"timestamp":"2026-03-29 09:51:18"}
+Admin user synced
+Doctor Dr. Sarah Smith synced
+Doctor Dr. Michael Chen synced
+Doctor Dr. Emily Wilson synced
+Student John Doe synced
+Student Jane Smith synced
+Pharmacist synced
+Counselor synced
+Database seeded successfully
+[32minfo[39m: ✅ Database seeded (default users and demo data ready) {"timestamp":"2026-03-29 09:51:23"}
+[33mwarn[39m: Port 5028 is already in use. Retrying on port 5029... {"timestamp":"2026-03-29 09:51:23"}
+[32minfo[39m: Server running on port 5028 {"timestamp":"2026-03-29 09:51:23"}
+[32minfo[39m: Environment: development {"timestamp":"2026-03-29 09:51:23"}
+[32minfo[39m: API URL: http://localhost:5028/api {"timestamp":"2026-03-29 09:51:23"}
+[32minfo[39m: WebSocket ready for connections {"timestamp":"2026-03-29 09:51:23"}
+[32minfo[39m: Server running on port 5029 {"timestamp":"2026-03-29 09:51:23"}
+[32minfo[39m: Environment: development {"timestamp":"2026-03-29 09:51:23"}
+[32minfo[39m: API URL: http://localhost:5029/api {"timestamp":"2026-03-29 09:51:23"}
+[32minfo[39m: WebSocket ready for connections {"timestamp":"2026-03-29 09:51:23"}

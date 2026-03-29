@@ -13,7 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { apiFetch } from '../../../lib/api';
+import { getPrescriptionHistory } from '../../../lib/appointments';
 
 const Prescriptions = () => {
   const [selectedPrescription, setSelectedPrescription] = useState(null);
@@ -28,7 +28,7 @@ const Prescriptions = () => {
       setLoading(true);
       setError('');
       try {
-        const data = await apiFetch('/prescriptions');
+        const data = await getPrescriptionHistory();
         if (!active) return;
         setPrescriptions(Array.isArray(data?.prescriptions) ? data.prescriptions : []);
       } catch (err) {

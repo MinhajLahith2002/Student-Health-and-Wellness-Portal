@@ -7,9 +7,14 @@ import mongoUriUtils from '../utils/mongoUri.js';
 import User from '../models/User.js';
 import Medicine from '../models/Medicine.js';
 import FAQ from '../models/FAQ.js';
+import Resource from '../models/Resource.js';
 import Settings from '../models/Settings.js';
 import Order from '../models/Order.js';
 import Prescription from '../models/Prescription.js';
+import Availability from '../models/Availability.js';
+import Appointment from '../models/Appointment.js';
+import CounselingSession from '../models/CounselingSession.js';
+import MoodLog from '../models/MoodLog.js';
 import seedData from '../config/seedData.js';
 
 const { normalizeMongoUri, resolveMongoUriFromEnv } = mongoUriUtils;
@@ -25,7 +30,19 @@ config({ path: join(__dirname, '../.env') });
 const runSeed = async () => {
   try {
     await connectDB();
-    await seedDatabase({ User, Medicine, FAQ, Settings, Order, Prescription });
+    await seedDatabase({
+      User,
+      Medicine,
+      FAQ,
+      Resource,
+      Settings,
+      Order,
+      Prescription,
+      Availability,
+      Appointment,
+      CounselingSession,
+      MoodLog
+    });
     console.log('✅ Database seeded (default users and demo data ready)');
     
     console.log('Seeding completed');
@@ -36,4 +53,4 @@ const runSeed = async () => {
   }
 };
 
-connectDB();
+runSeed();

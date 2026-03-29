@@ -17,11 +17,12 @@ import {
   ClipboardList,
   ShoppingCart,
   Pill,
-  Video,
   FileText,
   UserRound,
   Stethoscope,
   Activity,
+  HeartHandshake,
+  Clock,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -120,14 +121,20 @@ const DOCTOR_MENUS = [
     items: [
       { icon: Stethoscope, label: 'Dashboard', to: '/doctor/dashboard' },
       { icon: Calendar, label: 'Appointments', to: '/doctor/appointments' },
+      { icon: Clock, label: 'Availability', to: '/doctor/availability' },
       { icon: UserRound, label: 'Patient Records', to: '/doctor/patients' },
+      { icon: FileText, label: 'Prescriptions', to: '/doctor/prescriptions' },
     ],
   },
+];
+
+const COUNSELOR_MENUS = [
   {
-    title: 'Consultations',
+    title: 'Counselor Portal',
     items: [
-      { icon: Video, label: 'Consultation Room', to: '/doctor/consultation' },
-      { icon: FileText, label: 'Prescriptions', to: '/doctor/prescriptions' },
+      { icon: HeartHandshake, label: 'Dashboard', to: '/counselor/dashboard' },
+      { icon: Calendar, label: 'Sessions', to: '/counselor/sessions' },
+      { icon: UserRound, label: 'Profile Settings', to: '/counselor/profile' },
     ],
   },
 ];
@@ -137,6 +144,7 @@ const ROLE_META = {
   admin: { label: 'Admin', accent: 'CampusAdmin' },
   pharmacist: { label: 'Pharmacist', accent: 'PharmPortal' },
   doctor: { label: 'Doctor', accent: 'DocPortal' },
+  counselor: { label: 'Counselor', accent: 'CarePortal' },
 };
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
@@ -147,6 +155,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const role = user?.role || 'admin';
   const menuGroups =
     role === 'pharmacist' ? PHARMACIST_MENUS :
+    role === 'counselor'  ? COUNSELOR_MENUS :
     role === 'doctor'     ? DOCTOR_MENUS :
                             ADMIN_MENUS;
 
@@ -188,6 +197,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest',
             role === 'admin' ? 'bg-blue-50 text-blue-600' :
             role === 'pharmacist' ? 'bg-emerald-50 text-emerald-600' :
+            role === 'counselor' ? 'bg-purple-50 text-purple-600' :
             'bg-indigo-50 text-indigo-600'
           )}>
             <span className="w-1.5 h-1.5 rounded-full bg-current" />

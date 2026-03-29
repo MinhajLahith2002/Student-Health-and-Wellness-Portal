@@ -52,8 +52,7 @@ const EventManager = () => {
     handleChange,
     handleBlur,
     handleSubmit,
-    resetForm,
-    setValues
+    resetForm
   } = useForm({
     title: '',
     description: '',

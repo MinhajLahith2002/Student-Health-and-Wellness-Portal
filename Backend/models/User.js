@@ -29,10 +29,39 @@ const userSchema = new Schema({
     default: 'student',
     required: true
   },
+  studentId: {
+    type: String,
+    trim: true,
+    unique: true,
+    sparse: true
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
   address: {
     type: String,
     trim: true
   },
+  specialty: {
+    type: String,
+    trim: true,
+    maxlength: [120, 'Specialty cannot exceed 120 characters']
+  },
+  experience: {
+    type: Number,
+    min: [0, 'Experience cannot be negative'],
+    default: null
+  },
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: [1500, 'Bio cannot exceed 1500 characters']
+  },
+  education: [{
+    type: String,
+    trim: true
+  }],
   bloodType: {
     type: String,
     enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],

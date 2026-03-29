@@ -9,6 +9,7 @@ const ROLE_BREADCRUMB = {
   admin: 'Admin',
   doctor: 'Doctor Portal',
   pharmacist: 'Pharmacist Portal',
+  counselor: 'Counselor Portal',
 };
 
 const AdminLayout = ({ children }) => {
@@ -16,6 +17,7 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
   const { user } = useAuth();
   const breadcrumbRoot = ROLE_BREADCRUMB[user?.role] || 'Admin';
+  const footerLabel = user?.role === 'admin' ? 'Admin Portal' : `${breadcrumbRoot}`;
 
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex">
@@ -59,7 +61,7 @@ const AdminLayout = ({ children }) => {
         {/* Footer */}
         <footer className="p-8 border-t border-slate-50 text-center">
           <p className="text-xs text-slate-400 font-medium">
-            © 2026 CampusHealth Admin Portal. All rights reserved.
+            © 2026 CampusHealth {footerLabel}. All rights reserved.
           </p>
         </footer>
       </main>

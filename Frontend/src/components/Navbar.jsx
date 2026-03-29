@@ -51,6 +51,13 @@ export default function Navbar() {
         { name: "Orders", path: "/pharmacist/orders", icon: <Heart className="w-4 h-4" /> },
       ];
     }
+    if (user?.role === 'counselor') {
+      return [
+        { name: "Dashboard", path: "/counselor/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+        { name: "Sessions", path: "/counselor/sessions", icon: <Calendar className="w-4 h-4" /> },
+        { name: "Profile", path: "/counselor/profile", icon: <Heart className="w-4 h-4" /> },
+      ];
+    }
 
     // Default for students and guests
     const links = [

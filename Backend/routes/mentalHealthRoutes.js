@@ -7,6 +7,8 @@ import authMiddleware from '../middleware/authMiddleware.js';
 const {
   getMoodLogs,
   createMoodLog,
+  updateMoodLog,
+  deleteMoodLog,
   getMoodStats,
   getMentalHealthResources
 } = mentalHealthController;
@@ -20,5 +22,7 @@ router.get('/resources', getMentalHealthResources);
 router.get('/moods', protect, getMoodLogs);
 router.get('/moods/stats', protect, getMoodStats);
 router.post('/moods', protect, createMoodLog);
+router.put('/moods/:id', protect, updateMoodLog);
+router.delete('/moods/:id', protect, deleteMoodLog);
 
 export default router;
