@@ -7,6 +7,10 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+<<<<<<< HEAD
+=======
+import { existsSync } from 'fs';
+>>>>>>> 9a1b35d (Fix deployment error)
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { initializeSocket } from './utils/socket.js';
@@ -38,6 +42,11 @@ const __dirname = dirname(__filename);
 // Initialize express app
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
+<<<<<<< HEAD
+=======
+const isVercel = Boolean(process.env.VERCEL);
+let initializationPromise;
+>>>>>>> 9a1b35d (Fix deployment error)
 
 const initializeDatabase = async () => {
   await connectDB();
@@ -62,6 +71,20 @@ const initializeDatabase = async () => {
   }
 };
 
+<<<<<<< HEAD
+=======
+const ensureInitialized = async () => {
+  if (!initializationPromise) {
+    initializationPromise = initializeDatabase().catch((error) => {
+      initializationPromise = undefined;
+      throw error;
+    });
+  }
+
+  return initializationPromise;
+};
+
+>>>>>>> 9a1b35d (Fix deployment error)
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -158,17 +181,63 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+<<<<<<< HEAD
+=======
+app.get('/', (req, res, next) => {
+  if (isProduction) {
+    return next();
+  }
+
+  res.json({
+    message: 'Student Health and Wellness backend is running.',
+    health: '/api/health'
+  });
+});
+
+app.use('/api', async (req, res, next) => {
+  try {
+    await ensureInitialized();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+>>>>>>> 9a1b35d (Fix deployment error)
 // API Routes
 app.use('/api', routes);
 
 // Serve static frontend in production
 if (process.env.NODE_ENV === 'production') {
+<<<<<<< HEAD
   const frontendPath = join(__dirname, '../frontend/dist');
   app.use(expressStatic(frontendPath));
   
   app.get('*', (req, res) => {
     res.sendFile(join(frontendPath, 'index.html'));
   });
+=======
+  const frontendPath = join(__dirname, '../Frontend/dist');
+
+  if (existsSync(frontendPath)) {
+    app.use(expressStatic(frontendPath));
+
+    app.get('*', (req, res) => {
+      res.sendFile(join(frontendPath, 'index.html'));
+    });
+  } else {
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+
+      res.status(200).json({
+        message: 'Backend deployed successfully.',
+        health: '/api/health'
+      });
+    });
+  }
+>>>>>>> 9a1b35d (Fix deployment error)
 }
 
 // 404 handler
@@ -179,10 +248,17 @@ app.use(errorHandler);
 
 // Create HTTP server
 const DEFAULT_PORT = Number(process.env.PORT) || 5000;
+<<<<<<< HEAD
 const server = createServer(app);
 
 // Initialize Socket.IO
 const io = initializeSocket(server);
+=======
+const server = isVercel ? null : createServer(app);
+
+// Initialize Socket.IO
+const io = server ? initializeSocket(server) : null;
+>>>>>>> 9a1b35d (Fix deployment error)
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -198,6 +274,13 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Graceful shutdown
 const gracefulShutdown = () => {
+<<<<<<< HEAD
+=======
+  if (!server) {
+    return;
+  }
+
+>>>>>>> 9a1b35d (Fix deployment error)
   logger.info('Received shutdown signal, closing server...');
   
   server.close(async () => {
@@ -219,6 +302,13 @@ process.on('SIGINT', gracefulShutdown);
 
 // Start server with automatic port fallback when default port is busy.
 const startServer = (port, attempt = 0) => {
+<<<<<<< HEAD
+=======
+  if (!server) {
+    return;
+  }
+
+>>>>>>> 9a1b35d (Fix deployment error)
   server.once('error', (error) => {
     if (error.code === 'EADDRINUSE' && attempt < 10) {
       const nextPort = port + 1;
@@ -239,7 +329,11 @@ const startServer = (port, attempt = 0) => {
   });
 };
 
+<<<<<<< HEAD
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+=======
+if (!isVercel) {
+>>>>>>> 9a1b35d (Fix deployment error)
   initializeDatabase()
     .then(() => startServer(DEFAULT_PORT))
     .catch((error) => {

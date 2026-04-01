@@ -8,12 +8,15 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+<<<<<<< HEAD
 // Create logs directory if it doesn't exist
 const logDir = path.join(__dirname, '../../logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
+=======
+>>>>>>> 9a1b35d (Fix deployment error)
 // Define log format
 const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -28,10 +31,51 @@ const logFormat = winston.format.combine(
   })
 );
 
+<<<<<<< HEAD
+=======
+const transports = [
+  new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      winston.format.simple()
+    )
+  })
+];
+
+const preferredLogDir = process.env.LOG_DIR
+  ? path.resolve(process.cwd(), process.env.LOG_DIR)
+  : path.join(__dirname, '../../logs');
+
+try {
+  if (!process.env.VERCEL) {
+    if (!fs.existsSync(preferredLogDir)) {
+      fs.mkdirSync(preferredLogDir, { recursive: true });
+    }
+
+    transports.push(
+      new winston.transports.File({
+        filename: path.join(preferredLogDir, 'combined.log'),
+        maxsize: 5242880,
+        maxFiles: 5
+      }),
+      new winston.transports.File({
+        filename: path.join(preferredLogDir, 'error.log'),
+        level: 'error',
+        maxsize: 5242880,
+        maxFiles: 5
+      })
+    );
+  }
+} catch (error) {
+  console.warn(`File logging disabled: ${error.message}`);
+}
+
+>>>>>>> 9a1b35d (Fix deployment error)
 // Create logger instance
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: logFormat,
+<<<<<<< HEAD
   transports: [
     new winston.transports.Console({
       format: winston.format.combine(
@@ -51,6 +95,9 @@ export const logger = winston.createLogger({
       maxFiles: 5
     })
   ]
+=======
+  transports
+>>>>>>> 9a1b35d (Fix deployment error)
 });
 
 // Morgan stream

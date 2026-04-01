@@ -2,13 +2,32 @@
 import mongoose from 'mongoose';
 import dns from 'dns';
 import { logger } from '../utils/logger.js';
+<<<<<<< HEAD
 
 const connectDB = async () => {
   const uri = process.env.MONGODB_URI;
+=======
+import mongoUriUtils from '../utils/mongoUri.js';
+
+const connectDB = async () => {
+  const rawUri = mongoUriUtils.resolveMongoUriFromEnv();
+  const uri = mongoUriUtils.normalizeMongoUri(rawUri);
+>>>>>>> 9a1b35d (Fix deployment error)
   const options = {
     serverSelectionTimeoutMS: 30000
   };
 
+<<<<<<< HEAD
+=======
+  if (!uri) {
+    throw new Error('MongoDB connection string is missing. Set MONGODB_URI in the environment.');
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+>>>>>>> 9a1b35d (Fix deployment error)
   if (uri?.startsWith('mongodb+srv://')) {
     // Force reliable DNS resolvers for Atlas SRV lookups on networks with broken local DNS.
     dns.setServers(['8.8.8.8', '1.1.1.1']);
