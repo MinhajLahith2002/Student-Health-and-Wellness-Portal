@@ -10,6 +10,8 @@ const {
   getUsers,
   getUserById,
   getUserProfile,
+  getProviders,
+  getProviderById,
   updateProfile,
   updateUser,
   deleteUser,
@@ -23,6 +25,8 @@ const { upload } = uploadMiddleware;
 // Protected routes
 router.get('/profile', protect, getUserProfile);
 router.get('/me', protect, getUserProfile);
+router.get('/providers', protect, getProviders);
+router.get('/providers/:id', protect, getProviderById);
 router.put('/profile', protect, updateProfile);
 router.post('/upload-image', protect, upload.single('image'), uploadProfileImage);
 

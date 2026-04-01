@@ -45,7 +45,7 @@ const appointmentSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show'],
+    enum: ['Pending', 'Confirmed', 'Ready', 'In Progress', 'Completed', 'Cancelled', 'No Show'],
     default: 'Pending'
   },
   meetingLink: {
@@ -58,8 +58,28 @@ const appointmentSchema = new Schema({
     type: String,
     maxlength: 500
   },
+  consultationNotes: {
+    type: String,
+    maxlength: 4000
+  },
+  diagnosis: {
+    type: String,
+    maxlength: 1000
+  },
   symptoms: {
     type: String
+  },
+  checkInAt: {
+    type: Date,
+    default: null
+  },
+  followUpDate: {
+    type: Date,
+    default: null
+  },
+  followUpReason: {
+    type: String,
+    maxlength: 500
   },
   prescriptionId: {
     type: Schema.Types.ObjectId,

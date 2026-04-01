@@ -12,12 +12,11 @@ import {
   Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
 
 const HealthProducts = () => {
-  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(() => {

@@ -17,9 +17,14 @@ import connectDB from './config/database.js';
 import User from './models/User.js';
 import Medicine from './models/Medicine.js';
 import FAQ from './models/FAQ.js';
+import Resource from './models/Resource.js';
 import Settings from './models/Settings.js';
 import Order from './models/Order.js';
 import Prescription from './models/Prescription.js';
+import Availability from './models/Availability.js';
+import Appointment from './models/Appointment.js';
+import CounselingSession from './models/CounselingSession.js';
+import MoodLog from './models/MoodLog.js';
 import seedData from './config/seedData.js';
 
 const { logger, morganStream } = loggerModule;
@@ -32,16 +37,30 @@ const __dirname = dirname(__filename);
 
 // Initialize express app
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Connect to DB and seed default data
-connectDB().then(async () => {
+const initializeDatabase = async () => {
+  await connectDB();
+
   try {
-    await seedDatabase({ User, Medicine, FAQ, Settings, Order, Prescription });
+    await seedDatabase({
+      User,
+      Medicine,
+      FAQ,
+      Resource,
+      Settings,
+      Order,
+      Prescription,
+      Availability,
+      Appointment,
+      CounselingSession,
+      MoodLog
+    });
     logger.info('✅ Database seeded (default users and demo data ready)');
   } catch (err) {
     logger.warn('Seed skipped or failed:', err.message);
   }
-});
+};
 
 // Security middleware
 app.use(helmet({
@@ -83,7 +102,11 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
-app.use('/api', limiter);
+
+// Keep the broad API limiter for production, but avoid blocking local dev/demo usage.
+if (isProduction) {
+  app.use('/api', limiter);
+}
 
 // Stricter rate limit for auth routes
 const authLimiter = rateLimit({
@@ -217,7 +240,12 @@ const startServer = (port, attempt = 0) => {
 };
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  startServer(DEFAULT_PORT);
+  initializeDatabase()
+    .then(() => startServer(DEFAULT_PORT))
+    .catch((error) => {
+      logger.error('Failed to initialize server:', error);
+      process.exit(1);
+    });
 }
 
 export { app, server, io };

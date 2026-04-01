@@ -10,8 +10,13 @@ const {
   getAppointmentById,
   bookAppointment,
   updateAppointmentStatus,
+  rescheduleAppointment,
+  checkInAppointment,
+  updateConsultation,
   getDoctorAvailability,
-  getDoctorQueue
+  getDoctorQueue,
+  getDoctorPatients,
+  getDoctorPatientById
 } = appointmentController;
 
 const { protect } = authMiddleware;
@@ -23,8 +28,13 @@ router.get('/availability/:doctorId', getDoctorAvailability);
 // Protected routes
 router.get('/', protect, getAppointments);
 router.get('/queue', protect, authorize('doctor'), getDoctorQueue);
+router.get('/patients', protect, authorize('doctor'), getDoctorPatients);
+router.get('/patients/:studentId', protect, authorize('doctor'), getDoctorPatientById);
 router.get('/:id', protect, getAppointmentById);
 router.post('/', protect, authorize('student'), bookAppointment);
 router.put('/:id/status', protect, updateAppointmentStatus);
+router.put('/:id/reschedule', protect, rescheduleAppointment);
+router.put('/:id/check-in', protect, authorize('student'), checkInAppointment);
+router.put('/:id/consultation', protect, authorize('doctor'), updateConsultation);
 
 export default router;

@@ -72,6 +72,61 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+// @desc    Get provider directory
+// @route   GET /api/users/providers
+// @access  Private
+const getProviders = async (req, res) => {
+  try {
+    const { role, search, specialty } = req.query;
+    const query = {
+      role: role ? role : { $in: ['doctor', 'counselor'] },
+      isActive: true
+    };
+
+    if (role && !['doctor', 'counselor'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid provider role' });
+    }
+
+    if (specialty && specialty !== 'All') {
+      query.specialty = specialty;
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { specialty: { $regex: search, $options: 'i' } },
+        { bio: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const providers = await User.find(query)
+      .select('name email role specialty experience bio education profileImage isVerified')
+      .sort({ name: 1 });
+
+    res.json({ providers });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get provider by ID
+// @route   GET /api/users/providers/:id
+// @access  Private
+const getProviderById = async (req, res) => {
+  try {
+    const provider = await User.findById(req.params.id)
+      .select('name email role specialty experience bio education profileImage isVerified');
+
+    if (!provider || !['doctor', 'counselor'].includes(provider.role)) {
+      return res.status(404).json({ message: 'Provider not found' });
+    }
+
+    res.json(provider);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Update profile
 // @route   PUT /api/users/profile
 // @access  Private
@@ -80,7 +135,19 @@ const updateProfile = async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const { name, address, bloodType, allergies, dateOfBirth, gender } = req.body;
+    const {
+      name,
+      address,
+      bloodType,
+      allergies,
+      dateOfBirth,
+      gender,
+      phone,
+      specialty,
+      bio,
+      experience,
+      education
+    } = req.body;
 
     user.name = name || user.name;
     user.address = address || user.address;
@@ -88,6 +155,14 @@ const updateProfile = async (req, res) => {
     user.allergies = allergies || user.allergies;
     user.dateOfBirth = dateOfBirth || user.dateOfBirth;
     user.gender = gender || user.gender;
+    user.phone = phone || user.phone;
+
+    if (['doctor', 'counselor'].includes(user.role)) {
+      user.specialty = specialty || user.specialty;
+      user.bio = bio || user.bio;
+      user.experience = experience ?? user.experience;
+      user.education = Array.isArray(education) ? education : user.education;
+    }
 
     await user.save();
 
@@ -195,6 +270,8 @@ export default {
   getUsers,
   getUserById,
   getUserProfile,
+  getProviders,
+  getProviderById,
   updateProfile,
   updateUser,
   deleteUser,

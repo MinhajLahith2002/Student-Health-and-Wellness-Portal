@@ -20,6 +20,11 @@ const resourceSchema = new Schema({
     enum: ['Mental Health', 'Nutrition', 'General Health', 'Safety', 'Fitness', 'Wellness'],
     required: true
   },
+  subCategory: {
+    type: String,
+    trim: true,
+    maxlength: 80
+  },
   content: {
     type: String,
     required: true

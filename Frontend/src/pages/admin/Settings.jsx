@@ -49,8 +49,7 @@ const SystemSettings = () => {
     touched,
     handleChange,
     handleBlur,
-    handleSubmit,
-    setValues
+    handleSubmit
   } = useForm({
     platformName: 'CampusHealth',
     supportEmail: 'support@campushealth.edu',

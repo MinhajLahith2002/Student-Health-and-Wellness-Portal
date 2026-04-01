@@ -1,0 +1,19 @@
+Email sending failed: Error: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials d2e1a72fcca58-82ca85ef0a9sm3285417b3a.43 - gsmtp
+    at SMTPConnection._formatError (C:\Users\afnle\OneDrive\Desktop\afn-proj\Student-Health-and-Wellness-Portal\Backend\node_modules\nodemailer\lib\smtp-connection\index.js:865:19)
+    at SMTPConnection._actionAUTHComplete (C:\Users\afnle\OneDrive\Desktop\afn-proj\Student-Health-and-Wellness-Portal\Backend\node_modules\nodemailer\lib\smtp-connection\index.js:1673:34)
+    at SMTPConnection.<anonymous> (C:\Users\afnle\OneDrive\Desktop\afn-proj\Student-Health-and-Wellness-Portal\Backend\node_modules\nodemailer\lib\smtp-connection\index.js:604:26)
+    at SMTPConnection._processResponse (C:\Users\afnle\OneDrive\Desktop\afn-proj\Student-Health-and-Wellness-Portal\Backend\node_modules\nodemailer\lib\smtp-connection\index.js:1050:20)
+    at SMTPConnection._onData (C:\Users\afnle\OneDrive\Desktop\afn-proj\Student-Health-and-Wellness-Portal\Backend\node_modules\nodemailer\lib\smtp-connection\index.js:825:14)
+    at SMTPConnection._onSocketData (C:\Users\afnle\OneDrive\Desktop\afn-proj\Student-Health-and-Wellness-Portal\Backend\node_modules\nodemailer\lib\smtp-connection\index.js:195:44)
+    at TLSSocket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5) {
+  code: 'EAUTH',
+  response: '535-5.7.8 Username and Password not accepted. For more information, go to\n' +
+    '535 5.7.8  https://support.google.com/mail/?p=BadCredentials d2e1a72fcca58-82ca85ef0a9sm3285417b3a.43 - gsmtp',
+  responseCode: 535,
+  command: 'AUTH PLAIN'
+}
+^C

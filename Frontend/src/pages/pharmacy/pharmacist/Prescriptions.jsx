@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_PRESCRIPTIONS } from '../../../constants/mockPharmacyData';
+import { MOCK_MEDICINES, MOCK_PRESCRIPTIONS } from '../../../constants/mockPharmacyData';
 import { cn } from '../../../lib/utils';
 
 const PrescriptionProcessing = () => {

@@ -1,5 +1,19 @@
 import { hash } from 'bcryptjs';
 
+function createDateOffset(days, hour = 9, minute = 0) {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + days);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
+
+function createDateOnlyOffset(days) {
+  const date = createDateOffset(days);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
 /**
  * Seed data for initial database population
  */
@@ -96,6 +110,83 @@ const seedData = {
     isActive: true,
     isVerified: true
   },
+
+  // Default Counselor
+  counselor: {
+    name: 'Dr. Ava Thompson',
+    email: process.env.COUNSELOR_EMAIL || 'counselor@gmail.com',
+    password: process.env.COUNSELOR_PASSWORD || 'counselor123',
+    role: 'counselor',
+    specialty: 'Student Wellness Counselor',
+    experience: 7,
+    bio: 'Supports students with stress, anxiety, burnout, grief, and academic-life balance through confidential counseling.',
+    education: ['MSc Counseling Psychology - UCLA', 'Licensed Campus Wellness Counselor'],
+    isActive: true,
+    isVerified: true
+  },
+
+  counselors: [
+    {
+      name: 'Dr. Ava Thompson',
+      email: process.env.COUNSELOR_EMAIL || 'counselor@gmail.com',
+      password: process.env.COUNSELOR_PASSWORD || 'counselor123',
+      role: 'counselor',
+      specialty: 'Student Wellness Counselor',
+      experience: 7,
+      bio: 'Supports students with stress, anxiety, burnout, grief, and academic-life balance through confidential counseling.',
+      education: ['MSc Counseling Psychology - UCLA', 'Licensed Campus Wellness Counselor'],
+      isActive: true,
+      isVerified: true
+    },
+    {
+      name: 'Dr. Maya Patel',
+      email: 'maya.patel@campushealth.edu',
+      password: 'counselor123',
+      role: 'counselor',
+      specialty: 'Anxiety & Stress Support',
+      experience: 9,
+      bio: 'Helps students manage anxiety, overthinking, panic patterns, and everyday academic stress with practical coping plans.',
+      education: ['MA Clinical Mental Health Counseling - Boston University', 'Certified CBT Practitioner'],
+      isActive: true,
+      isVerified: true
+    },
+    {
+      name: 'Jordan Reyes',
+      email: 'jordan.reyes@campushealth.edu',
+      password: 'counselor123',
+      role: 'counselor',
+      specialty: 'Burnout & Academic Balance',
+      experience: 6,
+      bio: 'Works with students facing exhaustion, motivation loss, procrastination, and study-life imbalance during demanding semesters.',
+      education: ['MS Counseling - University of Michigan', 'Campus Resilience Facilitator'],
+      isActive: true,
+      isVerified: true
+    },
+    {
+      name: 'Dr. Lena Brooks',
+      email: 'lena.brooks@campushealth.edu',
+      password: 'counselor123',
+      role: 'counselor',
+      specialty: 'Sleep & Emotional Regulation',
+      experience: 8,
+      bio: 'Focuses on sleep disruption, emotional regulation, grounding skills, and healthier routines for students under pressure.',
+      education: ['PsyD Counseling Psychology - NYU', 'Mindfulness-Based Stress Reduction Facilitator'],
+      isActive: true,
+      isVerified: true
+    },
+    {
+      name: 'Samira Khan',
+      email: 'samira.khan@campushealth.edu',
+      password: 'counselor123',
+      role: 'counselor',
+      specialty: 'Peer Relationship & Transition Support',
+      experience: 5,
+      bio: 'Supports students adjusting to campus life, friendship stress, loneliness, homesickness, and major life transitions.',
+      education: ['MEd Counseling - University of Toronto', 'Student Transition Support Specialist'],
+      isActive: true,
+      isVerified: true
+    }
+  ],
   
   // Sample Medicines
   medicines: [
@@ -273,6 +364,58 @@ const seedData = {
       isActive: true
     }
   ],
+
+  // Default mental health resources for counseling and suggestions flows
+  resources: [
+    {
+      title: 'Five-Minute Reset for Stressful Days',
+      description: 'A short guided routine students can use between classes to reduce stress and reset focus.',
+      type: 'Guide',
+      category: 'Mental Health',
+      subCategory: 'Stress Management',
+      content: 'Pause, unclench your jaw, breathe in for four counts, hold for four, and release for six. Repeat this cycle five times, then write down the next single task you can realistically complete in the next fifteen minutes.',
+      author: 'Campus Wellness Team',
+      readTime: '5 min',
+      tags: ['stress', 'breathing', 'focus'],
+      status: 'Published'
+    },
+    {
+      title: 'Sleep Recovery Tips During Exam Week',
+      description: 'Practical steps to improve sleep quality when deadlines and revision start stacking up.',
+      type: 'Article',
+      category: 'Mental Health',
+      subCategory: 'Sleep',
+      content: 'Build a short wind-down routine, avoid caffeine late in the day, and stop intense studying at least thirty minutes before bed. A consistent bedtime and a lower-light environment can improve rest even during high-pressure weeks.',
+      author: 'Campus Wellness Team',
+      readTime: '6 min',
+      tags: ['sleep', 'exams', 'routine'],
+      status: 'Published'
+    },
+    {
+      title: 'Guided Breathing for Anxiety Relief',
+      description: 'A counselor-recommended video resource for grounding during anxious moments.',
+      type: 'Video',
+      category: 'Mental Health',
+      subCategory: 'Anxiety Support',
+      content: 'Use this guided breathing video whenever you feel overwhelmed, restless, or mentally overloaded. Pair it with a short walk or hydration break afterward for better recovery.',
+      author: 'Campus Wellness Team',
+      duration: '8 min',
+      videoUrl: 'https://www.youtube.com/watch?v=odADwWzHR24',
+      tags: ['anxiety', 'video', 'breathing'],
+      status: 'Published'
+    },
+    {
+      title: 'Burnout Warning Signs Checklist',
+      description: 'An easy reference sheet that helps students spot early burnout patterns before they escalate.',
+      type: 'Infographic',
+      category: 'Mental Health',
+      subCategory: 'Burnout',
+      content: 'Burnout often appears as ongoing exhaustion, reduced concentration, irritability, and withdrawal from usual routines. If several signs persist for more than two weeks, consider booking counseling support and reducing nonessential commitments.',
+      author: 'Campus Wellness Team',
+      tags: ['burnout', 'checklist', 'self-awareness'],
+      status: 'Published'
+    }
+  ],
   
   // Sample FAQs
   faqs: [
@@ -318,7 +461,55 @@ const seedData = {
     { key: 'maxAppointmentsPerDay', value: 5, type: 'number' },
     { key: 'prescriptionValidityDays', value: 30, type: 'number' },
     { key: 'freeDeliveryThreshold', value: 50, type: 'number' }
-  ]
+  ],
+
+  availabilityTemplates: {
+    doctor: [
+      {
+        title: 'Primary Clinic Hours',
+        recurringDays: [1, 3, 5],
+        startTime: '09:00 AM',
+        endTime: '01:00 PM',
+        slotDuration: 30,
+        consultationTypes: ['Video Call', 'In-Person'],
+        breaks: [{ startTime: '11:00 AM', endTime: '11:30 AM', label: 'Mid-morning break' }],
+        notes: 'General consultation hours',
+        status: 'Active'
+      },
+      {
+        title: 'Follow-up Clinic',
+        recurringDays: [2, 4],
+        startTime: '02:00 PM',
+        endTime: '05:00 PM',
+        slotDuration: 30,
+        consultationTypes: ['Video Call', 'In-Person'],
+        breaks: [],
+        notes: 'Follow-up and review visits',
+        status: 'Active'
+      }
+    ],
+    counselor: [
+      {
+        title: 'Wellness Sessions',
+        recurringDays: [1, 2, 4],
+        startTime: '10:00 AM',
+        endTime: '04:00 PM',
+        slotDuration: 50,
+        consultationTypes: ['Video Call', 'Chat', 'In-Person'],
+        breaks: [{ startTime: '01:00 PM', endTime: '01:45 PM', label: 'Reset break' }],
+        notes: 'Confidential counseling availability',
+        status: 'Active'
+      },
+      {
+        title: 'Unavailable Wellness Retreat',
+        date: createDateOnlyOffset(4),
+        recurringDays: [],
+        isUnavailable: true,
+        notes: 'Unavailable for training day',
+        status: 'Active'
+      }
+    ]
+  }
 };
 
 /**
@@ -326,7 +517,19 @@ const seedData = {
  * @param {Object} models - Mongoose models
  */
 const seedDatabase = async (models) => {
-  const { User, Medicine, FAQ, Settings, Order, Prescription } = models;
+  const {
+    User,
+    Medicine,
+    FAQ,
+    Settings,
+    Order,
+    Prescription,
+    Resource,
+    Availability,
+    Appointment,
+    CounselingSession,
+    MoodLog
+  } = models;
   
   try {
     // Check if admin exists and sync credentials
@@ -340,28 +543,87 @@ const seedDatabase = async (models) => {
       await adminUser.save();
       console.log('Admin user synced');
     }
+
+    const seededAdmin = await User.findOne({ email: seedData.admin.email });
     
-    // Seed doctors
-    for (let i = 0; i < seedData.doctors.length; i++) {
-      const doctor = seedData.doctors[i];
-      if (!await User.findOne({ email: doctor.email })) {
+    // Seed doctors and keep demo accounts in sync
+    for (const doctor of seedData.doctors) {
+      const doctorUser = await User.findOne({ email: doctor.email });
+      if (!doctorUser) {
         await User.create(doctor);
         console.log(`Doctor ${doctor.name} created`);
+      } else {
+        doctorUser.name = doctor.name;
+        doctorUser.password = doctor.password;
+        doctorUser.role = 'doctor';
+        doctorUser.specialty = doctor.specialty;
+        doctorUser.experience = doctor.experience;
+        doctorUser.bio = doctor.bio;
+        doctorUser.education = doctor.education;
+        doctorUser.isActive = true;
+        doctorUser.isVerified = true;
+        await doctorUser.save();
+        console.log(`Doctor ${doctor.name} synced`);
       }
     }
     
-    // Seed students
+    // Seed students and keep sample credentials deterministic for demo verification
     for (const student of seedData.students) {
-      if (!await User.findOne({ email: student.email })) {
+      const studentUser = await User.findOne({ email: student.email });
+      if (!studentUser) {
         await User.create(student);
         console.log(`Student ${student.name} created`);
+      } else {
+        studentUser.name = student.name;
+        studentUser.password = student.password;
+        studentUser.role = 'student';
+        studentUser.studentId = student.studentId;
+        studentUser.phone = student.phone;
+        studentUser.address = student.address;
+        studentUser.bloodType = student.bloodType;
+        studentUser.allergies = student.allergies;
+        studentUser.medicalHistory = student.medicalHistory;
+        studentUser.isActive = true;
+        studentUser.isVerified = true;
+        await studentUser.save();
+        console.log(`Student ${student.name} synced`);
       }
     }
     
-    // Seed pharmacist
-    if (!await User.findOne({ email: seedData.pharmacist.email })) {
+    // Seed pharmacist and keep credentials synced
+    const pharmacistUser = await User.findOne({ email: seedData.pharmacist.email });
+    if (!pharmacistUser) {
       await User.create(seedData.pharmacist);
       console.log('Pharmacist created');
+    } else {
+      pharmacistUser.name = seedData.pharmacist.name;
+      pharmacistUser.password = seedData.pharmacist.password;
+      pharmacistUser.role = 'pharmacist';
+      pharmacistUser.isActive = true;
+      pharmacistUser.isVerified = true;
+      await pharmacistUser.save();
+      console.log('Pharmacist synced');
+    }
+
+    // Seed counselors and keep demo continuity plus directory data
+    for (const counselor of seedData.counselors) {
+      const counselorUser = await User.findOne({ email: counselor.email });
+      if (!counselorUser) {
+        await User.create(counselor);
+        console.log(`Counselor ${counselor.name} created`);
+      } else {
+        counselorUser.name = counselor.name;
+        counselorUser.password = counselor.password;
+        counselorUser.role = 'counselor';
+        counselorUser.specialty = counselor.specialty;
+        counselorUser.experience = counselor.experience;
+        counselorUser.bio = counselor.bio;
+        counselorUser.education = counselor.education;
+        counselorUser.isActive = true;
+        counselorUser.isVerified = true;
+        await counselorUser.save();
+        console.log(`Counselor ${counselor.name} synced`);
+      }
     }
     
     // Seed medicines
@@ -372,9 +634,66 @@ const seedDatabase = async (models) => {
       }
     }
 
+    if (Resource && seededAdmin) {
+      for (const resource of seedData.resources) {
+        const existingResource = await Resource.findOne({ title: resource.title });
+        if (!existingResource) {
+          await Resource.create({
+            ...resource,
+            createdBy: seededAdmin._id,
+            publishedAt: new Date()
+          });
+          console.log(`Resource ${resource.title} created`);
+        }
+      }
+    }
+
+    const allDoctors = await User.find({ role: 'doctor' }).sort({ createdAt: 1 });
+    const allCounselors = await User.find({ role: 'counselor' }).sort({ createdAt: 1 });
+    const seededCounselor = await User.findOne({ email: seedData.counselor.email });
+
+    if (Availability) {
+      for (const doctorUser of allDoctors) {
+        for (const template of seedData.availabilityTemplates.doctor) {
+          const existingEntry = await Availability.findOne({
+            providerId: doctorUser._id,
+            title: template.title
+          });
+
+          if (!existingEntry) {
+            await Availability.create({
+              providerId: doctorUser._id,
+              role: 'doctor',
+              ...template
+            });
+            console.log(`Availability ${template.title} created for ${doctorUser.name}`);
+          }
+        }
+      }
+
+      for (const counselorUser of allCounselors) {
+        for (const template of seedData.availabilityTemplates.counselor) {
+          const existingEntry = await Availability.findOne({
+            providerId: counselorUser._id,
+            title: template.title
+          });
+
+          if (!existingEntry) {
+            await Availability.create({
+              providerId: counselorUser._id,
+              role: 'counselor',
+              ...template
+            });
+            console.log(`Availability ${template.title} created for ${counselorUser.name}`);
+          }
+        }
+      }
+    }
+
     // Seed sample prescriptions and orders for John Doe
     const student = await User.findOne({ email: 'john.doe@student.edu' });
     const doctor = await User.findOne({ role: 'doctor' });
+    const secondStudent = await User.findOne({ email: 'jane.smith@student.edu' });
     const meds = await Medicine.find({}).limit(3);
 
     if (student && doctor && meds.length > 0) {
@@ -424,6 +743,157 @@ const seedDatabase = async (models) => {
           address: student.address
         });
         console.log('Sample orders created for John Doe');
+      }
+    }
+
+    if (Appointment && student && doctor) {
+      const sampleAppointments = [
+        {
+          studentId: student._id,
+          doctorId: doctor._id,
+          doctorName: doctor.name,
+          doctorSpecialty: doctor.specialty || 'General Physician',
+          studentName: student.name,
+          date: createDateOnlyOffset(1),
+          time: '09:00 AM',
+          type: 'Video Call',
+          status: 'Confirmed',
+          symptoms: 'Recurring headaches during exam revision.',
+          notes: 'Would like advice on stress-related headaches.',
+          meetingLink: 'https://campushealth.local/consultation/demo-upcoming',
+          reminderSent: false
+        },
+        {
+          studentId: student._id,
+          doctorId: doctor._id,
+          doctorName: doctor.name,
+          doctorSpecialty: doctor.specialty || 'General Physician',
+          studentName: student.name,
+          date: createDateOnlyOffset(-3),
+          time: '10:30 AM',
+          type: 'In-Person',
+          status: 'Completed',
+          symptoms: 'Seasonal allergy follow-up.',
+          consultationNotes: 'Discussed allergy trigger tracking and hydration.',
+          diagnosis: 'Seasonal allergies',
+          followUpDate: createDateOnlyOffset(14),
+          followUpReason: 'Review symptom improvement',
+          reminderSent: true
+        }
+      ];
+
+      for (const appointment of sampleAppointments) {
+        const exists = await Appointment.findOne({
+          studentId: appointment.studentId,
+          doctorId: appointment.doctorId,
+          date: appointment.date,
+          time: appointment.time
+        });
+
+        if (!exists) {
+          await Appointment.create(appointment);
+          console.log(`Sample appointment ${appointment.time} created for ${student.name}`);
+        }
+      }
+
+      if (secondStudent) {
+        const queueAppointment = await Appointment.findOne({
+          studentId: secondStudent._id,
+          doctorId: doctor._id,
+          date: createDateOnlyOffset(1),
+          time: '09:30 AM'
+        });
+
+        if (!queueAppointment) {
+          await Appointment.create({
+            studentId: secondStudent._id,
+            doctorId: doctor._id,
+            doctorName: doctor.name,
+            doctorSpecialty: doctor.specialty || 'General Physician',
+            studentName: secondStudent.name,
+            date: createDateOnlyOffset(1),
+            time: '09:30 AM',
+            type: 'In-Person',
+            status: 'Confirmed',
+            symptoms: 'General wellness review',
+            reminderSent: false
+          });
+          console.log(`Queue sample appointment created for ${secondStudent.name}`);
+        }
+      }
+    }
+
+    if (CounselingSession && student && seededCounselor) {
+      const sampleSessions = [
+        {
+          studentId: student._id,
+          counselorId: seededCounselor._id,
+          studentName: student.name,
+          counselorName: seededCounselor.name,
+          counselorSpecialty: seededCounselor.specialty || 'Counselor',
+          date: createDateOnlyOffset(2),
+          time: '10:00 AM',
+          type: 'Video Call',
+          urgency: 'Medium',
+          reason: 'Managing stress and burnout during coursework.',
+          status: 'Confirmed',
+          meetingLink: 'https://campushealth.local/counseling/demo-session-upcoming'
+        },
+        {
+          studentId: student._id,
+          counselorId: seededCounselor._id,
+          studentName: student.name,
+          counselorName: seededCounselor.name,
+          counselorSpecialty: seededCounselor.specialty || 'Counselor',
+          date: createDateOnlyOffset(-5),
+          time: '02:00 PM',
+          type: 'Chat',
+          urgency: 'High',
+          reason: 'Needed support balancing academics and sleep.',
+          status: 'Completed',
+          sharedSummary: 'Reviewed grounding strategies and a calmer evening routine.',
+          actionPlan: 'Use a nightly phone cutoff and breathing exercise.',
+          followUpRecommended: true,
+          followUpDate: createDateOnlyOffset(7)
+        }
+      ];
+
+      for (const session of sampleSessions) {
+        const exists = await CounselingSession.findOne({
+          studentId: session.studentId,
+          counselorId: session.counselorId,
+          date: session.date,
+          time: session.time
+        });
+
+        if (!exists) {
+          await CounselingSession.create(session);
+          console.log(`Sample counseling session ${session.time} created for ${student.name}`);
+        }
+      }
+    }
+
+    if (MoodLog && student) {
+      const sampleMoodLogs = [
+        { mood: 'Stressed', moodScore: 4, notes: 'Heavy assignment week and poor sleep.', date: createDateOffset(-6, 21, 0) },
+        { mood: 'Okay', moodScore: 6, notes: 'Felt more balanced after a walk and study plan.', date: createDateOffset(-4, 20, 30) },
+        { mood: 'Tired', moodScore: 5, notes: 'Long lab day but handled it better than expected.', date: createDateOffset(-2, 22, 0) },
+        { mood: 'Great', moodScore: 8, notes: 'Had a productive day and connected with friends.', date: createDateOffset(-1, 19, 45) }
+      ];
+
+      for (const moodEntry of sampleMoodLogs) {
+        const exists = await MoodLog.findOne({
+          userId: student._id,
+          date: moodEntry.date
+        });
+
+        if (!exists) {
+          await MoodLog.create({
+            userId: student._id,
+            ...moodEntry
+          });
+          console.log(`Sample mood log ${moodEntry.mood} created for ${student.name}`);
+        }
       }
     }
     

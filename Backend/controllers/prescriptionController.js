@@ -17,6 +17,8 @@ const getPrescriptions = async (req, res) => {
 
     if (req.user.role === 'student') {
       query.studentId = req.user.id;
+    } else if (req.user.role === 'doctor') {
+      query.doctorId = req.user.id;
     } else if (req.user.role === 'pharmacist') {
       query.status = status || 'Pending';
     }

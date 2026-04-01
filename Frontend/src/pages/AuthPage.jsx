@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Mail, Lock, User, Hash, Phone, ArrowRight, Loader2 } from 'lucide-react';
@@ -13,17 +13,16 @@ export default function AuthPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  if (!booting && isAuthenticated && user) {
-    return <Navigate to={redirectPathForRole(user.role)} replace />;
-  }
-
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+
+  if (!booting && isAuthenticated && user) {
+    return <Navigate to={redirectPathForRole(user.role)} replace />;
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault();

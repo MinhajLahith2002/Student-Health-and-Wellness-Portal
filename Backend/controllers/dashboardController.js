@@ -1,28 +1,39 @@
-// controllers/dashboardController.js
-
 import Appointment from '../models/Appointment.js';
+import Availability from '../models/Availability.js';
+import CounselingSession from '../models/CounselingSession.js';
+import Medicine from '../models/Medicine.js';
+import MoodLog from '../models/MoodLog.js';
 import Order from '../models/Order.js';
 import Prescription from '../models/Prescription.js';
 import User from '../models/User.js';
-import MoodLog from '../models/MoodLog.js';
-import Medicine from '../models/Medicine.js'; // optional, used for low stock check if available
 
-// @desc    Get student dashboard data
-// @route   GET /api/dashboard/student
-// @access  Private/Student
 const getStudentDashboard = async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
     const parsedLimit = 5;
 
-    const [upcomingAppointments, recentOrders, moodTrends, healthScore] = await Promise.all([
+    const [
+      upcomingAppointments,
+      upcomingCounselingSessions,
+      recentOrders,
+      recentPrescriptions,
+      moodTrends,
+      healthScore
+    ] = await Promise.all([
       Appointment.find({
         studentId: req.user.id,
         date: { $gte: today },
-        status: { $in: ['Confirmed', 'In Progress'] }
+        status: { $in: ['Confirmed', 'Ready', 'In Progress'] }
+      })
+        .sort({ date: 1, time: 1 })
+        .limit(parsedLimit),
+
+      CounselingSession.find({
+        studentId: req.user.id,
+        date: { $gte: today },
+        status: { $in: ['Confirmed', 'Ready', 'In Progress'] }
       })
         .sort({ date: 1, time: 1 })
         .limit(parsedLimit),
@@ -31,26 +42,30 @@ const getStudentDashboard = async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(parsedLimit),
 
+      Prescription.find({ studentId: req.user.id })
+        .sort({ createdAt: -1 })
+        .limit(parsedLimit),
+
       MoodLog.find({
         userId: req.user.id,
         date: { $gte: thirtyDaysAgo }
-      })
-        .sort({ date: 1 }),
+      }).sort({ date: 1 }),
 
-      // Placeholder for health score calculation; replace with real logic
       Promise.resolve(85)
     ]);
 
     const avgMood =
       moodTrends.length > 0
-        ? moodTrends.reduce((sum, m) => sum + (m.moodScore || 0), 0) / moodTrends.length
+        ? moodTrends.reduce((sum, mood) => sum + (mood.moodScore || 0), 0) / moodTrends.length
         : 0;
 
     res.json({
       upcomingAppointments,
+      upcomingCounselingSessions,
       recentOrders,
+      recentPrescriptions,
       moodTrends: {
-        data: moodTrends.map(m => ({ date: m.date, mood: m.moodScore || 5 })),
+        data: moodTrends.map((mood) => ({ date: mood.date, mood: mood.moodScore || 5 })),
         averageMood: avgMood.toFixed(1)
       },
       healthScore
@@ -60,9 +75,6 @@ const getStudentDashboard = async (req, res) => {
   }
 };
 
-// @desc    Get doctor dashboard data
-// @route   GET /api/dashboard/doctor
-// @access  Private/Doctor
 const getDoctorDashboard = async (req, res) => {
   try {
     const today = new Date();
@@ -75,18 +87,20 @@ const getDoctorDashboard = async (req, res) => {
       queuePatients,
       pendingPrescriptions,
       completedToday,
-      totalPatientsCount
+      totalPatients,
+      activeSchedules
     ] = await Promise.all([
       Appointment.find({
         doctorId: req.user.id,
         date: { $gte: today, $lt: tomorrow },
-        status: { $in: ['Confirmed', 'In Progress'] }
-      }).sort({ time: 1 }),
+        status: { $in: ['Confirmed', 'Ready', 'In Progress'] }
+      })
+        .sort({ time: 1 }),
 
       Appointment.countDocuments({
         doctorId: req.user.id,
         date: { $gte: today, $lt: tomorrow },
-        status: 'Confirmed'
+        status: { $in: ['Confirmed', 'Ready'] }
       }),
 
       Prescription.countDocuments({ doctorId: req.user.id, status: 'Pending' }),
@@ -97,7 +111,9 @@ const getDoctorDashboard = async (req, res) => {
         status: 'Completed'
       }),
 
-      Appointment.countDocuments({ doctorId: req.user.id })
+      Appointment.distinct('studentId', { doctorId: req.user.id }).then((patients) => patients.length),
+
+      Availability.countDocuments({ providerId: req.user.id, status: 'Active' })
     ]);
 
     res.json({
@@ -106,7 +122,8 @@ const getDoctorDashboard = async (req, res) => {
         queue: queuePatients,
         pendingPrescriptions,
         completedToday,
-        totalPatients: totalPatientsCount
+        totalPatients,
+        activeSchedules
       }
     });
   } catch (error) {
@@ -114,17 +131,73 @@ const getDoctorDashboard = async (req, res) => {
   }
 };
 
-// @desc    Get pharmacist dashboard data
-// @route   GET /api/dashboard/pharmacist
-// @access  Private/Pharmacist
+const getCounselorDashboard = async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [
+      upcomingSessions,
+      activeStudents,
+      pendingNotes,
+      assignedResources,
+      pendingFollowUps
+    ] = await Promise.all([
+      CounselingSession.find({
+        counselorId: req.user.id,
+        date: { $gte: today },
+        status: { $in: ['Confirmed', 'Ready', 'In Progress'] }
+      })
+        .select('studentName date time type status')
+        .sort({ date: 1, time: 1 })
+        .limit(6)
+        .lean(),
+
+      CounselingSession.distinct('studentId', { counselorId: req.user.id }).then((students) => students.length),
+
+      CounselingSession.countDocuments({
+        counselorId: req.user.id,
+        status: 'Completed',
+        $or: [
+          { confidentialNotes: { $in: ['', null] } },
+          { sharedSummary: { $in: ['', null] } }
+        ]
+      }),
+
+      CounselingSession.aggregate([
+        { $match: { counselorId: req.user._id } },
+        { $project: { resourceCount: { $size: '$assignedResources' } } },
+        { $group: { _id: null, total: { $sum: '$resourceCount' } } }
+      ]).then((result) => result[0]?.total || 0),
+
+      CounselingSession.countDocuments({
+        counselorId: req.user.id,
+        followUpRecommended: true,
+        status: { $ne: 'Cancelled' }
+      })
+    ]);
+
+    res.json({
+      upcomingSessions,
+      stats: {
+        activeStudents,
+        pendingNotes,
+        assignedResources,
+        pendingFollowUps
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const getPharmacistDashboard = async (req, res) => {
   try {
-    // If Medicine model exists, use it to compute low stock items; otherwise return empty array
     const medicineLowStockPromise = typeof Medicine !== 'undefined'
       ? Medicine.find({ stock: { $lte: 5 } }).limit(50)
       : Promise.resolve([]);
 
-    const [pendingPrescriptionsCount, ordersToProcessCount, lowStockItems, recentOrders] =
+    const [pendingPrescriptions, ordersToProcess, lowStockItems, recentOrders] =
       await Promise.all([
         Prescription.countDocuments({ status: 'Pending' }),
         Order.countDocuments({ status: { $in: ['Pending', 'Verified'] } }),
@@ -136,8 +209,8 @@ const getPharmacistDashboard = async (req, res) => {
 
     res.json({
       stats: {
-        pendingPrescriptions: pendingPrescriptionsCount,
-        ordersToProcess: ordersToProcessCount,
+        pendingPrescriptions,
+        ordersToProcess,
         lowStockCount: Array.isArray(lowStockItems) ? lowStockItems.length : 0
       },
       recentOrders
@@ -147,9 +220,6 @@ const getPharmacistDashboard = async (req, res) => {
   }
 };
 
-// @desc    Get admin dashboard data
-// @route   GET /api/dashboard/admin
-// @access  Private/Admin
 const getAdminDashboard = async (req, res) => {
   try {
     const [
@@ -157,7 +227,7 @@ const getAdminDashboard = async (req, res) => {
       totalAppointments,
       totalOrders,
       revenueAggregation,
-      recentActivity // placeholder for audit logs or activity feed
+      recentActivity
     ] = await Promise.all([
       User.countDocuments(),
       Appointment.countDocuments(),
@@ -166,7 +236,6 @@ const getAdminDashboard = async (req, res) => {
         { $match: { status: 'Delivered' } },
         { $group: { _id: null, total: { $sum: '$total' } } }
       ]),
-      // Replace with AuditLog.find(...) if you have an AuditLog model
       Promise.resolve([])
     ]);
 
@@ -174,7 +243,6 @@ const getAdminDashboard = async (req, res) => {
       ? revenueAggregation[0].total
       : 0;
 
-    // User growth data (last 6 months) using User.aggregate
     const userGrowth = await User.aggregate([
       {
         $match: {
@@ -208,6 +276,7 @@ const getAdminDashboard = async (req, res) => {
 export default {
   getStudentDashboard,
   getDoctorDashboard,
+  getCounselorDashboard,
   getPharmacistDashboard,
   getAdminDashboard
 };
