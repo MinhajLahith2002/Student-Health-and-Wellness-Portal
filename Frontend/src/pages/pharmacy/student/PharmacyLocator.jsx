@@ -123,7 +123,15 @@ const PharmacyLocator = () => {
         ? `?lat=${encodeURIComponent(location.lat)}&lng=${encodeURIComponent(location.lng)}&radius=${encodeURIComponent(radius)}`
         : '';
       const data = await apiFetch(`/pharmacy${query}`);
-      const normalized = normalizePharmacies(Array.isArray(data) ? data : [], location).sort((a, b) => {
+      let pharmacyList = Array.isArray(data) ? data : [];
+
+      if (location && pharmacyList.length === 0) {
+        const fallback = await apiFetch('/pharmacy');
+        pharmacyList = Array.isArray(fallback) ? fallback : [];
+        setLocationError(`No pharmacies were found within ${radius} km of your current location, so all available pharmacies are shown instead.`);
+      }
+
+      const normalized = normalizePharmacies(pharmacyList, location).sort((a, b) => {
         if (a.distanceKm == null && b.distanceKm == null) return 0;
         if (a.distanceKm == null) return 1;
         if (b.distanceKm == null) return -1;
