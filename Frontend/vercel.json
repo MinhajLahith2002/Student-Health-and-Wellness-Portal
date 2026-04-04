@@ -3,6 +3,10 @@
     {
       "source": "/api/(.*)",
       "destination": "https://student-health-and-wellness-portal-bac-minnulah0-7945s-projects.vercel.app/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
