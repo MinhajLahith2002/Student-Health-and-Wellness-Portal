@@ -303,4 +303,5 @@ if (!isVercel) {
     });
 }
 
+export default app;
 export { app, server, io };
