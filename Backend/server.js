@@ -14,6 +14,7 @@ import { initializeSocket } from './utils/socket.js';
 import * as loggerModule from './utils/logger.js';
 import routes from './routes/index.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
+import { UPLOAD_ROOT } from './middleware/uploadMiddleware.js';
 import connectDB from './config/database.js';
 import User from './models/User.js';
 import Medicine from './models/Medicine.js';
@@ -149,7 +150,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Static files
-app.use('/uploads', expressStatic(join(__dirname, 'uploads')));
+app.use('/uploads', expressStatic(UPLOAD_ROOT));
 app.use('/public', expressStatic(join(__dirname, 'public')));
 
 // Request logging middleware

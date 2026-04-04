@@ -1,15 +1,29 @@
 import multer from 'multer';
+import { tmpdir } from 'os';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const isVercel = Boolean(process.env.VERCEL);
+
+export const UPLOAD_ROOT = isVercel
+  ? path.join(tmpdir(), 'student-health-uploads')
+  : path.join(__dirname, '..', 'uploads');
+
+const resolveUploadDirectory = (folderName) => path.join(UPLOAD_ROOT, folderName);
 
 // Ensure upload directories exist
 const createUploadDirectories = () => {
   const dirs = [
-    'uploads/prescriptions',
-    'uploads/medicines',
-    'uploads/resources',
-    'uploads/events',
-    'uploads/profile-images'
+    UPLOAD_ROOT,
+    resolveUploadDirectory('prescriptions'),
+    resolveUploadDirectory('medicines'),
+    resolveUploadDirectory('resources'),
+    resolveUploadDirectory('events'),
+    resolveUploadDirectory('profile-images'),
+    resolveUploadDirectory('general')
   ];
 
   dirs.forEach(dir => {
@@ -24,23 +38,21 @@ createUploadDirectories();
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let folder = 'uploads/';
+    let folderName = 'general';
     
     if (req.originalUrl.includes('prescription')) {
-      folder += 'prescriptions';
+      folderName = 'prescriptions';
     } else if (req.originalUrl.includes('medicine')) {
-      folder += 'medicines';
+      folderName = 'medicines';
     } else if (req.originalUrl.includes('resource')) {
-      folder += 'resources';
+      folderName = 'resources';
     } else if (req.originalUrl.includes('event')) {
-      folder += 'events';
+      folderName = 'events';
     } else if (req.originalUrl.includes('profile')) {
-      folder += 'profile-images';
-    } else {
-      folder += 'general';
+      folderName = 'profile-images';
     }
-    
-    cb(null, folder);
+
+    cb(null, resolveUploadDirectory(folderName));
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

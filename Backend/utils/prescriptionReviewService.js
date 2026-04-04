@@ -1,6 +1,7 @@
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { UPLOAD_ROOT } from '../middleware/uploadMiddleware.js';
 import crypto from 'crypto';
 import Tesseract from 'tesseract.js';
 
@@ -214,7 +215,7 @@ async function buildImageInput(imageUrl) {
     return null;
   }
 
-  const absolutePath = path.join(__dirname, '..', imageUrl.replace(/^\/+/, ''));
+  const absolutePath = path.join(UPLOAD_ROOT, imageUrl.replace(/^\/uploads\/+/, ''));
   const mimeType = getMimeTypeFromUrl(imageUrl);
   if (!mimeType) return null;
 
