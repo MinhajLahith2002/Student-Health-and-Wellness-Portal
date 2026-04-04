@@ -1,4 +1,3 @@
-const DEFAULT_PRODUCTION_API_BASE = 'https://student-health-and-wellness-portal-backend-2uisy2tp9.vercel.app/api';
 const viteEnv = typeof import.meta !== 'undefined' ? import.meta.env || {} : {};
 
 function resolveApiBase() {
@@ -12,7 +11,7 @@ function resolveApiBase() {
     return '/api';
   }
 
-  return DEFAULT_PRODUCTION_API_BASE;
+  return '/api';
 }
 
 const API_BASE = resolveApiBase();

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://student-health-and-wellness-portal-backend-2uisy2tp9.vercel.app/api/$1"
+    }
+  ]
+}
