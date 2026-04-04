@@ -16,7 +16,7 @@ function readStoredUser() {
 function redirectPathForRole(role) {
   switch (role) {
     case 'student':
-      return '/dashboard';
+      return '/';
     case 'admin':
       return '/admin/dashboard';
     case 'doctor':
@@ -26,7 +26,7 @@ function redirectPathForRole(role) {
     case 'counselor':
       return '/counselor/dashboard';
     default:
-      return '/dashboard';
+      return '/';
   }
 }
 

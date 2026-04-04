@@ -51,6 +51,23 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { user, booting, logout, redirectPathForRole } = useAuth();
 
+  const dashboardPathForRole = (role) => {
+    switch (role) {
+      case 'student':
+        return '/dashboard';
+      case 'admin':
+        return '/admin/dashboard';
+      case 'doctor':
+        return '/doctor/dashboard';
+      case 'pharmacist':
+        return '/pharmacist/dashboard';
+      case 'counselor':
+        return '/counselor/dashboard';
+      default:
+        return '/';
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -200,7 +217,7 @@ export default function Navbar() {
                   </div>
 
                   <Link
-                    to={redirectPathForRole(user.role)}
+                    to={dashboardPathForRole(user.role)}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                   >
@@ -273,7 +290,7 @@ export default function Navbar() {
             {user ? (
               <>
                 <Link
-                  to={redirectPathForRole(user.role)}
+                  to={dashboardPathForRole(user.role)}
                   onClick={() => setIsOpen(false)}
                   className="w-full py-3 rounded-2xl text-center font-bold bg-[#0f2942] text-white"
                 >

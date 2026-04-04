@@ -100,6 +100,10 @@ function HomeEntry() {
   }
 
   if (isAuthenticated && user?.role) {
+    if (user.role === 'student') {
+      return <LandingPage />;
+    }
+
     return <Navigate to={redirectPathForRole(user.role)} replace />;
   }
 
