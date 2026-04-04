@@ -44,6 +44,30 @@ const isProduction = process.env.NODE_ENV === 'production';
 const isVercel = Boolean(process.env.VERCEL);
 let initializationPromise;
 
+const parseOriginList = (...values) =>
+  values
+    .flatMap((value) => String(value || '').split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+const allowedOrigins = new Set([
+  ...parseOriginList(
+    process.env.ALLOWED_ORIGINS,
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://student-health-and-wellness-portal.vercel.app',
+    'https://student-health-and-wellness-portal-five.vercel.app'
+  )
+]);
+
+const isAllowedOrigin = (origin = '') => {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+
+  return /^https:\/\/student-health-and-wellness-portal(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
+};
+
 const initializeDatabase = async () => {
   await connectDB();
 
@@ -102,13 +126,21 @@ app.use(helmet({
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin || 'unknown'}`));
+  },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
