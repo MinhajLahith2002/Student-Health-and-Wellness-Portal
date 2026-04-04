@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, PhoneCall, Pencil, ShieldAlert, Trash2 } from 'lucide-react';
 import { createMoodLog, deleteMoodLog, getMoodLogs, getMoodStats, updateMoodLog } from '../../lib/mentalHealth';
 
 const moods = [
-  { label: 'Great', score: 8, emoji: '😄' },
-  { label: 'Okay', score: 6, emoji: '🙂' },
-  { label: 'Down', score: 4, emoji: '😔' },
-  { label: 'Stressed', score: 3, emoji: '😣' },
-  { label: 'Tired', score: 5, emoji: '😴' },
-  { label: 'Anxious', score: 3, emoji: '😟' }
+  { label: 'Great', score: 8, emoji: 'ðŸ˜„' },
+  { label: 'Okay', score: 6, emoji: 'ðŸ™‚' },
+  { label: 'Down', score: 4, emoji: 'ðŸ˜”' },
+  { label: 'Stressed', score: 3, emoji: 'ðŸ˜£' },
+  { label: 'Tired', score: 5, emoji: 'ðŸ˜´' },
+  { label: 'Anxious', score: 3, emoji: 'ðŸ˜Ÿ' }
 ];
 
 function getInitialForm() {
@@ -135,11 +135,11 @@ export default function MoodTracker() {
   }
 
   return (
-    <div className="pt-36 pb-12 px-6 max-w-6xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-6xl mx-auto student-shell">
       <div className="grid grid-cols-1 xl:grid-cols-[420px,1fr] gap-8">
         <section className="apple-card p-8 border-none bg-white/70 backdrop-blur-sm h-fit">
           <div className="flex items-center gap-3 mb-6">
-            <Activity className="w-5 h-5 text-accent-purple" />
+            <Activity className="w-5 h-5 text-accent-primary" />
             <h1 className="text-3xl font-semibold text-primary-text">Mood Tracker</h1>
           </div>
 
@@ -150,7 +150,7 @@ export default function MoodTracker() {
                   key={mood.label}
                   type="button"
                   onClick={() => setForm((current) => ({ ...current, mood: mood.label, moodScore: current.id ? current.moodScore : mood.score }))}
-                  className={`px-4 py-4 rounded-2xl font-semibold ${form.mood === mood.label ? 'bg-accent-purple text-white' : 'bg-secondary-bg text-primary-text'}`}
+                  className={`px-4 py-4 rounded-2xl font-semibold ${form.mood === mood.label ? 'bg-accent-primary text-white' : 'bg-secondary-bg text-primary-text'}`}
                 >
                   <span className="mr-2">{mood.emoji}</span>
                   {mood.label}
@@ -198,7 +198,7 @@ export default function MoodTracker() {
                     <div className="flex flex-wrap gap-3">
                       <Link
                         to="/mental-health/counselors"
-                        className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-accent-purple text-white font-bold"
+                        className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-accent-primary text-white font-bold"
                       >
                         Check Counseling
                       </Link>
@@ -224,7 +224,7 @@ export default function MoodTracker() {
             />
 
             {error && <p className="text-sm text-red-600">{error}</p>}
-            {status && <p className="text-sm text-emerald-600">{status}</p>}
+            {status && <p className="text-sm text-accent-primary">{status}</p>}
 
             <div className="flex gap-3">
               {form.id && (
@@ -240,7 +240,7 @@ export default function MoodTracker() {
                   Cancel Edit
                 </button>
               )}
-              <button type="submit" disabled={submitting} className="flex-[2] py-4 bg-accent-purple text-white rounded-2xl font-bold disabled:opacity-50">
+              <button type="submit" disabled={submitting} className="flex-[2] py-4 bg-accent-primary text-white rounded-2xl font-bold disabled:opacity-50">
                 {submitting ? 'Saving...' : form.id ? 'Update Mood Entry' : 'Save Mood Entry'}
               </button>
             </div>
@@ -285,12 +285,12 @@ export default function MoodTracker() {
                     <div>
                       <div className="flex items-center gap-3">
                         <p className="font-semibold text-primary-text">{entry.mood}</p>
-                        <span className="text-xs font-bold uppercase tracking-[0.2em] text-accent-purple">
+                        <span className="text-xs font-bold uppercase tracking-[0.2em] text-accent-primary">
                           {entry.moodScore || 5}/10
                         </span>
                       </div>
                       <p className="text-xs text-secondary-text mt-1">
-                        {new Date(entry.date).toLocaleDateString()} • {new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(entry.date).toLocaleDateString()} â€¢ {new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                       {entry.notes && <p className="text-sm text-secondary-text mt-2">{entry.notes}</p>}
                     </div>
@@ -318,3 +318,4 @@ export default function MoodTracker() {
     </div>
   );
 }
+

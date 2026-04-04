@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Phone, 
   Search, 
@@ -90,18 +90,18 @@ const FirstAidGuide = () => {
   const currentTopic = topics.find(t => t.id === selectedTopic);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="pharmacy-shell pb-20">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-4">
+      <div className="pharmacy-hero sticky top-0 z-30 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => navigate('/student/pharmacy')}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
+              className="p-2 hover:bg-[#e6f0f4] rounded-full transition-colors text-secondary-text"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-bold text-slate-900">First-Aid Guide</h1>
+            <h1 className="text-xl font-bold text-primary-text">First-Aid Guide</h1>
           </div>
           <button 
             onClick={() => window.location.href = 'tel:911'}
@@ -117,11 +117,11 @@ const FirstAidGuide = () => {
           {/* Left: Topics List */}
           <div className="lg:col-span-1 space-y-6">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-text/80" />
               <input 
                 type="text"
                 placeholder="Search emergencies..."
-                className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all shadow-sm"
+                className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-accent-primary transition-all shadow-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -135,14 +135,14 @@ const FirstAidGuide = () => {
                   className={cn(
                     "p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between group",
                     selectedTopic === topic.id 
-                      ? "border-emerald-500 bg-emerald-50/50" 
+                      ? "border-accent-primary bg-[#e8f7f5]/50" 
                       : "border-white bg-white hover:border-emerald-200 shadow-sm"
                   )}
                 >
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
-                      selectedTopic === topic.id ? "bg-emerald-600 text-white" : `bg-${topic.color}-50 text-${topic.color}-600`
+                      selectedTopic === topic.id ? "bg-accent-primary text-white" : `bg-${topic.color}-50 text-${topic.color}-600`
                     )}>
                       <topic.icon className="w-6 h-6" />
                     </div>
@@ -152,7 +152,7 @@ const FirstAidGuide = () => {
                   </div>
                   <ChevronRight className={cn(
                     "w-5 h-5 transition-transform",
-                    selectedTopic === topic.id ? "text-emerald-600 translate-x-1" : "text-slate-300"
+                    selectedTopic === topic.id ? "text-accent-primary translate-x-1" : "text-slate-300"
                   )} />
                 </button>
               ))}
@@ -164,7 +164,7 @@ const FirstAidGuide = () => {
               <p className="text-emerald-100/70 text-sm leading-relaxed mb-6">
                 Keep a first-aid kit in your dorm and know the location of the nearest AED on campus.
               </p>
-              <button className="w-full py-3 bg-emerald-800 text-white rounded-xl text-sm font-bold border border-emerald-700 hover:bg-emerald-700 transition-colors">
+              <button className="w-full py-3 bg-emerald-800 text-white rounded-xl text-sm font-bold border border-emerald-700 hover:bg-[#105f72] transition-colors">
                 Find Nearest AED
               </button>
             </div>
@@ -181,7 +181,7 @@ const FirstAidGuide = () => {
                   exit={{ opacity: 0, y: -20 }}
                   className="space-y-8"
                 >
-                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="pharmacy-panel overflow-hidden">
                     <div className={cn("h-3", `bg-${currentTopic.color}-500`)} />
                     <div className="p-8 md:p-10">
                       <div className="flex items-center gap-4 mb-8">
@@ -189,8 +189,8 @@ const FirstAidGuide = () => {
                           <currentTopic.icon className="w-8 h-8" />
                         </div>
                         <div>
-                          <h2 className="text-3xl font-bold text-slate-900">{currentTopic.title}</h2>
-                          <p className="text-slate-500">Emergency Response Steps</p>
+                          <h2 className="text-3xl font-bold text-primary-text">{currentTopic.title}</h2>
+                          <p className="text-secondary-text">Emergency Response Steps</p>
                         </div>
                       </div>
 
@@ -205,7 +205,7 @@ const FirstAidGuide = () => {
                                 {index + 1}
                               </div>
                               {index < currentTopic.steps.length - 1 && (
-                                <div className={cn("w-0.5 flex-1 my-2 bg-slate-100", `group-hover:bg-${currentTopic.color}-100`)} />
+                                <div className={cn("w-0.5 flex-1 my-2 bg-[#e6f0f4]", `group-hover:bg-${currentTopic.color}-100`)} />
                               )}
                             </div>
                             <div className="pb-6">
@@ -218,14 +218,14 @@ const FirstAidGuide = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-emerald-50 rounded-3xl p-8 border border-emerald-100">
+                    <div className="bg-[#e8f7f5] rounded-3xl p-8 border border-emerald-100">
                       <h3 className="text-lg font-bold text-emerald-900 mb-6 flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" /> Do's
+                        <CheckCircle2 className="w-5 h-5 text-accent-primary" /> Do's
                       </h3>
                       <ul className="space-y-4">
                         {currentTopic.dos.map((doItem, i) => (
                           <li key={i} className="flex items-start gap-3 text-emerald-800 font-medium">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-accent-green mt-2 shrink-0" />
                             {doItem}
                           </li>
                         ))}
@@ -248,11 +248,11 @@ const FirstAidGuide = () => {
                 </motion.div>
               ) : (
                 <div className="bg-white rounded-3xl border border-slate-200 border-dashed p-20 text-center">
-                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className="w-20 h-20 bg-[#eff6f9] rounded-full flex items-center justify-center mx-auto mb-6">
                     <AlertTriangle className="w-10 h-10 text-slate-200" />
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Select an Emergency Topic</h2>
-                  <p className="text-slate-500 max-w-sm mx-auto">
+                  <h2 className="text-2xl font-bold text-primary-text mb-2">Select an Emergency Topic</h2>
+                  <p className="text-secondary-text max-w-sm mx-auto">
                     Choose a topic from the list to see step-by-step first-aid instructions.
                   </p>
                 </div>
@@ -266,3 +266,5 @@ const FirstAidGuide = () => {
 };
 
 export default FirstAidGuide;
+
+

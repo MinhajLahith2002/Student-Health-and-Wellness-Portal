@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { buildMoodSuggestions, getMentalHealthResources, getMoodStats, getSavedResources } from '../../lib/mentalHealth';
@@ -30,7 +30,7 @@ export default function Suggestions() {
   }, []);
 
   return (
-    <div className="pt-36 pb-12 px-6 max-w-6xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-6xl mx-auto student-shell">
       <header className="mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-widest mb-6">
           <Sparkles className="w-3 h-3" />
@@ -48,7 +48,7 @@ export default function Suggestions() {
             <Link key={resource._id} to={`/mental-health/resources/${resource._id}`} className="apple-card p-6 border-none bg-white/70 backdrop-blur-sm flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-primary-text">{resource.title}</h2>
-                <p className="text-sm text-secondary-text mt-2">{resource.type} • {resource.category}</p>
+                <p className="text-sm text-secondary-text mt-2">{resource.type} â€¢ {resource.category}</p>
                 <p className="text-sm text-primary-text/80 mt-3">{resource.description}</p>
               </div>
               <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
@@ -78,3 +78,4 @@ export default function Suggestions() {
     </div>
   );
 }
+

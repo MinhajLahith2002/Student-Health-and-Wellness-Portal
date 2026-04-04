@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, Search } from 'lucide-react';
 import { getResources, getSavedResources, toggleSavedResource } from '../../lib/mentalHealth';
@@ -42,7 +42,7 @@ export default function ResourceLibrary() {
   }), [activeFilter, resources, savedResources, searchQuery]);
 
   return (
-    <div className="pt-36 pb-12 px-6 max-w-7xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-7xl mx-auto student-shell">
       <header className="mb-12">
         <h1 className="text-5xl font-semibold tracking-tight text-primary-text">Self-help library</h1>
         <p className="text-lg text-secondary-text mt-4 max-w-3xl">
@@ -108,3 +108,4 @@ export default function ResourceLibrary() {
     </div>
   );
 }
+

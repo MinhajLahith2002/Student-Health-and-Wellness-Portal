@@ -517,9 +517,10 @@ export default function AppointmentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FCFCFC] pb-20">
-      <div className="bg-white border-b border-[#F0F0F3] pt-32 pb-12 px-6">
+    <div className="student-shell pb-20">
+      <div className="pt-32 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="student-hero px-8 py-10 w-full md:flex md:items-center md:justify-between gap-8">
           <div>
             <h1 className="text-4xl font-bold text-[#18181B] tracking-tight">My Appointments</h1>
             <p className="text-[#71717A] mt-2 text-lg">Track, reschedule, cancel, and check in for your appointments from one place.</p>
@@ -531,6 +532,7 @@ export default function AppointmentDashboard() {
             <Plus className="w-5 h-5" />
             Book New Appointment
           </Link>
+          </div>
         </div>
       </div>
 
@@ -579,7 +581,7 @@ export default function AppointmentDashboard() {
         )}
 
         <section className="grid grid-cols-1 xl:grid-cols-[1.25fr,0.75fr] gap-8">
-          <div className="bg-white rounded-[32px] border border-[#F0F0F3] p-8 shadow-sm">
+          <div className="student-surface p-8">
             <p className="text-[10px] uppercase tracking-[0.2em] text-[#71717A] font-bold mb-3">Next Step</p>
             {nextAppointment ? (
               <>
@@ -653,7 +655,7 @@ export default function AppointmentDashboard() {
             )}
           </div>
 
-          <div className="bg-white rounded-[32px] border border-[#F0F0F3] p-8 shadow-sm">
+          <div className="student-surface p-8">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#2563EB] flex items-center justify-center mb-6">
               <Stethoscope className="w-7 h-7" />
             </div>
@@ -699,7 +701,7 @@ export default function AppointmentDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredUpcomingAppointments.length === 0 ? (
-              <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-[#F0F0F3]">
+                <div className="col-span-full py-12 text-center student-surface border-dashed">
                 <p className="text-[#71717A]">
                   {activeTab === 'Ready'
                     ? 'No appointments are checked in yet.'
@@ -731,15 +733,15 @@ export default function AppointmentDashboard() {
         <section>
           <h2 className="text-2xl font-bold text-[#18181B] mb-6">Quick actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <Link to="/student/appointments/find" className="bg-white p-6 rounded-2xl border border-[#F0F0F3] shadow-sm hover:shadow-md transition-all">
+            <Link to="/student/appointments/find" className="student-card p-6">
               <Calendar className="w-6 h-6 text-[#2563EB] mb-4" />
               <p className="font-bold text-[#18181B]">Find Doctor</p>
             </Link>
-            <Link to="/student/prescriptions" className="bg-white p-6 rounded-2xl border border-[#F0F0F3] shadow-sm hover:shadow-md transition-all">
+            <Link to="/student/prescriptions" className="student-card p-6">
               <FileText className="w-6 h-6 text-emerald-600 mb-4" />
               <p className="font-bold text-[#18181B]">Prescription History</p>
             </Link>
-            <Link to="/mental-health/counselors" className="bg-white p-6 rounded-2xl border border-[#F0F0F3] shadow-sm hover:shadow-md transition-all">
+            <Link to="/mental-health/counselors" className="student-card p-6">
               <MessageSquare className="w-6 h-6 text-purple-600 mb-4" />
               <p className="font-bold text-[#18181B]">Explore Counselors</p>
             </Link>
@@ -748,7 +750,7 @@ export default function AppointmentDashboard() {
 
         <section>
           <h2 className="text-2xl font-bold text-[#18181B] mb-6">History</h2>
-          <div className="bg-white rounded-2xl border border-[#F0F0F3] shadow-sm overflow-hidden">
+          <div className="student-surface rounded-2xl overflow-hidden">
             <div className="divide-y divide-[#F0F0F3]">
               {pastAppointments.length === 0 ? (
                 <div className="p-6 text-[#71717A]">Completed and cancelled appointments will appear here.</div>

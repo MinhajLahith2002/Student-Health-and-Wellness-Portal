@@ -28,6 +28,17 @@ const ROLE_COLOR = {
   student: 'bg-slate-600',
 };
 
+function getDisplayName(user) {
+  const rawName = (user?.name || '').trim();
+  if (!rawName) return 'Staff User';
+
+  if (user?.role === 'doctor') {
+    return rawName;
+  }
+
+  return rawName.replace(/^dr\.?\s+/i, '');
+}
+
 const TopBar = () => {
   const [showProfile, setShowProfile] = React.useState(false);
   const [showNotifications, setShowNotifications] = React.useState(false);
@@ -40,6 +51,7 @@ const TopBar = () => {
 
   const roleLabel = ROLE_LABEL[user?.role] || 'Staff';
   const avatarColor = ROLE_COLOR[user?.role] || 'bg-blue-600';
+  const displayName = getDisplayName(user);
 
   const handleLogout = () => {
     logout();
@@ -118,7 +130,7 @@ const TopBar = () => {
               {initials}
             </div>
             <div className="hidden md:block text-left pr-2">
-              <p className="text-sm font-bold text-slate-900 leading-none">{user?.name || 'Staff User'}</p>
+              <p className="text-sm font-bold text-slate-900 leading-none">{displayName}</p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">{roleLabel}</p>
             </div>
             <ChevronDown className="w-4 h-4 text-slate-400" />

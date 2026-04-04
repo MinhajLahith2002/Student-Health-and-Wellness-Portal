@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpDown, Heart, History, Search } from 'lucide-react';
 import { getProviders } from '../../lib/providers';
@@ -54,7 +54,7 @@ export default function CounselorDirectory() {
   }, [providers, searchQuery, sortBy]);
 
   return (
-    <div className="pt-36 pb-12 px-6 max-w-7xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-7xl mx-auto student-shell">
       <header className="mb-12">
         <h1 className="text-5xl font-semibold tracking-tight text-primary-text">Counselors Directory</h1>
         <p className="text-lg text-secondary-text mt-4 max-w-3xl">Browse counselors, view their specialties, and move straight into booking a confidential session.</p>
@@ -62,7 +62,7 @@ export default function CounselorDirectory() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             to="/mental-health/sessions"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-accent-purple text-white font-bold shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-accent-primary text-white font-bold shadow-sm"
           >
             <History className="w-4 h-4" />
             View My Counseling History
@@ -108,7 +108,7 @@ export default function CounselorDirectory() {
             <p className="text-sm text-primary-text/80 mt-5 leading-relaxed min-h-20">{provider.bio || 'Confidential student wellness support and structured follow-up care.'}</p>
             <div className="mt-8 flex items-center justify-between gap-4">
               <Link to={`/mental-health/counselors/${provider._id}`} className="text-sm font-semibold text-accent-primary">View Profile</Link>
-              <Link to={`/mental-health/book/${provider._id}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-purple text-white text-sm font-bold">
+              <Link to={`/mental-health/book/${provider._id}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-primary text-white text-sm font-bold">
                 <Heart className="w-4 h-4" />
                 Book
               </Link>
@@ -130,3 +130,4 @@ export default function CounselorDirectory() {
     </div>
   );
 }
+

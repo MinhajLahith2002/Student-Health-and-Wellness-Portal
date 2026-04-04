@@ -1,5 +1,26 @@
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '/api';
 
+function getBackendOrigin() {
+  if (/^https?:\/\//i.test(API_BASE)) {
+    return new URL(API_BASE).origin;
+  }
+
+  if (typeof window !== 'undefined') {
+    return import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin;
+  }
+
+  return 'http://localhost:5000';
+}
+
+export function resolveAssetUrl(path) {
+  if (!path || typeof path !== 'string') return '';
+  if (/^(data:|blob:|https?:\/\/)/i.test(path)) return path;
+
+  const backendOrigin = getBackendOrigin();
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${backendOrigin}${normalizedPath}`;
+}
+
 function getToken() {
   return localStorage.getItem('token');
 }

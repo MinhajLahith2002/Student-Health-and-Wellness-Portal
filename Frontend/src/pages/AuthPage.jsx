@@ -1,7 +1,7 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Mail, Lock, User, Hash, Phone, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Hash, Phone, ArrowRight, Loader2, BadgePlus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export default function AuthPage() {
@@ -74,12 +74,12 @@ export default function AuthPage() {
         className="relative w-full max-w-md apple-card p-8 md:p-10 border border-border-gray/20 shadow-2xl shadow-black/5"
       >
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2.5 mb-6">
-            <div className="w-10 h-10 bg-accent-primary rounded-[12px] flex items-center justify-center text-white font-bold shadow-lg">
-              C
-            </div>
-            <span className="font-semibold text-xl text-primary-text">CampusHealth</span>
-          </Link>
+            <Link to="/" className="inline-flex items-center gap-2.5 mb-6">
+              <div className="w-10 h-10 bg-[linear-gradient(135deg,#0f2942_0%,#14748b_100%)] rounded-[12px] flex items-center justify-center text-white shadow-lg shadow-slate-900/10">
+                <BadgePlus className="w-5 h-5" />
+              </div>
+              <span className="font-semibold text-xl text-primary-text">SLIIT MediBridge Care</span>
+            </Link>
           <h1 className="text-2xl font-semibold text-primary-text tracking-tight mb-2">
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
@@ -169,7 +169,7 @@ export default function AuthPage() {
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 rounded-xl border border-border-gray/40 bg-white text-primary-text text-sm outline-none focus:ring-2 focus:ring-accent-primary/25 focus:border-accent-primary"
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 />
               </div>
             </label>
@@ -260,7 +260,7 @@ export default function AuthPage() {
 
         <p className="text-center text-sm text-secondary-text mt-8">
           <Link to="/" className="text-accent-primary font-medium hover:underline">
-            ← Back to home
+            â† Back to home
           </Link>
         </p>
       </motion.div>

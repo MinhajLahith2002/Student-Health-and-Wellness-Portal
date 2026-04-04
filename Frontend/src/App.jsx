@@ -58,6 +58,7 @@ import SessionFeedback from './pages/mental-health/SessionFeedback';
 import CounselorDashboard from './pages/mental-health/CounselorDashboard';
 import CounselorProfileSettings from './pages/mental-health/CounselorProfileSettings';
 import AdminLayout from './components/admin/AdminLayout';
+import { useAuth } from './hooks/useAuth';
 
 function PageWrapper({ children }) {
   const location = useLocation();
@@ -87,6 +88,24 @@ function AdminWrapped({ children }) {
   );
 }
 
+function HomeEntry() {
+  const { user, isAuthenticated, booting, redirectPathForRole } = useAuth();
+
+  if (booting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-primary-bg">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-primary"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && user?.role) {
+    return <Navigate to={redirectPathForRole(user.role)} replace />;
+  }
+
+  return <LandingPage />;
+}
+
 function AppLayout() {
   const location = useLocation();
   const isAdminOrStaffRoute =
@@ -98,9 +117,9 @@ function AppLayout() {
   return (
     <>
       {!isAdminOrStaffRoute && <Navbar />}
-      <AnimatePresence mode="wait">
-        <Routes>
-          <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
+      <AnimatePresence mode="wait" initial={false}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<PageWrapper><HomeEntry /></PageWrapper>} />
           <Route path="/login" element={<PageWrapper><AuthPage /></PageWrapper>} />
           <Route path="/register" element={<PageWrapper><AuthPage /></PageWrapper>} />
 

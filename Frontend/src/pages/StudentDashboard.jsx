@@ -74,10 +74,11 @@ export default function StudentDashboard() {
   const recentPrescriptions = dashboard?.recentPrescriptions || [];
 
   return (
-    <div className="pt-36 pb-14 px-6 max-w-7xl mx-auto min-h-screen bg-primary-bg">
-      <header className="mb-12 flex flex-col lg:flex-row justify-between gap-6">
+    <div className="student-shell pt-36 pb-14">
+      <div className="px-6 max-w-7xl mx-auto">
+      <header className="student-hero mb-12 px-8 py-10 md:px-10 md:py-12 flex flex-col lg:flex-row justify-between gap-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-primary/10 text-accent-primary text-[10px] font-bold uppercase tracking-widest mb-5">
+          <div className="student-chip bg-cyan-100 text-cyan-700 mb-5">
             <Heart className="w-3 h-3 fill-current" />
             Student Health Overview
           </div>
@@ -88,7 +89,7 @@ export default function StudentDashboard() {
             Keep your medical appointments, counseling sessions, prescriptions, and wellness activity in one place.
           </p>
         </div>
-        <div className="apple-card p-6 border-none bg-gradient-to-br from-accent-primary to-indigo-700 text-white w-full lg:max-w-sm">
+        <div className="rounded-[1.75rem] p-6 border border-cyan-200/50 bg-[linear-gradient(135deg,#0f2942_0%,#134b63_55%,#14748b_100%)] text-white w-full lg:max-w-sm shadow-[0_24px_60px_rgba(15,41,66,0.18)]">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Mood Snapshot</p>
           <p className="text-4xl font-semibold mt-3">{dashboard?.moodTrends?.averageMood || '0.0'}</p>
           <p className="text-sm text-white/80 mt-3">Average mood score from the last 30 days.</p>
@@ -139,7 +140,7 @@ export default function StudentDashboard() {
             <Link
               key={action.path}
               to={action.path}
-              className="apple-card p-5 border-none bg-white/70 backdrop-blur-sm hover:-translate-y-1 transition-transform"
+              className="student-card p-5"
             >
               <action.icon className="w-6 h-6 text-accent-primary mb-4" />
               <p className="font-semibold text-primary-text text-sm">{action.label}</p>
@@ -149,7 +150,7 @@ export default function StudentDashboard() {
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        <section className="apple-card p-8 border-none bg-white/70 backdrop-blur-sm">
+        <section className="student-surface p-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold text-primary-text">Upcoming medical care</h2>
             <Link to="/student/appointments" className="text-sm font-semibold text-accent-primary">
@@ -168,7 +169,7 @@ export default function StudentDashboard() {
                     : appointment.type === 'Video Call'
                       ? '/student/appointments'
                       : `/student/appointments/${appointment._id}/queue`}
-                  className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-secondary-bg/70 hover:bg-secondary-bg transition-colors"
+                  className="flex items-center justify-between gap-4 p-4 rounded-[1.4rem] bg-slate-50/85 hover:bg-slate-100/90 transition-colors border border-slate-100"
                 >
                   <div>
                     <p className="font-semibold text-primary-text">{appointment.doctorName}</p>
@@ -185,7 +186,7 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        <section className="apple-card p-8 border-none bg-white/70 backdrop-blur-sm">
+        <section className="student-surface p-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-semibold text-primary-text">Counseling & wellness</h2>
             <Link to="/mental-health/sessions" className="text-sm font-semibold text-accent-primary">
@@ -200,7 +201,7 @@ export default function StudentDashboard() {
                 <Link
                   key={session._id}
                   to={`/mental-health/sessions/${session._id}`}
-                  className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-secondary-bg/70 hover:bg-secondary-bg transition-colors"
+                  className="flex items-center justify-between gap-4 p-4 rounded-[1.4rem] bg-slate-50/85 hover:bg-slate-100/90 transition-colors border border-slate-100"
                 >
                   <div>
                     <p className="font-semibold text-primary-text">{session.counselorName}</p>
@@ -216,7 +217,7 @@ export default function StudentDashboard() {
             )}
           </div>
 
-          <div className="rounded-3xl bg-accent-purple/10 p-6">
+          <div className="student-muted-panel p-6 bg-accent-purple/10">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-purple mb-2">Saved for later</p>
             <p className="text-primary-text font-semibold">{savedResources.length} bookmarked resources</p>
             <p className="text-sm text-secondary-text mt-2">
@@ -231,6 +232,7 @@ export default function StudentDashboard() {
 
       {loading && <p className="text-secondary-text mt-8">Loading your dashboard...</p>}
       {error && <p className="text-red-600 mt-8">{error}</p>}
+      </div>
     </div>
   );
 }

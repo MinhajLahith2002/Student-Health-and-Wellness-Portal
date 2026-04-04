@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FileText, Save } from 'lucide-react';
 import { getCounselingSessionById, updateCounselingSessionNotes, updateCounselingSessionStatus } from '../../lib/counseling';
@@ -132,7 +132,7 @@ export default function CounselingSessionPage() {
   const minimumFollowUpDate = getMinimumFollowUpDate(session.date);
 
   return (
-    <div className={`${isCounselor ? 'pt-8' : 'pt-36'} pb-12 px-6 max-w-6xl mx-auto min-h-screen bg-primary-bg`}>
+    <div className={`${isCounselor ? 'pt-8' : 'pt-36'} pb-12 px-6 max-w-6xl mx-auto student-shell`}>
       <div className="grid grid-cols-1 xl:grid-cols-[1.2fr,0.8fr] gap-8">
         <section className="apple-card p-10 border-none bg-white/70 backdrop-blur-sm">
           <p className="text-[10px] uppercase tracking-[0.2em] text-secondary-text font-bold">Counseling Session</p>
@@ -140,7 +140,7 @@ export default function CounselingSessionPage() {
             {isCounselor ? session.studentName : session.counselorName}
           </h1>
           <p className="text-secondary-text mt-3">
-            {new Date(session.date).toLocaleDateString()} • {session.time} • {session.type} • {session.status}
+            {new Date(session.date).toLocaleDateString()} â€¢ {session.time} â€¢ {session.type} â€¢ {session.status}
           </p>
 
           <div className="rounded-3xl bg-secondary-bg/70 p-6 mt-8">
@@ -161,8 +161,8 @@ export default function CounselingSessionPage() {
 
           {!isCounselor && (
             <>
-              <div className="mt-8 rounded-3xl bg-accent-purple/10 p-6">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-accent-purple font-bold mb-3">Shared Summary</p>
+              <div className="mt-8 rounded-3xl bg-accent-primary/10 p-6">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-accent-primary font-bold mb-3">Shared Summary</p>
                 <p className="text-primary-text/80 leading-relaxed">{session.sharedSummary || 'Your counselor has not added a shareable summary yet.'}</p>
               </div>
 
@@ -182,7 +182,7 @@ export default function CounselingSessionPage() {
 
               <div className="mt-8 flex gap-4">
                 {session.status === 'Confirmed' && (
-                  <button onClick={() => handleStatusUpdate('Ready')} disabled={updatingStatus} className="flex-1 py-4 bg-accent-purple text-white rounded-2xl font-bold disabled:opacity-50">
+                  <button onClick={() => handleStatusUpdate('Ready')} disabled={updatingStatus} className="flex-1 py-4 bg-accent-primary text-white rounded-2xl font-bold disabled:opacity-50">
                     Check In
                   </button>
                 )}
@@ -274,7 +274,7 @@ export default function CounselingSessionPage() {
                   </div>
                 )}
               </div>
-              <button onClick={handleSaveNotes} disabled={saving} className="w-full py-4 bg-accent-purple text-white rounded-2xl font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50">
+              <button onClick={handleSaveNotes} disabled={saving} className="w-full py-4 bg-accent-primary text-white rounded-2xl font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50">
                 <Save className="w-4 h-4" />
                 {saving ? 'Saving...' : 'Save Notes & Summary'}
               </button>
@@ -329,8 +329,9 @@ export default function CounselingSessionPage() {
         </aside>
       </div>
 
-      {statusMessage && <p className="text-emerald-600 mt-8">{statusMessage}</p>}
+      {statusMessage && <p className="text-accent-primary mt-8">{statusMessage}</p>}
       {error && <p className="text-red-600 mt-8">{error}</p>}
     </div>
   );
 }
+

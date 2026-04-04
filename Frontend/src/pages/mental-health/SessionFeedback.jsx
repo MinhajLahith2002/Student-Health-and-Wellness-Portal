@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { apiFetch } from '../../lib/api';
@@ -68,13 +68,13 @@ export default function SessionFeedback() {
     }
   }
 
-  if (loading) return <div className="pt-36 pb-12 px-6 max-w-2xl mx-auto min-h-screen bg-primary-bg">Loading feedback form...</div>;
-  if (!session) return <div className="pt-36 pb-12 px-6 max-w-2xl mx-auto min-h-screen bg-primary-bg text-red-600">{error || 'Session not found'}</div>;
+  if (loading) return <div className="pt-36 pb-12 px-6 max-w-2xl mx-auto student-shell">Loading feedback form...</div>;
+  if (!session) return <div className="pt-36 pb-12 px-6 max-w-2xl mx-auto student-shell text-red-600">{error || 'Session not found'}</div>;
 
   const feedbackLocked = session.status !== 'Completed';
 
   return (
-    <div className="pt-36 pb-12 px-6 max-w-2xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-2xl mx-auto student-shell">
       <div className="apple-card p-10 border-none bg-white/70 backdrop-blur-sm">
         <h1 className="text-4xl font-semibold tracking-tight text-primary-text">Session Feedback</h1>
         <p className="text-secondary-text mt-4">Share how the counseling session felt and what could improve.</p>
@@ -94,7 +94,7 @@ export default function SessionFeedback() {
           </div>
           <textarea rows={6} value={comment} onChange={(event) => setComment(event.target.value)} className="w-full px-5 py-4 bg-secondary-bg rounded-2xl outline-none resize-none" placeholder="What helped most, and what should be smoother next time?" />
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={submitting || feedbackLocked} className="w-full py-4 bg-accent-purple text-white rounded-2xl font-bold disabled:opacity-50">
+          <button type="submit" disabled={submitting || feedbackLocked} className="w-full py-4 bg-accent-primary text-white rounded-2xl font-bold disabled:opacity-50">
             {submitting ? 'Submitting...' : 'Submit Feedback'}
           </button>
         </form>
@@ -102,3 +102,4 @@ export default function SessionFeedback() {
     </div>
   );
 }
+

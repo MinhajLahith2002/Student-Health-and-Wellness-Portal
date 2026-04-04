@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { 
   ShoppingCart, 
   Trash2, 
@@ -16,9 +16,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
-import { MOCK_MEDICINES } from '../../../constants/mockPharmacyData';
 import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
+import { clearCart, getCartItems, saveCartItems } from '../../../lib/pharmacyCart';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -58,16 +58,8 @@ const Checkout = () => {
     );
   }, [paymentMethod, cardDetails]);
 
-  // Mock cart items
   const [cartItems, setCartItems] = useState(() => {
-    try {
-      const raw = localStorage.getItem('pharmacy_cart');
-      const parsed = raw ? JSON.parse(raw) : null;
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    } catch {
-      // fall through to defaults
-    }
-    return [{ ...MOCK_MEDICINES[0], quantity: 2 }, { ...MOCK_MEDICINES[1], quantity: 1 }];
+    return getCartItems();
   });
 
   const backendPaymentMethod = useMemo(() => {
@@ -85,7 +77,7 @@ const Checkout = () => {
       const next = prev.map((item) =>
         item.id === id || item._id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
       );
-      localStorage.setItem('pharmacy_cart', JSON.stringify(next));
+      saveCartItems(next);
       return next;
     });
   };
@@ -93,7 +85,7 @@ const Checkout = () => {
   const removeItem = (id) => {
     setCartItems((prev) => {
       const next = prev.filter((item) => item.id !== id && item._id !== id);
-      localStorage.setItem('pharmacy_cart', JSON.stringify(next));
+      saveCartItems(next);
       return next;
     });
   };
@@ -114,7 +106,8 @@ const Checkout = () => {
           paymentMethod: backendPaymentMethod
         })
       });
-      localStorage.removeItem('pharmacy_cart');
+      clearCart();
+      setCartItems([]);
       setPlacedOrderId(order._id || order.orderId);
       setIsSuccess(true);
     } catch (err) {
@@ -126,30 +119,30 @@ const Checkout = () => {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="pharmacy-shell flex items-center justify-center p-6">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-md w-full bg-white rounded-3xl p-10 text-center shadow-xl shadow-slate-200/50"
         >
           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            <CheckCircle2 className="w-10 h-10 text-accent-primary" />
           </div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-4">Order Placed!</h2>
-          <p className="text-slate-500 mb-2">Order ID: #{placedOrderId || 'N/A'}</p>
-          <p className="text-slate-500 mb-8 leading-relaxed">
+          <h2 className="text-3xl font-bold text-primary-text mb-4">Order Placed!</h2>
+          <p className="text-secondary-text mb-2">Order ID: #{placedOrderId || 'N/A'}</p>
+          <p className="text-secondary-text mb-8 leading-relaxed">
             Your order has been received and is being processed. You can track its status in real-time.
           </p>
           <div className="space-y-4">
             <button 
               onClick={() => navigate(`/student/pharmacy/order/${placedOrderId}`)}
-              className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+              className="w-full py-4 bg-accent-primary text-white rounded-xl font-bold hover:bg-[#105f72] transition-all shadow-lg shadow-cyan-100"
             >
               Track Order
             </button>
             <button 
               onClick={() => navigate('/student/pharmacy')}
-              className="w-full py-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all"
+              className="w-full py-4 bg-[#e6f0f4] text-secondary-text rounded-xl font-bold hover:bg-slate-200 transition-all"
             >
               Back to Store
             </button>
@@ -161,15 +154,15 @@ const Checkout = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+      <div className="pharmacy-shell flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-[#e6f0f4] rounded-full flex items-center justify-center mb-6">
           <ShoppingCart className="w-10 h-10 text-slate-300" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Your cart is empty</h2>
-        <p className="text-slate-500 mb-8">Add some medicines or health products to get started.</p>
+        <h2 className="text-2xl font-bold text-primary-text mb-2">Your cart is empty</h2>
+        <p className="text-secondary-text mb-8">Add some medicines or health products to get started.</p>
         <button 
-          onClick={() => navigate('/student/pharmacy/search')}
-          className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all"
+          onClick={() => navigate('/student/pharmacy/products')}
+          className="px-8 py-3 bg-accent-primary text-white rounded-xl font-bold hover:bg-[#105f72] transition-all"
         >
           Browse Products
         </button>
@@ -178,20 +171,23 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-28 pb-20 px-6">
+    <div className="pharmacy-shell pt-28 pb-20 px-6">
       <div className="max-w-7xl mx-auto mb-12">
-        <h1 className="text-5xl font-bold text-slate-900 tracking-tight">Checkout</h1>
+        <h1 className="text-5xl font-bold text-primary-text tracking-tight">Checkout</h1>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Left Column: Cart Items */}
           <div className="lg:col-span-2 space-y-6">
-            <section className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <section className="pharmacy-panel overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Cart Items ({cartItems.length})</h2>
+                <h2 className="text-lg font-bold text-primary-text">Cart Items ({cartItems.length})</h2>
                 <button 
-                  onClick={() => setCartItems([])}
+                  onClick={() => {
+                    clearCart();
+                    setCartItems([]);
+                  }}
                   className="text-sm font-bold text-rose-500 hover:text-rose-600 transition-colors"
                 >
                   Clear All
@@ -200,16 +196,16 @@ const Checkout = () => {
               <div className="divide-y divide-slate-100">
                 {cartItems.map((item) => (
                   <div key={item._id || item.id} className="p-6 flex gap-6 group">
-                    <div className="w-24 h-24 bg-slate-100 rounded-2xl overflow-hidden shrink-0">
+                    <div className="w-24 h-24 bg-[#e6f0f4] rounded-2xl overflow-hidden shrink-0">
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     </div>
                     <div className="flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-1">
                         <div>
-                          <h3 className="font-bold text-slate-900 text-lg">{item.name}</h3>
-                          <p className="text-xs text-slate-500">{item.strength} • {item.manufacturer}</p>
+                          <h3 className="font-bold text-primary-text text-lg">{item.name}</h3>
+                          <p className="text-xs text-secondary-text">{item.strength} â€¢ {item.manufacturer}</p>
                         </div>
-                        <p className="font-bold text-slate-900 text-lg">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="font-bold text-primary-text text-lg">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                       
                       {item.requiresPrescription && (
@@ -219,17 +215,17 @@ const Checkout = () => {
                       )}
 
                       <div className="mt-auto flex items-center justify-between">
-                        <div className="flex items-center gap-3 bg-slate-50 p-1 rounded-lg">
+                        <div className="flex items-center gap-3 bg-[#eff6f9] p-1 rounded-lg">
                           <button 
                             onClick={() => updateQuantity(item._id || item.id, -1)}
-                            className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-slate-600 hover:text-emerald-600 shadow-sm transition-colors"
+                            className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-secondary-text hover:text-accent-primary shadow-sm transition-colors"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="w-6 text-center font-bold text-slate-900 text-sm">{item.quantity}</span>
+                          <span className="w-6 text-center font-bold text-primary-text text-sm">{item.quantity}</span>
                           <button 
                             onClick={() => updateQuantity(item._id || item.id, 1)}
-                            className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-slate-600 hover:text-emerald-600 shadow-sm transition-colors"
+                            className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-secondary-text hover:text-accent-primary shadow-sm transition-colors"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
@@ -248,29 +244,29 @@ const Checkout = () => {
             </section>
 
             {/* Delivery Address */}
-            <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <section className="pharmacy-panel p-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-emerald-600" /> Delivery Address
+                <h2 className="text-lg font-bold text-primary-text flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-accent-primary" /> Delivery Address
                 </h2>
-                <button className="text-sm font-bold text-emerald-600 hover:underline">Change</button>
+                <button className="text-sm font-bold text-accent-primary hover:underline">Change</button>
               </div>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-4">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
+              <div className="p-4 bg-[#eff6f9] rounded-2xl border border-slate-100 flex items-start gap-4">
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-secondary-text/80 shadow-sm">
                   <Truck className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900">Campus Dormitory</p>
-                  <p className="text-sm text-slate-500">{address}</p>
-                  <p className="text-xs text-slate-400 mt-1">Estimated delivery: 30-45 mins</p>
+                  <p className="font-bold text-primary-text">Campus Dormitory</p>
+                  <p className="text-sm text-secondary-text">{address}</p>
+                  <p className="text-xs text-secondary-text/80 mt-1">Estimated delivery: 30-45 mins</p>
                 </div>
               </div>
             </section>
 
             {/* Payment Method */}
-            <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-6">
-                <CreditCard className="w-5 h-5 text-emerald-600" /> Payment Method
+            <section className="pharmacy-panel p-8">
+              <h2 className="text-lg font-bold text-primary-text flex items-center gap-2 mb-6">
+                <CreditCard className="w-5 h-5 text-accent-primary" /> Payment Method
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
@@ -284,17 +280,17 @@ const Checkout = () => {
                     className={cn(
                       "p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3",
                       paymentMethod === method.id 
-                        ? "border-emerald-500 bg-emerald-50/50" 
+                        ? "border-accent-primary bg-[#e8f7f5]/50" 
                         : "border-slate-100 bg-white hover:border-emerald-200"
                     )}
                   >
                     <div className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                      paymentMethod === method.id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400"
+                      paymentMethod === method.id ? "bg-accent-primary text-white" : "bg-[#e6f0f4] text-secondary-text/80"
                     )}>
                       <method.icon className="w-5 h-5" />
                     </div>
-                    <span className={cn("font-bold text-sm", paymentMethod === method.id ? "text-emerald-900" : "text-slate-600")}>
+                    <span className={cn("font-bold text-sm", paymentMethod === method.id ? "text-emerald-900" : "text-secondary-text")}>
                       {method.name}
                     </span>
                   </button>
@@ -310,51 +306,51 @@ const Checkout = () => {
                     exit={{ opacity: 0, height: 0, marginTop: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                    <div className="p-6 bg-[#eff6f9] rounded-2xl border border-slate-100 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Card Number</label>
+                          <label className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">Card Number</label>
                           <input 
                             type="text"
                             value={cardDetails.number}
                             onChange={(e) => setCardDetails({ ...cardDetails, number: formatCardNumber(e.target.value) })}
                             placeholder="0000 0000 0000 0000"
                             maxLength="19"
-                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 transition-colors font-mono"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-accent-primary transition-colors font-mono"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cardholder Name</label>
+                          <label className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">Cardholder Name</label>
                           <input 
                             type="text"
                             value={cardDetails.name}
                             onChange={(e) => setCardDetails({ ...cardDetails, name: e.target.value })}
                             placeholder="FULL NAME"
-                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-accent-primary transition-colors"
                           />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Expiry Date</label>
+                          <label className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">Expiry Date</label>
                           <input 
                             type="text"
                             value={cardDetails.expiry}
                             onChange={(e) => setCardDetails({ ...cardDetails, expiry: formatExpiry(e.target.value) })}
                             placeholder="MM/YY"
                             maxLength="5"
-                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-accent-primary transition-colors"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">CVV</label>
+                          <label className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">CVV</label>
                           <input 
                             type="password"
                             value={cardDetails.cvv}
                             onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })}
                             placeholder="000"
                             maxLength="4"
-                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-accent-primary transition-colors"
                           />
                         </div>
                       </div>
@@ -367,21 +363,21 @@ const Checkout = () => {
 
           {/* Right Column: Order Summary */}
           <div className="space-y-6">
-            <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sticky top-28">
-              <h2 className="text-xl font-bold text-slate-900 mb-6">Order Summary</h2>
+            <section className="pharmacy-panel p-8 sticky top-28">
+              <h2 className="text-xl font-bold text-primary-text mb-6">Order Summary</h2>
               
               <div className="space-y-4 mb-8">
-                <div className="flex justify-between text-slate-500">
+                <div className="flex justify-between text-secondary-text">
                   <span>Subtotal</span>
-                  <span className="font-bold text-slate-900">${subtotal.toFixed(2)}</span>
+                  <span className="font-bold text-primary-text">${subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-slate-500">
+                <div className="flex justify-between text-secondary-text">
                   <span>Delivery Fee</span>
-                  <span className="font-bold text-slate-900">${deliveryFee.toFixed(2)}</span>
+                  <span className="font-bold text-primary-text">${deliveryFee.toFixed(2)}</span>
                 </div>
                 <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                  <span className="text-lg font-bold text-slate-900">Total</span>
-                  <span className="text-3xl font-bold text-emerald-600">${total.toFixed(2)}</span>
+                  <span className="text-lg font-bold text-primary-text">Total</span>
+                  <span className="text-3xl font-bold text-accent-primary">${total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -408,8 +404,8 @@ const Checkout = () => {
                 className={cn(
                   "w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg",
                   isProcessing || !isCardValid
-                    ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
-                    : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100"
+                    ? "bg-[#e6f0f4] text-secondary-text/80 cursor-not-allowed" 
+                    : "bg-accent-primary text-white hover:bg-[#105f72] shadow-cyan-100"
                 )}
               >
                 {isProcessing ? (
@@ -424,7 +420,7 @@ const Checkout = () => {
               </button>
               {error && <p className="mt-4 text-sm text-rose-600">{error}</p>}
 
-              <div className="mt-6 flex items-center justify-center gap-2 text-slate-400 text-xs font-medium">
+              <div className="mt-6 flex items-center justify-center gap-2 text-secondary-text/80 text-xs font-medium">
                 <ShieldCheck className="w-4 h-4" /> Secure Checkout Guaranteed
               </div>
             </section>
@@ -436,3 +432,5 @@ const Checkout = () => {
 };
 
 export default Checkout;
+
+

@@ -71,6 +71,24 @@ export const useForm = (initialValues = {}, validate) => {
     setIsSubmitting(false);
   }, [initialValues]);
 
+  const setFieldValue = useCallback((field, value) => {
+    setValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    setErrors(prev => {
+      if (!prev[field]) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [field]: null
+      };
+    });
+  }, []);
+
   return {
     values,
     errors,
@@ -80,6 +98,7 @@ export const useForm = (initialValues = {}, validate) => {
     handleBlur,
     handleSubmit,
     resetForm,
+    setFieldValue,
     setValues,
     setErrors
   };

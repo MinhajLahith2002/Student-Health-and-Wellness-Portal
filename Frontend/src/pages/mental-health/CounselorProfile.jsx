@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Heart, Shield } from 'lucide-react';
 import { getProviderAvailability, getProviderById } from '../../lib/providers';
@@ -42,7 +42,7 @@ export default function CounselorProfile() {
   const isPreferred = preferred.some((entry) => entry._id === provider._id);
 
   return (
-    <div className="pt-36 pb-12 px-6 max-w-5xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-5xl mx-auto student-shell">
       <div className="apple-card p-10 border-none bg-white/70 backdrop-blur-sm">
         <div className="flex flex-col lg:flex-row gap-8 lg:items-start justify-between">
           <div className="flex-1">
@@ -62,7 +62,7 @@ export default function CounselorProfile() {
             >
               {isPreferred ? 'Preferred Counselor' : 'Save Counselor'}
             </button>
-            <Link to={`/mental-health/book/${provider._id}`} className="px-5 py-3 rounded-full bg-accent-purple text-white text-sm font-bold text-center">
+            <Link to={`/mental-health/book/${provider._id}`} className="px-5 py-3 rounded-full bg-accent-primary text-white text-sm font-bold text-center">
               Book Session
             </Link>
           </div>
@@ -86,3 +86,4 @@ export default function CounselorProfile() {
     </div>
   );
 }
+

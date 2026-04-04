@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Calendar, FileText, PhoneOff, Video, VideoOff } from 'lucide-react';
 import { canOpenVideoVisit, getAppointmentById, getVideoVisitBlockedReason } from '../../../lib/appointments';
@@ -57,7 +57,7 @@ export default function Consultation() {
           <p className="text-white/70 mt-4">{getVideoVisitBlockedReason(appointment)}</p>
           <button
             onClick={() => navigate('/student/appointments')}
-            className="mt-8 px-6 py-3 bg-white text-[#18181B] rounded-2xl font-bold"
+            className="mt-8 px-6 py-3 bg-white text-primary-text rounded-2xl font-bold"
           >
             Back to Appointments
           </button>
@@ -101,35 +101,35 @@ export default function Consultation() {
         </div>
       </div>
 
-      <aside className="w-full lg:w-[420px] bg-white text-[#18181B] p-8 space-y-6">
+      <aside className="w-full lg:w-[420px] bg-white text-primary-text p-8 space-y-6">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#71717A] font-bold">Consultation</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-secondary-text font-bold">Consultation</p>
           <h1 className="text-3xl font-bold mt-2">Visit details</h1>
         </div>
 
-        <div className="rounded-3xl bg-[#F4F4F8] p-6 space-y-4">
-          <div className="flex items-center gap-3 text-sm text-[#71717A]">
+        <div className="rounded-3xl bg-[#edf5f8] p-6 space-y-4">
+          <div className="flex items-center gap-3 text-sm text-secondary-text">
             <Calendar className="w-4 h-4" />
             {formatDateLabel(appointment.date)} at {appointment.time}
           </div>
-          <div className="flex items-center gap-3 text-sm text-[#71717A]">
+          <div className="flex items-center gap-3 text-sm text-secondary-text">
             <Video className="w-4 h-4" />
             {appointment.type}
           </div>
-          <div className="flex items-center gap-3 text-sm text-[#71717A]">
+          <div className="flex items-center gap-3 text-sm text-secondary-text">
             <FileText className="w-4 h-4" />
             Status: {appointment.status}
           </div>
           {appointment.meetingLink && (
-            <a href={appointment.meetingLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-[#2563EB]">
+            <a href={appointment.meetingLink} target="_blank" rel="noreferrer" className="text-sm font-semibold text-accent-primary">
               Open meeting link
             </a>
           )}
         </div>
 
         <div>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#71717A] font-bold mb-3">Symptoms / reason</p>
-          <p className="text-sm text-[#18181B] leading-relaxed">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-secondary-text font-bold mb-3">Symptoms / reason</p>
+          <p className="text-sm text-primary-text leading-relaxed">
             {appointment.symptoms || 'No symptoms were entered before this visit.'}
           </p>
         </div>
@@ -137,7 +137,7 @@ export default function Consultation() {
         {appointment.prescriptionId && (
           <button
             onClick={() => navigate('/student/prescriptions')}
-            className="w-full py-4 bg-[#2563EB] text-white rounded-2xl font-bold flex items-center justify-center gap-2"
+            className="w-full py-4 bg-accent-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2"
           >
             <FileText className="w-5 h-5" />
             View Prescription
@@ -147,7 +147,7 @@ export default function Consultation() {
         {appointment.status === 'Completed' && (
           <button
             onClick={() => navigate(`/student/appointments/${appointment._id}/feedback`)}
-            className="w-full py-4 bg-[#F4F4F8] text-[#18181B] rounded-2xl font-bold"
+            className="w-full py-4 bg-[#edf5f8] text-primary-text rounded-2xl font-bold"
           >
             Leave Feedback
           </button>
@@ -156,3 +156,4 @@ export default function Consultation() {
     </div>
   );
 }
+

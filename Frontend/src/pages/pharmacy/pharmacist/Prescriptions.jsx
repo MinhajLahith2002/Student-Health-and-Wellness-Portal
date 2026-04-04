@@ -1,23 +1,32 @@
-import React, { useState } from 'react';
-import { 
-  ClipboardList, 
-  CheckCircle2, 
-  XCircle, 
-  Search, 
-  Filter, 
-  ChevronRight, 
-  Eye, 
-  Clock, 
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  Search,
+  Filter,
+  ChevronRight,
+  Eye,
   AlertCircle,
   ChevronLeft,
   MessageSquare,
-  ArrowRight,
-  Maximize2
+  Maximize2,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { MOCK_MEDICINES, MOCK_PRESCRIPTIONS } from '../../../constants/mockPharmacyData';
 import { cn } from '../../../lib/utils';
+import { apiFetch, resolveAssetUrl } from '../../../lib/api';
+
+const STATUS_STYLES = {
+  Pending: 'bg-amber-50 text-amber-700 border-amber-100',
+  Approved: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  Rejected: 'bg-rose-50 text-rose-700 border-rose-100'
+};
+
+function getPrescriptionImageUrl(prescription) {
+  return resolveAssetUrl(prescription?.imageUrl || '');
+}
 
 const PrescriptionProcessing = () => {
   const navigate = useNavigate();
@@ -25,48 +34,145 @@ const PrescriptionProcessing = () => {
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [pharmacistNotes, setPharmacistNotes] = useState('');
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
-  const [selectedItems, setSelectedItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [review, setReview] = useState(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState('');
 
   const tabs = ['Pending', 'Approved', 'Rejected'];
 
-  const filteredPrescriptions = MOCK_PRESCRIPTIONS.filter(p => p.status === activeTab);
-  const currentPrescription = MOCK_PRESCRIPTIONS.find(p => p.id === selectedPrescription);
+  useEffect(() => {
+    let active = true;
 
-  const handleVerify = (id) => {
-    if (selectedItems.length === 0) {
-      alert("Please select at least one medicine to approve the prescription.");
-      return;
+    const run = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await apiFetch(`/prescriptions?status=${encodeURIComponent(activeTab)}&limit=200`);
+        if (!active) return;
+        const nextPrescriptions = Array.isArray(data?.prescriptions) ? data.prescriptions : [];
+        setPrescriptions(nextPrescriptions);
+        setSelectedPrescription(nextPrescriptions[0]?._id || null);
+      } catch (err) {
+        if (!active) return;
+        setError(err.message || 'Failed to load prescriptions');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      active = false;
+    };
+  }, [activeTab]);
+
+  const filteredPrescriptions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return prescriptions.filter((item) => {
+      if (!query) return true;
+      const studentName = (item.studentName || '').toLowerCase();
+      const studentId = (item.studentId?.studentId || item.studentId?._id || item.studentId || '').toString().toLowerCase();
+      return studentName.includes(query) || studentId.includes(query);
+    });
+  }, [prescriptions, searchQuery]);
+
+  const currentPrescription = useMemo(
+    () => prescriptions.find((item) => item._id === selectedPrescription),
+    [prescriptions, selectedPrescription]
+  );
+
+  useEffect(() => {
+    setReview(null);
+    setReviewError('');
+  }, [selectedPrescription]);
+
+  const refreshPrescriptions = async (status = activeTab) => {
+    const data = await apiFetch(`/prescriptions?status=${encodeURIComponent(status)}&limit=200`);
+    const nextPrescriptions = Array.isArray(data?.prescriptions) ? data.prescriptions : [];
+    setPrescriptions(nextPrescriptions);
+    setSelectedPrescription(nextPrescriptions[0]?._id || null);
+  };
+
+  const loadReview = useCallback(async () => {
+    if (!currentPrescription) return;
+    try {
+      setReviewLoading(true);
+      setReviewError('');
+      const data = await apiFetch(`/prescriptions/${currentPrescription._id}/review`);
+      setReview(data);
+    } catch (err) {
+      setReviewError(err.message || 'Failed to generate assistant review');
+    } finally {
+      setReviewLoading(false);
     }
-    // Simulate verification and order creation
-    setIsApproveModalOpen(false);
-    alert(`Prescription ${id} verified! Order created with ${selectedItems.length} items.`);
-    // In a real app, this would call apiFetch('/prescriptions/approve', { items: selectedItems })
+  }, [currentPrescription]);
+
+  useEffect(() => {
+    if (!currentPrescription?._id) return;
+    loadReview();
+  }, [currentPrescription?._id, loadReview]);
+
+  const handleApprove = async () => {
+    if (!currentPrescription) return;
+    try {
+      setIsSaving(true);
+      setError('');
+      await apiFetch(`/prescriptions/${currentPrescription._id}/verify`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          status: 'Approved',
+          pharmacistNotes
+        })
+      });
+      setIsApproveModalOpen(false);
+      setPharmacistNotes('');
+      await refreshPrescriptions();
+    } catch (err) {
+      setError(err.message || 'Failed to approve prescription');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const toggleItem = (med) => {
-    setSelectedItems(prev => 
-      prev.find(i => i.id === med.id) 
-        ? prev.filter(i => i.id !== med.id)
-        : [...prev, { ...med, quantity: 1 }]
-    );
-  };
-
-  const handleReject = (id) => {
-    // Simulate rejection
-    setIsRejectModalOpen(false);
-    alert(`Prescription ${id} rejected. Reason: ${rejectionReason}`);
+  const handleReject = async () => {
+    if (!currentPrescription || !rejectionReason) return;
+    try {
+      setIsSaving(true);
+      setError('');
+      await apiFetch(`/prescriptions/${currentPrescription._id}/verify`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          status: 'Rejected',
+          pharmacistNotes,
+          rejectionReason
+        })
+      });
+      setIsRejectModalOpen(false);
+      setRejectionReason('');
+      setPharmacistNotes('');
+      await refreshPrescriptions();
+    } catch (err) {
+      setError(err.message || 'Failed to reject prescription');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate('/admin/dashboard')}
+            <button
+              onClick={() => navigate('/pharmacist/dashboard')}
               className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -79,10 +185,12 @@ const PrescriptionProcessing = () => {
           <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
+              <input
                 type="text"
                 placeholder="Search student ID or name..."
                 className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 transition-all w-64"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <button className="p-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-all">
@@ -94,7 +202,6 @@ const PrescriptionProcessing = () => {
 
       <div className="max-w-7xl mx-auto px-8 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Left: Prescription List */}
           <div className="lg:col-span-1 space-y-6">
             <div className="flex border-b border-slate-200 mb-6 overflow-x-auto no-scrollbar">
               {tabs.map((tab) => (
@@ -102,71 +209,78 @@ const PrescriptionProcessing = () => {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "px-6 py-4 text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap",
-                    activeTab === tab ? "text-emerald-600" : "text-slate-400 hover:text-slate-600"
+                    'px-6 py-4 text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap',
+                    activeTab === tab ? 'text-emerald-600' : 'text-slate-400 hover:text-slate-600'
                   )}
                 >
                   {tab}
                   {activeTab === tab && (
-                    <motion.div 
+                    <motion.div
                       layoutId="activePrescriptionTab"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600" 
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600"
                     />
                   )}
                 </button>
               ))}
             </div>
 
+            {loading && (
+              <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 border-dashed">
+                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-4" />
+                <p className="text-slate-500 font-medium">Loading prescriptions...</p>
+              </div>
+            )}
+
             <div className="space-y-4">
               <AnimatePresence mode="popLayout">
-                {filteredPrescriptions.map((p) => (
+                {!loading && filteredPrescriptions.map((p) => (
                   <motion.button
                     layout
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    key={p.id}
-                    onClick={() => setSelectedPrescription(p.id)}
+                    key={p._id}
+                    onClick={() => setSelectedPrescription(p._id)}
                     className={cn(
-                      "w-full p-5 rounded-3xl border-2 text-left transition-all flex items-center gap-4 group",
-                      selectedPrescription === p.id 
-                        ? "border-emerald-500 bg-emerald-50/50" 
-                        : "border-white bg-white hover:border-emerald-200 shadow-sm"
+                      'w-full p-5 rounded-3xl border-2 text-left transition-all flex items-center gap-4 group',
+                      selectedPrescription === p._id
+                        ? 'border-emerald-500 bg-emerald-50/50'
+                        : 'border-white bg-white hover:border-emerald-200 shadow-sm'
                     )}
                   >
                     <div className="w-16 h-16 bg-slate-100 rounded-2xl overflow-hidden shrink-0 shadow-sm">
-                      <img src={p.imageUrl} alt="Prescription" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      {getPrescriptionImageUrl(p) ? (
+                        <img src={getPrescriptionImageUrl(p)} alt="Prescription" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <ClipboardList className="w-8 h-8" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
-                        <h3 className={cn("font-bold truncate", selectedPrescription === p.id ? "text-emerald-900" : "text-slate-900")}>
+                        <h3 className={cn('font-bold truncate', selectedPrescription === p._id ? 'text-emerald-900' : 'text-slate-900')}>
                           {p.studentName}
                         </h3>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                          {new Date(p.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 mb-2">ID: {p.studentId}</p>
+                      <p className="text-xs text-slate-500 mb-2">
+                        ID: {p.studentId?.studentId || p.studentId?._id || p.studentId || 'N/A'}
+                      </p>
                       <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider border",
-                          p.status === "PENDING" ? "bg-amber-50 text-amber-700 border-amber-100" : 
-                          p.status === "APPROVED" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
-                          "bg-rose-50 text-rose-700 border-rose-100"
-                        )}>
+                        <span className={cn('px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider border', STATUS_STYLES[p.status] || STATUS_STYLES.Pending)}>
                           {p.status}
                         </span>
                       </div>
                     </div>
-                    <ChevronRight className={cn(
-                      "w-5 h-5 transition-transform",
-                      selectedPrescription === p.id ? "text-emerald-600 translate-x-1" : "text-slate-300"
-                    )} />
+                    <ChevronRight className={cn('w-5 h-5 transition-transform', selectedPrescription === p._id ? 'text-emerald-600 translate-x-1' : 'text-slate-300')} />
                   </motion.button>
                 ))}
               </AnimatePresence>
 
-              {filteredPrescriptions.length === 0 && (
+              {!loading && filteredPrescriptions.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 border-dashed">
                   <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <ClipboardList className="w-8 h-8 text-slate-200" />
@@ -177,12 +291,11 @@ const PrescriptionProcessing = () => {
             </div>
           </div>
 
-          {/* Right: Detail View */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
               {currentPrescription ? (
                 <motion.div
-                  key={currentPrescription.id}
+                  key={currentPrescription._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -197,9 +310,11 @@ const PrescriptionProcessing = () => {
                           </div>
                           <div>
                             <h2 className="text-3xl font-bold text-slate-900">{currentPrescription.studentName}</h2>
-                            <p className="text-slate-500 font-medium">Student ID: {currentPrescription.studentId}</p>
+                            <p className="text-slate-500 font-medium">
+                              Student ID: {currentPrescription.studentId?.studentId || currentPrescription.studentId?._id || currentPrescription.studentId || 'N/A'}
+                            </p>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
-                              Uploaded on {new Date(currentPrescription.date).toLocaleString()}
+                              Uploaded on {new Date(currentPrescription.createdAt).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -214,26 +329,32 @@ const PrescriptionProcessing = () => {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        {/* Image Lightbox Trigger */}
                         <div className="space-y-4">
                           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Prescription Image</p>
-                          <div 
-                            onClick={() => setIsLightboxOpen(true)}
-                            className="aspect-[3/4] bg-slate-100 rounded-3xl overflow-hidden border border-slate-200 relative group cursor-zoom-in shadow-lg"
+                          <div
+                            onClick={() => getPrescriptionImageUrl(currentPrescription) && setIsLightboxOpen(true)}
+                            className="aspect-[3/4] bg-slate-100 rounded-3xl overflow-hidden border border-slate-200 relative group shadow-lg"
                           >
-                            <img 
-                              src={currentPrescription.imageUrl} 
-                              alt="Prescription" 
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                              referrerPolicy="no-referrer"
-                            />
-                            <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/20 transition-colors flex items-center justify-center">
-                              <Maximize2 className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
+                            {getPrescriptionImageUrl(currentPrescription) ? (
+                              <>
+                                <img
+                                  src={getPrescriptionImageUrl(currentPrescription)}
+                                  alt="Prescription"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/20 transition-colors flex items-center justify-center">
+                                  <Maximize2 className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                              </>
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <Eye className="w-16 h-16" />
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* Verification Controls */}
                         <div className="space-y-8">
                           <div>
                             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Student Notes</p>
@@ -244,17 +365,167 @@ const PrescriptionProcessing = () => {
                             </div>
                           </div>
 
-                          {currentPrescription.status === "PENDING" && (
+                          <div>
+                            <div className="flex items-center justify-between gap-4 mb-4">
+                              <div>
+                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Verification Assistant</p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Generate a quick review to speed up manual pharmacist verification.
+                                </p>
+                              </div>
+                              <button
+                                onClick={loadReview}
+                                disabled={reviewLoading}
+                                className="px-4 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {reviewLoading ? 'Reading...' : review ? 'Refresh Review' : 'Generate Review'}
+                              </button>
+                            </div>
+
+                            {!review && !reviewLoading && !reviewError && (
+                              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                                <p className="text-slate-600 text-sm leading-relaxed">
+                                  This assistant can summarize the uploaded prescription and flag common review risks before you approve or reject it.
+                                </p>
+                              </div>
+                            )}
+
+                            {reviewError && (
+                              <div className="p-6 bg-rose-50 rounded-3xl border border-rose-100">
+                                <p className="text-sm text-rose-700">{reviewError}</p>
+                              </div>
+                            )}
+
+                            {reviewLoading && (
+                              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-3 text-slate-600">
+                                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                                <span className="text-sm font-medium">Analyzing prescription...</span>
+                              </div>
+                            )}
+
+                            {review && (
+                              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-5">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-bold uppercase tracking-widest text-slate-600">
+                                    {review.mode === 'openai' ? 'AI Vision Review' : 'Checklist Review'}
+                                  </span>
+                                  {review.error && (
+                                    <span className="text-xs text-amber-700 font-medium">
+                                      AI unavailable, fallback used
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <p className="text-sm font-bold text-slate-900 mb-2">Summary</p>
+                                  <p className="text-sm text-slate-600 leading-relaxed">{review.summary}</p>
+                                </div>
+
+                                {review.extracted && (
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900 mb-3">Extracted Details</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                      <div className="p-4 bg-white rounded-2xl border border-slate-200">
+                                        <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Patient</p>
+                                        <p className="font-medium text-slate-700">{review.extracted.patientName || review.extracted.studentName || 'Not clearly detected'}</p>
+                                      </div>
+                                      <div className="p-4 bg-white rounded-2xl border border-slate-200">
+                                        <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Doctor</p>
+                                        <p className="font-medium text-slate-700">{review.extracted.doctorName || 'Not clearly detected'}</p>
+                                      </div>
+                                      <div className="p-4 bg-white rounded-2xl border border-slate-200">
+                                        <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Date</p>
+                                        <p className="font-medium text-slate-700">{review.extracted.prescriptionDate || review.extracted.uploadedAt || 'Not clearly detected'}</p>
+                                      </div>
+                                      <div className="p-4 bg-white rounded-2xl border border-slate-200">
+                                        <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Legibility</p>
+                                        <p className="font-medium text-slate-700">{review.extracted.legibility || 'Needs manual check'}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {Array.isArray(review.extracted?.medicines) && review.extracted.medicines.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900 mb-3">Possible Medicines</p>
+                                    <div className="space-y-3">
+                                      {review.extracted.medicines.map((medicine, index) => (
+                                        <div key={`${medicine.name || 'medicine'}-${index}`} className="p-4 bg-white rounded-2xl border border-slate-200">
+                                          <p className="font-semibold text-slate-800">{medicine.name || 'Unnamed medicine'}</p>
+                                          <p className="text-sm text-slate-600 mt-1">
+                                            {[medicine.dosage, medicine.frequency, medicine.notes].filter(Boolean).join(' | ') || 'No extra details detected'}
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {Array.isArray(review.checks) && review.checks.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900 mb-3">Checks</p>
+                                    <div className="space-y-3">
+                                      {review.checks.map((check, index) => (
+                                        <div key={`${check.label}-${index}`} className="p-4 bg-white rounded-2xl border border-slate-200">
+                                          <div className="flex items-center justify-between gap-3 mb-1">
+                                            <p className="font-semibold text-slate-800">{check.label}</p>
+                                            <span className={cn(
+                                              'px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest',
+                                              check.status === 'pass' && 'bg-emerald-50 text-emerald-700',
+                                              check.status === 'warning' && 'bg-amber-50 text-amber-700',
+                                              check.status === 'fail' && 'bg-rose-50 text-rose-700'
+                                            )}>
+                                              {check.status}
+                                            </span>
+                                          </div>
+                                          <p className="text-sm text-slate-600">{check.detail}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {Array.isArray(review.warnings) && review.warnings.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900 mb-3">Warnings</p>
+                                    <div className="space-y-2">
+                                      {review.warnings.map((warning, index) => (
+                                        <div key={`${warning}-${index}`} className="p-3 rounded-2xl bg-amber-50 border border-amber-100 text-sm text-amber-800">
+                                          {warning}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {review.recommendation && (
+                                  <div className="p-4 bg-white rounded-2xl border border-slate-200">
+                                    <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Recommendation</p>
+                                    <p className="text-sm text-slate-700">{review.recommendation}</p>
+                                  </div>
+                                )}
+
+                                {review.error && (
+                                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                                    <p className="text-xs text-amber-800 uppercase tracking-widest mb-1 font-bold">AI Error</p>
+                                    <p className="text-sm text-amber-700">{review.error}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {currentPrescription.status === 'Pending' && (
                             <div className="space-y-4">
                               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Decision</p>
                               <div className="grid grid-cols-1 gap-4">
-                                <button 
+                                <button
                                   onClick={() => setIsApproveModalOpen(true)}
                                   className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
                                 >
-                                  <CheckCircle2 className="w-6 h-6" /> Approve & Select Medicines
+                                  <CheckCircle2 className="w-6 h-6" /> Approve Prescription
                                 </button>
-                                <button 
+                                <button
                                   onClick={() => setIsRejectModalOpen(true)}
                                   className="w-full py-5 bg-white text-rose-600 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-rose-50 transition-all border-2 border-rose-100"
                                 >
@@ -264,29 +535,23 @@ const PrescriptionProcessing = () => {
                             </div>
                           )}
 
-                          {currentPrescription.status !== "PENDING" && (
+                          {currentPrescription.status !== 'Pending' && (
                             <div className={cn(
-                              "p-8 rounded-3xl border flex items-center gap-6",
-                              currentPrescription.status === "APPROVED" ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"
+                              'p-8 rounded-3xl border flex items-center gap-6',
+                              currentPrescription.status === 'Approved' ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'
                             )}>
                               <div className={cn(
-                                "w-16 h-16 rounded-2xl flex items-center justify-center text-white",
-                                currentPrescription.status === "APPROVED" ? "bg-emerald-500" : "bg-rose-500"
+                                'w-16 h-16 rounded-2xl flex items-center justify-center text-white',
+                                currentPrescription.status === 'Approved' ? 'bg-emerald-500' : 'bg-rose-500'
                               )}>
-                                {currentPrescription.status === "APPROVED" ? <CheckCircle2 className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
+                                {currentPrescription.status === 'Approved' ? <CheckCircle2 className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
                               </div>
                               <div>
-                                <h3 className={cn(
-                                  "text-xl font-bold",
-                                  currentPrescription.status === "APPROVED" ? "text-emerald-900" : "text-rose-900"
-                                )}>
+                                <h3 className={cn('text-xl font-bold', currentPrescription.status === 'Approved' ? 'text-emerald-900' : 'text-rose-900')}>
                                   Prescription {currentPrescription.status}
                                 </h3>
-                                <p className={cn(
-                                  "text-sm font-medium",
-                                  currentPrescription.status === "APPROVED" ? "text-emerald-700/70" : "text-rose-700/70"
-                                )}>
-                                  Processed by Dr. Sarah Wilson on Feb 28, 2026
+                                <p className={cn('text-sm font-medium', currentPrescription.status === 'Approved' ? 'text-emerald-700/70' : 'text-rose-700/70')}>
+                                  {currentPrescription.pharmacistNotes || 'Processed by pharmacist.'}
                                 </p>
                               </div>
                             </div>
@@ -295,6 +560,7 @@ const PrescriptionProcessing = () => {
                       </div>
                     </div>
                   </div>
+                  {error && <p className="text-sm text-rose-600">{error}</p>}
                 </motion.div>
               ) : (
                 <div className="bg-white rounded-[40px] border border-slate-200 border-dashed p-32 text-center">
@@ -305,6 +571,7 @@ const PrescriptionProcessing = () => {
                   <p className="text-slate-500 max-w-sm mx-auto text-lg">
                     Choose a prescription from the queue to review and process.
                   </p>
+                  {error && <p className="text-sm text-rose-600 mt-6">{error}</p>}
                 </div>
               )}
             </AnimatePresence>
@@ -312,10 +579,9 @@ const PrescriptionProcessing = () => {
         </div>
       </div>
 
-      {/* Lightbox Modal */}
       <AnimatePresence>
-        {isLightboxOpen && currentPrescription && (
-          <motion.div 
+        {isLightboxOpen && getPrescriptionImageUrl(currentPrescription) && (
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -325,11 +591,11 @@ const PrescriptionProcessing = () => {
             <button className="absolute top-10 right-10 p-4 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all">
               <XCircle className="w-8 h-8" />
             </button>
-            <motion.img 
+            <motion.img
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              src={currentPrescription.imageUrl} 
-              alt="Prescription Full" 
+              src={getPrescriptionImageUrl(currentPrescription)}
+              alt="Prescription Full"
               className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
               onClick={(e) => e.stopPropagation()}
               referrerPolicy="no-referrer"
@@ -338,18 +604,17 @@ const PrescriptionProcessing = () => {
         )}
       </AnimatePresence>
 
-      {/* Reject Modal */}
       <AnimatePresence>
         {isRejectModalOpen && currentPrescription && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsRejectModalOpen(false)}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -359,7 +624,7 @@ const PrescriptionProcessing = () => {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-400 uppercase tracking-widest">Reason for Rejection</label>
-                  <select 
+                  <select
                     className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-500 transition-all font-bold text-slate-700"
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
@@ -374,24 +639,26 @@ const PrescriptionProcessing = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-400 uppercase tracking-widest">Pharmacist Note (Optional)</label>
-                  <textarea 
+                  <textarea
                     placeholder="Provide more details for the student..."
                     className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-rose-500 transition-all min-h-[100px]"
+                    value={pharmacistNotes}
+                    onChange={(e) => setPharmacistNotes(e.target.value)}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-4">
-                  <button 
+                  <button
                     onClick={() => setIsRejectModalOpen(false)}
                     className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                   >
                     Cancel
                   </button>
-                  <button 
-                    disabled={!rejectionReason}
-                    onClick={() => handleReject(currentPrescription.id)}
+                  <button
+                    disabled={!rejectionReason || isSaving}
+                    onClick={handleReject}
                     className="py-4 bg-rose-600 text-white rounded-2xl font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Confirm Reject
+                    {isSaving ? 'Rejecting...' : 'Confirm Reject'}
                   </button>
                 </div>
               </div>
@@ -399,70 +666,49 @@ const PrescriptionProcessing = () => {
           </div>
         )}
       </AnimatePresence>
-      {/* Approve Modal - Medicine Selection */}
+
       <AnimatePresence>
         {isApproveModalOpen && currentPrescription && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsApproveModalOpen(false)}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-[40px] p-10 shadow-2xl max-h-[90vh] flex flex-col"
+              className="relative w-full max-w-2xl bg-white rounded-[40px] p-10 shadow-2xl"
             >
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Approve Prescription</h2>
-              <p className="text-slate-500 mb-8 font-medium italic">Select medicines to include in the order for {currentPrescription.studentName}</p>
-              
-              <div className="flex-1 overflow-y-auto pr-2 space-y-3 mb-8 no-scrollbar">
-                {import.meta.env.MODE === 'development' && !MOCK_MEDICINES ? <p>Loading medicines...</p> : 
-                  (MOCK_MEDICINES || []).map((med) => (
-                    <button
-                      key={med.id}
-                      onClick={() => toggleItem(med)}
-                      className={cn(
-                        "w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center gap-4",
-                        selectedItems.find(i => i.id === med.id)
-                          ? "border-emerald-500 bg-emerald-50/50"
-                          : "border-slate-100 hover:border-emerald-200"
-                      )}
-                    >
-                      <div className="w-12 h-12 bg-slate-100 rounded-xl overflow-hidden shrink-0">
-                        <img src={med.image} alt={med.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-slate-900">{med.name}</h4>
-                        <p className="text-xs text-slate-500">{med.strength} • ${med.price}</p>
-                      </div>
-                      <div className={cn(
-                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                        selectedItems.find(i => i.id === med.id) ? "bg-emerald-500 border-emerald-500" : "border-slate-200"
-                      )}>
-                        {selectedItems.find(i => i.id === med.id) && <CheckCircle2 className="w-4 h-4 text-white" />}
-                      </div>
-                    </button>
-                  ))
-                }
+              <p className="text-slate-500 mb-8 font-medium italic">
+                Add an optional note for {currentPrescription.studentName}.
+              </p>
+              <div className="space-y-2 mb-8">
+                <label className="text-sm font-bold text-slate-400 uppercase tracking-widest">Pharmacist Note (Optional)</label>
+                <textarea
+                  placeholder="Approved for processing..."
+                  className="w-full p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all min-h-[120px]"
+                  value={pharmacistNotes}
+                  onChange={(e) => setPharmacistNotes(e.target.value)}
+                />
               </div>
-
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                <button 
+                <button
                   onClick={() => setIsApproveModalOpen(false)}
                   className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                 >
                   Cancel
                 </button>
-                <button 
-                  disabled={selectedItems.length === 0}
-                  onClick={() => handleVerify(currentPrescription.id)}
+                <button
+                  disabled={isSaving}
+                  onClick={handleApprove}
                   className="py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Confirm & Create Order
+                  {isSaving ? 'Approving...' : 'Confirm Approval'}
                 </button>
               </div>
             </motion.div>

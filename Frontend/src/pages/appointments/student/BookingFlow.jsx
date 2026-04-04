@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+﻿import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Calendar as CalendarIcon, ChevronLeft, Clock, Video } from 'lucide-react';
 import { getProviderAvailability, getProviderById } from '../../../lib/providers';
@@ -206,11 +206,11 @@ export default function BookingFlow() {
 
   if (!doctorId) {
     return (
-      <div className="min-h-screen bg-[#FCFCFC] pt-36 px-6">
-        <div className="max-w-3xl mx-auto bg-white rounded-[32px] border border-[#F0F0F3] p-10 text-center">
-          <h1 className="text-3xl font-bold text-[#18181B]">Choose a doctor first</h1>
-          <p className="text-[#71717A] mt-3">Start from the doctor directory so the booking flow knows which provider to schedule.</p>
-          <Link to="/student/appointments/find" className="inline-flex mt-8 px-6 py-3 bg-[#2563EB] text-white rounded-full font-bold">
+      <div className="student-shell pt-36 px-6">
+        <div className="max-w-3xl mx-auto student-surface p-10 text-center">
+          <h1 className="text-3xl font-bold text-primary-text">Choose a doctor first</h1>
+          <p className="text-secondary-text mt-3">Start from the doctor directory so the booking flow knows which provider to schedule.</p>
+          <Link to="/student/appointments/find" className="inline-flex mt-8 px-6 py-3 bg-accent-primary text-white rounded-full font-bold">
             Find Doctor
           </Link>
         </div>
@@ -219,27 +219,27 @@ export default function BookingFlow() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FCFCFC] pb-20">
-      <div className="bg-white border-b border-[#F0F0F3] pt-32 pb-12 px-6">
+    <div className="student-shell pb-20">
+      <div className="student-hero pt-32 pb-12 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => navigate(-1)} className="p-2 hover:bg-[#F4F4F8] rounded-full transition-all">
-              <ChevronLeft className="w-6 h-6 text-[#18181B]" />
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-[#edf5f8] rounded-full transition-all">
+              <ChevronLeft className="w-6 h-6 text-primary-text" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-[#18181B]">Book Appointment</h1>
-              <p className="text-[#71717A] mt-1">Pick a visit type, date, and live available slot.</p>
+              <h1 className="text-3xl font-bold text-primary-text">Book Appointment</h1>
+              <p className="text-secondary-text mt-1">Pick a visit type, date, and live available slot.</p>
             </div>
           </div>
 
           {doctor && (
-            <div className="bg-[#F4F4F8] rounded-[28px] p-6 flex items-center gap-5">
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#2563EB] flex items-center justify-center text-2xl font-bold">
+            <div className="bg-[#edf5f8] rounded-[28px] p-6 flex items-center gap-5">
+              <div className="w-16 h-16 rounded-2xl bg-[#e8f4f8] text-accent-primary flex items-center justify-center text-2xl font-bold">
                 {doctor.name?.[0] || 'D'}
               </div>
               <div>
-                <p className="text-xl font-bold text-[#18181B]">{doctor.name}</p>
-                <p className="text-[#71717A]">{doctor.specialty || 'General Physician'}</p>
+                <p className="text-xl font-bold text-primary-text">{doctor.name}</p>
+                <p className="text-secondary-text">{doctor.specialty || 'General Physician'}</p>
               </div>
             </div>
           )}
@@ -249,13 +249,13 @@ export default function BookingFlow() {
       <div className="max-w-4xl mx-auto px-6 mt-12">
         <form onSubmit={handleSubmit} className="space-y-8">
           {revisitId && (
-            <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4 text-sm text-emerald-700">
+            <div className="rounded-2xl bg-[#e8f7f5] border border-emerald-100 px-5 py-4 text-sm text-emerald-700">
               Revisit scheduling is active for a previous appointment. Choose a fresh date and slot with the same doctor.
             </div>
           )}
 
-          <div className="bg-white p-8 rounded-[32px] border border-[#F0F0F3] shadow-sm">
-            <h2 className="text-xl font-bold text-[#18181B] mb-6">Consultation type</h2>
+          <div className="student-surface p-8">
+            <h2 className="text-xl font-bold text-primary-text mb-6">Consultation type</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {['Video Call', 'In-Person'].map((option) => (
                 <button
@@ -264,14 +264,14 @@ export default function BookingFlow() {
                   onClick={() => setType(option)}
                   className={cn(
                     'p-5 rounded-2xl border-2 text-left transition-all',
-                    type === option ? 'border-[#2563EB] bg-blue-50/40' : 'border-[#F0F0F3] hover:border-blue-200'
+                    type === option ? 'border-[#2563EB] bg-[#e8f4f8]/40' : 'border-[#F0F0F3] hover:border-blue-200'
                   )}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <Video className="w-5 h-5 text-[#2563EB]" />
-                    <span className="font-bold text-[#18181B]">{option}</span>
+                    <Video className="w-5 h-5 text-accent-primary" />
+                    <span className="font-bold text-primary-text">{option}</span>
                   </div>
-                  <p className="text-sm text-[#71717A]">
+                  <p className="text-sm text-secondary-text">
                     {option === 'Video Call' ? 'Join from your device when the doctor is ready.' : 'Attend at the Campus Health Center.'}
                   </p>
                 </button>
@@ -279,14 +279,14 @@ export default function BookingFlow() {
             </div>
           </div>
 
-          <div className="bg-white p-8 rounded-[32px] border border-[#F0F0F3] shadow-sm">
+          <div className="student-surface p-8">
             <div className="grid grid-cols-1 md:grid-cols-[260px,1fr] gap-8">
               <div>
-                <label className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest mb-3 block">
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest mb-3 block">
                   Appointment date
                 </label>
                 <div className="relative">
-                  <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#71717A]" />
+                  <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-text" />
                   <input
                     type="date"
                     value={selectedDate}
@@ -297,7 +297,7 @@ export default function BookingFlow() {
                       setFieldErrors((current) => ({ ...current, selectedDate: '', selectedTime: '' }));
                     }}
                     className={cn(
-                      'w-full pl-12 pr-4 py-4 bg-[#F4F4F8] border-none rounded-2xl text-sm outline-none',
+                      'w-full pl-12 pr-4 py-4 bg-[#edf5f8] border-none rounded-2xl text-sm outline-none',
                       fieldErrors.selectedDate && 'ring-2 ring-rose-300'
                     )}
                   />
@@ -306,7 +306,7 @@ export default function BookingFlow() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest mb-3 block">
+                <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest mb-3 block">
                   Available slots
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -320,19 +320,19 @@ export default function BookingFlow() {
                       }}
                       className={cn(
                         'py-3 rounded-full text-xs font-bold transition-all border-2',
-                        selectedTime === slot ? 'bg-[#2563EB] text-white border-[#2563EB]' : 'bg-white text-[#71717A] border-[#F0F0F3] hover:border-blue-200'
+                        selectedTime === slot ? 'bg-accent-primary text-white border-[#2563EB]' : 'bg-white text-secondary-text border-[#F0F0F3] hover:border-blue-200'
                       )}
                     >
                       {slot}
                     </button>
                   )) : (
-                    <div className="col-span-full text-sm text-[#71717A] bg-[#F4F4F8] rounded-2xl px-4 py-6">
+                    <div className="col-span-full text-sm text-secondary-text bg-[#edf5f8] rounded-2xl px-4 py-6">
                       No free slots were found for this date. Try another day.
                     </div>
                   )}
                 </div>
                 {bookedSlots.length > 0 && (
-                  <p className="text-xs text-[#71717A] mt-3 flex items-center gap-2">
+                  <p className="text-xs text-secondary-text mt-3 flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     {bookedSlots.length} slot(s) already booked for this date
                   </p>
@@ -342,10 +342,10 @@ export default function BookingFlow() {
             </div>
           </div>
 
-          <div className="bg-white p-8 rounded-[32px] border border-[#F0F0F3] shadow-sm space-y-6">
-            <div className="rounded-3xl bg-blue-50 p-6">
+          <div className="student-surface p-8 space-y-6">
+            <div className="rounded-3xl bg-[#e8f4f8] p-6">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 mb-3">AI Symptom Checker Placeholder</p>
-              <p className="text-sm text-[#18181B] leading-relaxed">
+              <p className="text-sm text-primary-text leading-relaxed">
                 Use a prompt below to prefill a booking reason, then refine it before confirming the appointment.
               </p>
               <div className="flex flex-wrap gap-3 mt-4">
@@ -364,7 +364,7 @@ export default function BookingFlow() {
                         setSymptoms(option);
                       }
                     }}
-                    className={`px-4 py-2 rounded-full text-xs font-bold ${symptomHelper === option ? 'bg-[#2563EB] text-white' : 'bg-white border border-blue-100 text-[#2563EB]'}`}
+                    className={`px-4 py-2 rounded-full text-xs font-bold ${symptomHelper === option ? 'bg-accent-primary text-white' : 'bg-white border border-blue-100 text-accent-primary'}`}
                   >
                     {option}
                   </button>
@@ -373,7 +373,7 @@ export default function BookingFlow() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest mb-3 block">
+              <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest mb-3 block">
                 Symptoms or reason
               </label>
               <textarea
@@ -384,19 +384,19 @@ export default function BookingFlow() {
                   setFieldErrors((current) => ({ ...current, symptoms: '' }));
                 }}
                 className={cn(
-                  'w-full px-6 py-4 bg-[#F4F4F8] border-none rounded-2xl outline-none resize-none',
+                  'w-full px-6 py-4 bg-[#edf5f8] border-none rounded-2xl outline-none resize-none',
                   fieldErrors.symptoms && 'ring-2 ring-rose-300'
                 )}
                 placeholder="Describe your symptoms, health concern, or reason for booking."
               />
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-[#71717A]">Required for booking. Keep it clear and specific.</p>
-                <p className="text-xs text-[#71717A]">{symptoms.trim().length}/400</p>
+                <p className="text-xs text-secondary-text">Required for booking. Keep it clear and specific.</p>
+                <p className="text-xs text-secondary-text">{symptoms.trim().length}/400</p>
               </div>
               {fieldErrors.symptoms && <p className="text-sm text-rose-600 mt-2">{fieldErrors.symptoms}</p>}
             </div>
             <div>
-              <label className="text-[10px] font-bold text-[#71717A] uppercase tracking-widest mb-3 block">
+              <label className="text-[10px] font-bold text-secondary-text uppercase tracking-widest mb-3 block">
                 Extra notes
               </label>
               <textarea
@@ -407,14 +407,14 @@ export default function BookingFlow() {
                   setFieldErrors((current) => ({ ...current, notes: '' }));
                 }}
                 className={cn(
-                  'w-full px-6 py-4 bg-[#F4F4F8] border-none rounded-2xl outline-none resize-none',
+                  'w-full px-6 py-4 bg-[#edf5f8] border-none rounded-2xl outline-none resize-none',
                   fieldErrors.notes && 'ring-2 ring-rose-300'
                 )}
                 placeholder="Anything you want the doctor to know before the consultation."
               />
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-xs text-[#71717A]">Optional. Use this for extra context only.</p>
-                <p className="text-xs text-[#71717A]">{notes.trim().length}/500</p>
+                <p className="text-xs text-secondary-text">Optional. Use this for extra context only.</p>
+                <p className="text-xs text-secondary-text">{notes.trim().length}/500</p>
               </div>
               {fieldErrors.notes && <p className="text-sm text-rose-600 mt-2">{fieldErrors.notes}</p>}
             </div>
@@ -427,20 +427,20 @@ export default function BookingFlow() {
             </div>
           )}
 
-          {loading && <p className="text-sm text-[#71717A]">Loading live availability...</p>}
+          {loading && <p className="text-sm text-secondary-text">Loading live availability...</p>}
 
           <div className="flex gap-4">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex-1 py-5 bg-[#F4F4F8] text-[#18181B] rounded-[24px] font-bold hover:bg-[#EBEBEF] transition-all"
+              className="flex-1 py-5 bg-[#edf5f8] text-primary-text rounded-[24px] font-bold hover:bg-[#EBEBEF] transition-all"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={!canSubmit || submitting}
-              className="flex-[2] py-5 bg-[#2563EB] text-white rounded-[24px] font-bold hover:bg-[#1D4ED8] transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+              className="flex-[2] py-5 bg-accent-primary text-white rounded-[24px] font-bold hover:bg-[#105f72] transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
             >
               {submitting ? 'Booking...' : 'Confirm Booking'}
             </button>
@@ -450,3 +450,4 @@ export default function BookingFlow() {
     </div>
   );
 }
+

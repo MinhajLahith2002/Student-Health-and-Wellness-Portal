@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { CalendarDays, History, MessageSquareText, XCircle } from 'lucide-react';
 import { getCounselingSessions, rescheduleCounselingSession, updateCounselingSessionStatus } from '../../lib/counseling';
@@ -80,9 +80,9 @@ function SessionCard({
           <Link to={sessionPath} className="text-2xl font-semibold text-primary-text">
             {userRole === 'counselor' ? session.studentName : session.counselorName}
           </Link>
-          <p className="text-sm text-secondary-text mt-2">{new Date(session.date).toLocaleDateString()} • {session.time} • {session.type}</p>
+          <p className="text-sm text-secondary-text mt-2">{new Date(session.date).toLocaleDateString()} â€¢ {session.time} â€¢ {session.type}</p>
         </div>
-        <span className="text-xs font-bold uppercase tracking-[0.2em] text-accent-purple">{session.status}</span>
+        <span className="text-xs font-bold uppercase tracking-[0.2em] text-accent-primary">{session.status}</span>
       </div>
 
       <p className="text-sm text-primary-text/80 mt-4">{session.reason}</p>
@@ -191,7 +191,7 @@ function SessionCard({
           </button>
         )}
         {session.status === 'Completed' && userRole !== 'counselor' && (
-          <Link to={`/mental-health/sessions/${session._id}/feedback`} className="inline-flex px-4 py-3 rounded-2xl bg-accent-purple text-white font-bold">
+          <Link to={`/mental-health/sessions/${session._id}/feedback`} className="inline-flex px-4 py-3 rounded-2xl bg-accent-primary text-white font-bold">
             Leave Feedback
           </Link>
         )}
@@ -351,7 +351,7 @@ export default function MySessions() {
   }
 
   return (
-    <div className={`${user?.role === 'counselor' ? 'pt-8' : 'pt-36'} pb-12 px-6 max-w-6xl mx-auto min-h-screen bg-primary-bg`}>
+    <div className={`${user?.role === 'counselor' ? 'pt-8' : 'pt-36'} pb-12 px-6 max-w-6xl mx-auto student-shell`}>
       <header className="mb-12">
         <h1 className="text-5xl font-semibold tracking-tight text-primary-text">{title}</h1>
         <p className="text-lg text-secondary-text mt-4 max-w-3xl">{subtitle}</p>
@@ -411,7 +411,7 @@ export default function MySessions() {
       </header>
 
       {statusMessage && (
-        <div className="apple-card p-5 border-none bg-emerald-50 text-emerald-700 mb-8">
+        <div className="apple-card p-5 border-none bg-[#e8f7f5] text-emerald-700 mb-8">
           {statusMessage}
         </div>
       )}
@@ -457,7 +457,7 @@ export default function MySessions() {
 
             <section>
               <div className="flex items-center gap-3 mb-5">
-                <History className="w-5 h-5 text-accent-purple" />
+                <History className="w-5 h-5 text-accent-primary" />
                 <h2 className="text-2xl font-semibold text-primary-text">My counseling history</h2>
               </div>
               <div className="space-y-4">
@@ -518,3 +518,4 @@ export default function MySessions() {
     </div>
   );
 }
+

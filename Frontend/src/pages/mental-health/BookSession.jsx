@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { History } from 'lucide-react';
 import { getProviderAvailability, getProviderById } from '../../lib/providers';
@@ -103,7 +103,7 @@ export default function BookSession() {
   if (!provider) return <div className="pt-36 px-6">Loading session booking...</div>;
 
   return (
-    <div className="pt-36 pb-12 px-6 max-w-4xl mx-auto min-h-screen bg-primary-bg">
+    <div className="pt-36 pb-12 px-6 max-w-4xl mx-auto student-shell">
       <div className="apple-card p-10 border-none bg-white/70 backdrop-blur-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
@@ -142,7 +142,7 @@ export default function BookSession() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {['Video Call', 'Chat', 'In-Person'].map((option) => (
-              <button key={option} type="button" onClick={() => setType(option)} className={cn('px-4 py-4 rounded-2xl font-semibold', type === option ? 'bg-accent-purple text-white' : 'bg-secondary-bg text-primary-text')}>
+              <button key={option} type="button" onClick={() => setType(option)} className={cn('px-4 py-4 rounded-2xl font-semibold', type === option ? 'bg-accent-primary text-white' : 'bg-secondary-bg text-primary-text')}>
                 {option}
               </button>
             ))}
@@ -167,7 +167,7 @@ export default function BookSession() {
             <Link to={`/mental-health/counselors/${provider._id}`} className="flex-1 py-4 bg-secondary-bg rounded-2xl font-bold text-center text-primary-text">
               Back
             </Link>
-            <button type="submit" disabled={!canSubmit || submitting} className="flex-[2] py-4 bg-accent-purple text-white rounded-2xl font-bold disabled:opacity-50">
+            <button type="submit" disabled={!canSubmit || submitting} className="flex-[2] py-4 bg-accent-primary text-white rounded-2xl font-bold disabled:opacity-50">
               {submitting ? 'Booking...' : 'Confirm Session'}
             </button>
           </div>
@@ -176,3 +176,4 @@ export default function BookSession() {
     </div>
   );
 }
+
