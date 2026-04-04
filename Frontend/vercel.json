@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://student-health-and-wellness-portal-backend-2uisy2tp9.vercel.app/api/$1"
+      "destination": "https://student-health-and-wellness-portal-bac-minnulah0-7945s-projects.vercel.app/api/$1"
     }
   ]
 }
