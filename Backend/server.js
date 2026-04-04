@@ -22,6 +22,7 @@ import Resource from './models/Resource.js';
 import Settings from './models/Settings.js';
 import Order from './models/Order.js';
 import Prescription from './models/Prescription.js';
+import Pharmacy from './models/Pharmacy.js';
 import Availability from './models/Availability.js';
 import Appointment from './models/Appointment.js';
 import CounselingSession from './models/CounselingSession.js';
@@ -54,6 +55,7 @@ const initializeDatabase = async () => {
       Settings,
       Order,
       Prescription,
+      Pharmacy,
       Availability,
       Appointment,
       CounselingSession,

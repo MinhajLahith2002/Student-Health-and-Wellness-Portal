@@ -10,6 +10,26 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+const INVALID_CLOUDINARY_VALUES = new Set([
+  '',
+  'root',
+  'your_cloud_name',
+  'your_api_key',
+  'your_api_secret'
+]);
+
+export const isCloudinaryConfigured = () => {
+  const cloudName = (process.env.CLOUDINARY_CLOUD_NAME || '').trim().toLowerCase();
+  const apiKey = (process.env.CLOUDINARY_API_KEY || '').trim().toLowerCase();
+  const apiSecret = (process.env.CLOUDINARY_API_SECRET || '').trim().toLowerCase();
+
+  return !(
+    INVALID_CLOUDINARY_VALUES.has(cloudName) ||
+    INVALID_CLOUDINARY_VALUES.has(apiKey) ||
+    INVALID_CLOUDINARY_VALUES.has(apiSecret)
+  );
+};
+
 /**
  * Upload file to Cloudinary
  * @param {string} filePath - Local file path
@@ -188,6 +208,7 @@ export { cloudinary };
  */
 export default {
   cloudinary,
+  isCloudinaryConfigured,
   uploadFile,
   uploadPrescription,
   uploadMedicineImage,

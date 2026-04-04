@@ -37,7 +37,7 @@ const medicineSchema = new Schema({
   },
   category: {
     type: String,
-    enum: ['Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins', 'First Aid', 'Personal Care', 'Wellness'],
+    enum: ['Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins', 'First Aid', 'Personal Care', 'Hygiene', 'Wellness'],
     required: true
   },
   description: {

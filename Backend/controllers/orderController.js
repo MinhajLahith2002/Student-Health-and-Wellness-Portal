@@ -2,6 +2,7 @@
 
 import Order from '../models/Order.js';
 import Medicine from '../models/Medicine.js';
+import Prescription from '../models/Prescription.js';
 import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import emailService from '../utils/emailService.js';
@@ -12,11 +13,18 @@ import emailService from '../utils/emailService.js';
 const createOrder = async (req, res) => {
   try {
     const { items, address, paymentMethod, specialInstructions, prescriptionId } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'At least one order item is required' });
+    }
 
     let subtotal = 0;
     const orderItems = [];
+    let hasPrescriptionMedicine = false;
 
     for (const item of items) {
+      if (!item?.medicineId || !item?.quantity || Number(item.quantity) <= 0) {
+        return res.status(400).json({ message: 'Each item must include a valid medicineId and quantity' });
+      }
       const medicine = await Medicine.findById(item.medicineId);
       if (!medicine) {
         return res.status(404).json({ message: `Medicine not found: ${item.medicineId}` });
@@ -27,6 +35,9 @@ const createOrder = async (req, res) => {
       }
 
       subtotal += medicine.price * item.quantity;
+      if (medicine.requiresPrescription) {
+        hasPrescriptionMedicine = true;
+      }
       orderItems.push({
         medicineId: medicine._id,
         name: medicine.name,
@@ -34,6 +45,29 @@ const createOrder = async (req, res) => {
         quantity: item.quantity,
         requiresPrescription: medicine.requiresPrescription
       });
+    }
+
+    if (hasPrescriptionMedicine) {
+      if (!prescriptionId) {
+        return res.status(400).json({
+          message: 'Prescription is required for one or more selected medicines'
+        });
+      }
+
+      const prescription = await Prescription.findById(prescriptionId);
+      if (!prescription) {
+        return res.status(404).json({ message: 'Prescription not found' });
+      }
+
+      if (prescription.studentId.toString() !== req.user.id) {
+        return res.status(403).json({ message: 'You can only use your own prescription' });
+      }
+
+      if (prescription.status !== 'Approved') {
+        return res.status(400).json({
+          message: `Prescription status must be Approved. Current status: ${prescription.status}`
+        });
+      }
     }
 
     const deliveryFee = 2.5;

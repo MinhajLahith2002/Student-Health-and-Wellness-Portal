@@ -1,11 +1,15 @@
 // controllers/prescriptionController.js
 
+import { unlink } from 'fs/promises';
 import Prescription from '../models/Prescription.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
-import { cloudinary } from '../utils/cloudinaryService.js';
+import cloudinaryService from '../utils/cloudinaryService.js';
+import { generatePrescriptionReview } from '../utils/prescriptionReviewService.js';
+
+const { uploadPrescription: uploadPrescriptionImage, isCloudinaryConfigured } = cloudinaryService;
 
 // @desc    Get prescriptions
 // @route   GET /api/prescriptions
@@ -57,10 +61,24 @@ const uploadPrescription = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'prescriptions',
-      resource_type: 'auto'
-    });
+    if (!req.file.mimetype?.startsWith('image/')) {
+      if (req.file.path) {
+        await unlink(req.file.path).catch(() => {});
+      }
+
+      return res.status(400).json({
+        message: 'Prescription upload only supports image files (JPG, PNG, WEBP, or GIF).'
+      });
+    }
+
+    let imageUrl = `/uploads/prescriptions/${req.file.filename}`;
+    let imagePublicId = null;
+
+    if (isCloudinaryConfigured()) {
+      const result = await uploadPrescriptionImage(req.file.path);
+      imageUrl = result.secure_url;
+      imagePublicId = result.public_id;
+    }
 
     const prescription = await Prescription.create({
       studentId: req.user.id,
@@ -68,12 +86,38 @@ const uploadPrescription = async (req, res) => {
       doctorId: req.user.id,
       doctorName: req.user.name,
       status: 'Pending',
-      imageUrl: result.secure_url,
-      imagePublicId: result.public_id,
+      imageUrl,
+      fileMimeType: req.file.mimetype,
+      imagePublicId,
       notes: req.body.notes
     });
 
     res.status(201).json(prescription);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Generate prescription review assistant output
+// @route   GET /api/prescriptions/:id/review
+// @access  Private/Pharmacist
+const getPrescriptionReview = async (req, res) => {
+  try {
+    const prescription = await Prescription.findById(req.params.id)
+      .populate('studentId', 'name email studentId')
+      .populate('doctorId', 'name specialty');
+
+    if (!prescription) {
+      return res.status(404).json({ message: 'Prescription not found' });
+    }
+
+    const duplicateCount = await Prescription.countDocuments({
+      studentId: prescription.studentId?._id || prescription.studentId,
+      createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+    });
+
+    const review = await generatePrescriptionReview(prescription, duplicateCount);
+    res.json(review);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -150,6 +194,14 @@ const getPrescriptionById = async (req, res) => {
       return res.status(404).json({ message: 'Prescription not found' });
     }
 
+    const isOwnerStudent = prescription.studentId?._id?.toString() === req.user.id;
+    const isAssignedDoctor = prescription.doctorId?._id?.toString() === req.user.id;
+    const isPrivilegedRole = ['pharmacist', 'admin'].includes(req.user.role);
+
+    if (!isOwnerStudent && !isAssignedDoctor && !isPrivilegedRole) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
     res.json(prescription);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -201,6 +253,7 @@ const createPrescription = async (req, res) => {
 export default {
   getPrescriptions,
   uploadPrescription,
+  getPrescriptionReview,
   verifyPrescription,
   getPrescriptionById,
   createPrescription

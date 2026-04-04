@@ -2,7 +2,9 @@
 
 import Medicine from '../models/Medicine.js';
 import AuditLog from '../models/AuditLog.js';
-import { cloudinary } from '../utils/cloudinaryService.js';
+import cloudinaryService from '../utils/cloudinaryService.js';
+
+const { uploadMedicineImage, deleteFile, isCloudinaryConfigured } = cloudinaryService;
 
 // @desc    Get all medicines
 // @route   GET /api/medicines
@@ -82,14 +84,14 @@ const createMedicine = async (req, res) => {
     }
 
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'medicines',
-        width: 500,
-        height: 500,
-        crop: 'fill'
-      });
-      medicineData.image = result.secure_url;
-      medicineData.imagePublicId = result.public_id;
+      if (isCloudinaryConfigured()) {
+        const result = await uploadMedicineImage(req.file.path);
+        medicineData.image = result.secure_url;
+        medicineData.imagePublicId = result.public_id;
+      } else {
+        medicineData.image = `/uploads/medicines/${req.file.filename}`;
+        medicineData.imagePublicId = null;
+      }
     }
 
     const medicine = await Medicine.create(medicineData);
@@ -142,17 +144,18 @@ const updateMedicine = async (req, res) => {
     }
 
     if (req.file) {
-      if (medicine.imagePublicId) {
-        await cloudinary.uploader.destroy(medicine.imagePublicId);
+      if (medicine.imagePublicId && isCloudinaryConfigured()) {
+        await deleteFile(medicine.imagePublicId);
       }
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'medicines',
-        width: 500,
-        height: 500,
-        crop: 'fill'
-      });
-      updateData.image = result.secure_url;
-      updateData.imagePublicId = result.public_id;
+
+      if (isCloudinaryConfigured()) {
+        const result = await uploadMedicineImage(req.file.path);
+        updateData.image = result.secure_url;
+        updateData.imagePublicId = result.public_id;
+      } else {
+        updateData.image = `/uploads/medicines/${req.file.filename}`;
+        updateData.imagePublicId = null;
+      }
     }
 
     const updatedMedicine = await Medicine.findByIdAndUpdate(
@@ -189,8 +192,8 @@ const deleteMedicine = async (req, res) => {
       return res.status(404).json({ message: 'Medicine not found' });
     }
 
-    if (medicine.imagePublicId) {
-      await cloudinary.uploader.destroy(medicine.imagePublicId);
+    if (medicine.imagePublicId && isCloudinaryConfigured()) {
+      await deleteFile(medicine.imagePublicId);
     }
 
     await medicine.deleteOne();

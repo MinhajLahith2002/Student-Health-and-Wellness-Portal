@@ -94,7 +94,7 @@ const medicineValidationRules = () => [
   body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
   body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
   body('reorderLevel').isInt({ min: 0 }).withMessage('Reorder level must be a non-negative integer'),
-  body('category').isIn(['Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins', 'First Aid', 'Personal Care', 'Wellness']).withMessage('Invalid category'),
+  body('category').isIn(['Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins', 'First Aid', 'Personal Care', 'Hygiene', 'Wellness']).withMessage('Invalid category'),
   body('description').notEmpty().withMessage('Description is required'),
   body('usage').notEmpty().withMessage('Usage instructions are required')
 ];

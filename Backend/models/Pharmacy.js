@@ -11,14 +11,21 @@ const pharmacySchema = new Schema({
     required: true
   },
   location: {
-    lat: {
-      type: Number,
-      required: true
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
     },
-    lng: {
-      type: Number,
-      required: true
-    }
+    coordinates: {
+      type: [Number],
+      required: true,
+      validate: {
+        validator: (coords) => Array.isArray(coords) && coords.length === 2,
+        message: 'Location coordinates must contain [lng, lat]'
+      }
+    },
+    lat: Number,
+    lng: Number
   },
   phone: {
     type: String

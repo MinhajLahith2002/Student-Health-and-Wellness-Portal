@@ -65,6 +65,9 @@ const prescriptionSchema = new Schema({
   imageUrl: {
     type: String
   },
+  fileMimeType: {
+    type: String
+  },
   imagePublicId: {
     type: String
   },

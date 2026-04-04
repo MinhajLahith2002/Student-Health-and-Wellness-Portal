@@ -14,11 +14,19 @@ const getPharmacies = async (req, res) => {
     let query = {};
 
     if (lat && lng) {
+      const parsedLat = parseFloat(lat);
+      const parsedLng = parseFloat(lng);
+      const parsedRadius = Number(radius);
+
+      if (Number.isNaN(parsedLat) || Number.isNaN(parsedLng) || Number.isNaN(parsedRadius) || parsedRadius <= 0) {
+        return res.status(400).json({ message: 'Invalid coordinates or radius' });
+      }
+
       query = {
         location: {
           $near: {
-            $geometry: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-            $maxDistance: radius * 1000
+            $geometry: { type: 'Point', coordinates: [parsedLng, parsedLat] },
+            $maxDistance: parsedRadius * 1000
           }
         }
       };
@@ -51,10 +59,18 @@ const getPharmacyById = async (req, res) => {
 // @access  Private/Pharmacist
 const updatePharmacyQueue = async (req, res) => {
   try {
-    const { queueLength } = req.body;
+    const queueLength = Number(req.body.queueLength);
+    if (Number.isNaN(queueLength) || queueLength < 0) {
+      return res.status(400).json({ message: 'queueLength must be a non-negative number' });
+    }
+
     const pharmacy = await Pharmacy.findByIdAndUpdate(
       req.params.id,
-      { queueLength, updatedAt: Date.now() },
+      {
+        queueLength,
+        estimatedWaitTime: Math.round(queueLength * 2),
+        updatedAt: Date.now()
+      },
       { new: true }
     );
     if (!pharmacy) {

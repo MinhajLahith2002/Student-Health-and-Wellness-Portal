@@ -9,6 +9,7 @@ import uploadMiddleware from '../middleware/uploadMiddleware.js';
 const {
   getPrescriptions,
   uploadPrescription,
+  getPrescriptionReview,
   verifyPrescription,
   getPrescriptionById,
   createPrescription
@@ -20,6 +21,7 @@ const { upload } = uploadMiddleware;
 
 // Protected routes
 router.get('/', protect, getPrescriptions);
+router.get('/:id/review', protect, authorize('pharmacist'), getPrescriptionReview);
 router.get('/:id', protect, getPrescriptionById);
 router.post('/', protect, authorize('doctor'), createPrescription);
 router.post('/upload', protect, authorize('student'), upload.single('prescription'), uploadPrescription);

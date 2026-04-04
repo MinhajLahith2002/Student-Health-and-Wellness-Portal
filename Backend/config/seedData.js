@@ -1,4 +1,14 @@
-import { hash } from 'bcryptjs';
+﻿import { hash } from 'bcryptjs';
+
+function safeSeedLog(message) {
+  try {
+    if (process?.stdout?.writable) {
+      process.stdout.write(`${message}\n`);
+    }
+  } catch {
+    // Ignore logging pipe errors so seeding cannot crash the server.
+  }
+}
 
 function createDateOffset(days, hour = 9, minute = 0) {
   const date = new Date();
@@ -110,6 +120,59 @@ const seedData = {
     isActive: true,
     isVerified: true
   },
+
+  pharmacies: [
+    {
+      name: 'Campus Central Pharmacy',
+      address: 'Student Union, Level 1',
+      location: {
+        type: 'Point',
+        coordinates: [79.8612, 6.9271],
+        lat: 6.9271,
+        lng: 79.8612
+      },
+      phone: '+94 11 234 5678',
+      email: 'pharmacy.central@campushealth.edu',
+      openingHours: {
+        monday: { open: '08:00', close: '20:00' },
+        tuesday: { open: '08:00', close: '20:00' },
+        wednesday: { open: '08:00', close: '20:00' },
+        thursday: { open: '08:00', close: '20:00' },
+        friday: { open: '08:00', close: '20:00' },
+        saturday: { open: '09:00', close: '18:00' },
+        sunday: { open: '10:00', close: '16:00' }
+      },
+      queueLength: 3,
+      estimatedWaitTime: 10,
+      isOpen: true,
+      services: ['Prescription', 'OTC', 'Health Check']
+    },
+    {
+      name: 'North Residence Pharmacy',
+      address: 'North Residential Complex, Block B',
+      location: {
+        type: 'Point',
+        coordinates: [79.8688, 6.9314],
+        lat: 6.9314,
+        lng: 79.8688
+      },
+      phone: '+94 11 987 6543',
+      email: 'pharmacy.north@campushealth.edu',
+      openingHours: {
+        monday: { open: '09:00', close: '19:00' },
+        tuesday: { open: '09:00', close: '19:00' },
+        wednesday: { open: '09:00', close: '19:00' },
+        thursday: { open: '09:00', close: '19:00' },
+        friday: { open: '09:00', close: '19:00' },
+        saturday: { open: '10:00', close: '17:00' },
+        sunday: { open: '10:00', close: '15:00' }
+      },
+      queueLength: 12,
+      estimatedWaitTime: 28,
+      isOpen: true,
+      services: ['Prescription', 'OTC', 'Consultation']
+    }
+  ],
 
   // Default Counselor
   counselor: {
@@ -520,6 +583,7 @@ const seedDatabase = async (models) => {
   const {
     User,
     Medicine,
+    Pharmacy,
     FAQ,
     Settings,
     Order,
@@ -536,12 +600,12 @@ const seedDatabase = async (models) => {
     const adminUser = await User.findOne({ email: seedData.admin.email });
     if (!adminUser) {
       await User.create(seedData.admin);
-      console.log('Admin user created');
+      safeSeedLog('Admin user created');
     } else {
       adminUser.name = seedData.admin.name;
       adminUser.password = seedData.admin.password;
       await adminUser.save();
-      console.log('Admin user synced');
+      safeSeedLog('Admin user synced');
     }
 
     const seededAdmin = await User.findOne({ email: seedData.admin.email });
@@ -551,7 +615,7 @@ const seedDatabase = async (models) => {
       const doctorUser = await User.findOne({ email: doctor.email });
       if (!doctorUser) {
         await User.create(doctor);
-        console.log(`Doctor ${doctor.name} created`);
+        safeSeedLog(`Doctor ${doctor.name} created`);
       } else {
         doctorUser.name = doctor.name;
         doctorUser.password = doctor.password;
@@ -563,7 +627,7 @@ const seedDatabase = async (models) => {
         doctorUser.isActive = true;
         doctorUser.isVerified = true;
         await doctorUser.save();
-        console.log(`Doctor ${doctor.name} synced`);
+        safeSeedLog(`Doctor ${doctor.name} synced`);
       }
     }
     
@@ -572,7 +636,7 @@ const seedDatabase = async (models) => {
       const studentUser = await User.findOne({ email: student.email });
       if (!studentUser) {
         await User.create(student);
-        console.log(`Student ${student.name} created`);
+        safeSeedLog(`Student ${student.name} created`);
       } else {
         studentUser.name = student.name;
         studentUser.password = student.password;
@@ -586,7 +650,7 @@ const seedDatabase = async (models) => {
         studentUser.isActive = true;
         studentUser.isVerified = true;
         await studentUser.save();
-        console.log(`Student ${student.name} synced`);
+        safeSeedLog(`Student ${student.name} synced`);
       }
     }
     
@@ -594,7 +658,7 @@ const seedDatabase = async (models) => {
     const pharmacistUser = await User.findOne({ email: seedData.pharmacist.email });
     if (!pharmacistUser) {
       await User.create(seedData.pharmacist);
-      console.log('Pharmacist created');
+      safeSeedLog('Pharmacist created');
     } else {
       pharmacistUser.name = seedData.pharmacist.name;
       pharmacistUser.password = seedData.pharmacist.password;
@@ -602,7 +666,7 @@ const seedDatabase = async (models) => {
       pharmacistUser.isActive = true;
       pharmacistUser.isVerified = true;
       await pharmacistUser.save();
-      console.log('Pharmacist synced');
+      safeSeedLog('Pharmacist synced');
     }
 
     // Seed counselors and keep demo continuity plus directory data
@@ -610,7 +674,7 @@ const seedDatabase = async (models) => {
       const counselorUser = await User.findOne({ email: counselor.email });
       if (!counselorUser) {
         await User.create(counselor);
-        console.log(`Counselor ${counselor.name} created`);
+        safeSeedLog(`Counselor ${counselor.name} created`);
       } else {
         counselorUser.name = counselor.name;
         counselorUser.password = counselor.password;
@@ -622,7 +686,7 @@ const seedDatabase = async (models) => {
         counselorUser.isActive = true;
         counselorUser.isVerified = true;
         await counselorUser.save();
-        console.log(`Counselor ${counselor.name} synced`);
+        safeSeedLog(`Counselor ${counselor.name} synced`);
       }
     }
     
@@ -630,7 +694,20 @@ const seedDatabase = async (models) => {
     for (const medicine of seedData.medicines) {
       if (!await Medicine.findOne({ name: medicine.name })) {
         await Medicine.create(medicine);
-        console.log(`Medicine ${medicine.name} created`);
+        safeSeedLog(`Medicine ${medicine.name} created`);
+      }
+    }
+
+    if (Pharmacy) {
+      for (const pharmacy of seedData.pharmacies) {
+        const existingPharmacy = await Pharmacy.findOne({ name: pharmacy.name });
+        if (!existingPharmacy) {
+          await Pharmacy.create(pharmacy);
+          safeSeedLog(`Pharmacy ${pharmacy.name} created`);
+        } else {
+          await Pharmacy.findByIdAndUpdate(existingPharmacy._id, pharmacy, { runValidators: true });
+          safeSeedLog(`Pharmacy ${pharmacy.name} synced`);
+        }
       }
     }
 
@@ -643,7 +720,7 @@ const seedDatabase = async (models) => {
             createdBy: seededAdmin._id,
             publishedAt: new Date()
           });
-          console.log(`Resource ${resource.title} created`);
+          safeSeedLog(`Resource ${resource.title} created`);
         }
       }
     }
@@ -666,7 +743,7 @@ const seedDatabase = async (models) => {
               role: 'doctor',
               ...template
             });
-            console.log(`Availability ${template.title} created for ${doctorUser.name}`);
+            safeSeedLog(`Availability ${template.title} created for ${doctorUser.name}`);
           }
         }
       }
@@ -684,7 +761,7 @@ const seedDatabase = async (models) => {
               role: 'counselor',
               ...template
             });
-            console.log(`Availability ${template.title} created for ${counselorUser.name}`);
+            safeSeedLog(`Availability ${template.title} created for ${counselorUser.name}`);
           }
         }
       }
@@ -710,7 +787,31 @@ const seedDatabase = async (models) => {
           ],
           notes: 'Standard prescription for seasonal allergy.'
         });
-        console.log('Sample prescription created for John Doe');
+        safeSeedLog('Sample prescription created for John Doe');
+      }
+
+      if (secondStudent && !await Prescription.findOne({
+        studentId: secondStudent._id,
+        notes: 'Demo pharmacy prescription for pharmacist review.'
+      })) {
+        await Prescription.create({
+          studentId: secondStudent._id,
+          studentName: secondStudent.name,
+          doctorId: doctor._id,
+          doctorName: doctor.name,
+          status: 'Pending',
+          medicines: [
+            {
+              name: meds[1]?.name || meds[0].name,
+              dosage: meds[1]?.strength || meds[0].strength || '250mg',
+              duration: '7 days',
+              frequency: 'Twice daily',
+              instructions: 'Demo prescription for pharmacy verification testing.'
+            }
+          ],
+          notes: 'Demo pharmacy prescription for pharmacist review.'
+        });
+        safeSeedLog('Demo pharmacy prescription created for Jane Smith');
       }
 
       // Seed sample orders if none exist
@@ -742,7 +843,7 @@ const seedDatabase = async (models) => {
           paymentStatus: 'Paid',
           address: student.address
         });
-        console.log('Sample orders created for John Doe');
+        safeSeedLog('Sample orders created for John Doe');
       }
     }
 
@@ -792,7 +893,7 @@ const seedDatabase = async (models) => {
 
         if (!exists) {
           await Appointment.create(appointment);
-          console.log(`Sample appointment ${appointment.time} created for ${student.name}`);
+          safeSeedLog(`Sample appointment ${appointment.time} created for ${student.name}`);
         }
       }
 
@@ -818,7 +919,7 @@ const seedDatabase = async (models) => {
             symptoms: 'General wellness review',
             reminderSent: false
           });
-          console.log(`Queue sample appointment created for ${secondStudent.name}`);
+          safeSeedLog(`Queue sample appointment created for ${secondStudent.name}`);
         }
       }
     }
@@ -868,7 +969,7 @@ const seedDatabase = async (models) => {
 
         if (!exists) {
           await CounselingSession.create(session);
-          console.log(`Sample counseling session ${session.time} created for ${student.name}`);
+          safeSeedLog(`Sample counseling session ${session.time} created for ${student.name}`);
         }
       }
     }
@@ -892,7 +993,7 @@ const seedDatabase = async (models) => {
             userId: student._id,
             ...moodEntry
           });
-          console.log(`Sample mood log ${moodEntry.mood} created for ${student.name}`);
+          safeSeedLog(`Sample mood log ${moodEntry.mood} created for ${student.name}`);
         }
       }
     }
@@ -905,10 +1006,11 @@ const seedDatabase = async (models) => {
       if (!await Settings.findOne({ key: setting.key })) await Settings.create(setting);
     }
     
-    console.log('Database seeded successfully');
+    safeSeedLog('Database seeded successfully');
   } catch (error) {
     console.error('Error seeding database:', error);
   }
 };
 
 export default { seedData, seedDatabase };
+
