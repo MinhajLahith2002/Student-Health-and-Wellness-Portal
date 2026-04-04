@@ -1,4 +1,21 @@
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '/api';
+const DEFAULT_PRODUCTION_API_BASE = 'https://student-health-and-wellness-portal-backend-2uisy2tp9.vercel.app/api';
+const viteEnv = typeof import.meta !== 'undefined' ? import.meta.env || {} : {};
+
+function resolveApiBase() {
+  const configuredBase = viteEnv.VITE_API_URL?.trim();
+
+  if (configuredBase) {
+    return configuredBase.replace(/\/$/, '');
+  }
+
+  if (viteEnv.DEV) {
+    return '/api';
+  }
+
+  return DEFAULT_PRODUCTION_API_BASE;
+}
+
+const API_BASE = resolveApiBase();
 
 function getBackendOrigin() {
   if (/^https?:\/\//i.test(API_BASE)) {
@@ -6,7 +23,7 @@ function getBackendOrigin() {
   }
 
   if (typeof window !== 'undefined') {
-    return import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin;
+    return viteEnv.DEV ? 'http://localhost:5000' : window.location.origin;
   }
 
   return 'http://localhost:5000';
