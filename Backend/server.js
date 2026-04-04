@@ -42,6 +42,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 const isVercel = Boolean(process.env.VERCEL);
+const shouldSeedDemoData = process.env.ENABLE_DEMO_SEED === 'true';
 let initializationPromise;
 
 const parseOriginList = (...values) =>
@@ -70,6 +71,11 @@ const isAllowedOrigin = (origin = '') => {
 
 const initializeDatabase = async () => {
   await connectDB();
+
+  if (!shouldSeedDemoData) {
+    logger.info('Demo seed skipped. Set ENABLE_DEMO_SEED=true to load default demo data.');
+    return;
+  }
 
   try {
     await seedDatabase({
