@@ -56,7 +56,7 @@ const PharmacyDashboard = () => {
 
   return (
     <div className="pharmacy-shell pb-20">
-      <div className="pt-36 pb-8 px-6">
+      <div className="pt-28 sm:pt-36 pb-8 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -68,15 +68,15 @@ const PharmacyDashboard = () => {
                 <div className="pharmacy-pill bg-[#e8f7f5] text-accent-primary mb-5">
                   SLIIT Campus Pharmacy
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold text-primary-text mb-4 max-w-2xl">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary-text mb-4 max-w-2xl">
                   Modern pharmacy care designed for everyday student health.
                 </h1>
-                <p className="text-lg text-secondary-text max-w-2xl">
+                <p className="text-base sm:text-lg text-secondary-text max-w-2xl">
                   Search medicine, upload prescriptions, track active orders, and find trusted campus-supported pharmacy access through one modern experience.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="pharmacy-soft-card p-5 bg-[linear-gradient(180deg,#ffffff_0%,#f4fbfd_100%)]">
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-secondary-text mb-2">Average Prep Time</p>
                   <p className="text-3xl font-bold text-primary-text">30 min</p>
@@ -102,14 +102,14 @@ const PharmacyDashboard = () => {
               <input
                 type="text"
                 placeholder="Search for medicines, vitamins, or health products..."
-                className="pharmacy-search text-lg"
+                className="pharmacy-search text-base sm:text-lg"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </form>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-12 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-10 sm:mt-12 max-w-7xl mx-auto">
             <QuickActionCard icon={ShoppingBag} title="Catalog" description="Browse all products" to="/student/pharmacy/products" />
             <QuickActionCard icon={Upload} title="Upload" description="Send prescriptions" to="/student/pharmacy/upload-prescription" />
             <QuickActionCard icon={Package} title="Orders" description="Track deliveries" to="/student/pharmacy/orders" />
@@ -119,18 +119,18 @@ const PharmacyDashboard = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-12 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-12 space-y-12 sm:space-y-16">
         {ongoingOrders.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-2xl font-bold text-primary-text">Ongoing Orders</h2>
               <Link to="/student/pharmacy/orders" className="text-accent-primary font-medium flex items-center hover:underline">
                 View All <ArrowRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
-            <div className="flex overflow-x-auto pb-4 gap-6 no-scrollbar">
+            <div className="flex overflow-x-auto pb-4 gap-4 sm:gap-6 no-scrollbar">
               {ongoingOrders.map((order) => (
-                <motion.div key={order._id} whileHover={{ y: -4 }} className="min-w-[320px] pharmacy-card p-6">
+                <motion.div key={order._id} whileHover={{ y: -4 }} className="min-w-[280px] sm:min-w-[320px] pharmacy-card p-5 sm:p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <span className="text-xs font-bold text-secondary-text uppercase tracking-wider">Order {order.orderId || order._id}</span>
@@ -152,13 +152,13 @@ const PharmacyDashboard = () => {
         )}
 
         <section>
-          <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <h2 className="text-2xl font-bold text-primary-text">Popular Medicines</h2>
             <Link to="/student/pharmacy/products" className="text-accent-primary font-medium flex items-center hover:underline">
               Browse All <ArrowRight className="ml-1 w-4 h-4" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {popularMedicines.map((med) => (
               <motion.div key={med._id} whileHover={{ y: -4 }} className="pharmacy-card rounded-2xl overflow-hidden group">
                 <div className="aspect-[4/3] bg-[#edf6f8] relative overflow-hidden">

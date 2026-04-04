@@ -91,7 +91,7 @@ const AuditLogs = () => {
 
         {/* Logs Table */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="mobile-table-scroll">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -147,7 +147,7 @@ const AuditLogs = () => {
           </div>
 
           {/* Pagination */}
-          <div className="p-6 border-t border-slate-50 flex items-center justify-between">
+          <div className="p-6 border-t border-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
               Showing 1 to {filteredLogs.length} of 1,482 entries
             </p>

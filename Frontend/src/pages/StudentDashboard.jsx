@@ -74,24 +74,24 @@ export default function StudentDashboard() {
   const recentPrescriptions = dashboard?.recentPrescriptions || [];
 
   return (
-    <div className="student-shell pt-36 pb-14">
-      <div className="px-6 max-w-7xl mx-auto">
-      <header className="student-hero mb-12 px-8 py-10 md:px-10 md:py-12 flex flex-col lg:flex-row justify-between gap-6">
+    <div className="student-shell pt-28 sm:pt-36 pb-12 sm:pb-14">
+      <div className="px-4 sm:px-6 max-w-7xl mx-auto">
+      <header className="student-hero mb-10 sm:mb-12 px-5 py-6 sm:px-8 sm:py-10 md:px-10 md:py-12 flex flex-col lg:flex-row justify-between gap-6">
         <div>
           <div className="student-chip bg-cyan-100 text-cyan-700 mb-5">
             <Heart className="w-3 h-3 fill-current" />
             Student Health Overview
           </div>
-          <h1 className="text-5xl font-semibold tracking-tight text-primary-text">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-primary-text">
             Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
           </h1>
-          <p className="text-lg text-secondary-text mt-3 max-w-2xl">
+          <p className="text-base sm:text-lg text-secondary-text mt-3 max-w-2xl">
             Keep your medical appointments, counseling sessions, prescriptions, and wellness activity in one place.
           </p>
         </div>
-        <div className="rounded-[1.75rem] p-6 border border-cyan-200/50 bg-[linear-gradient(135deg,#0f2942_0%,#134b63_55%,#14748b_100%)] text-white w-full lg:max-w-sm shadow-[0_24px_60px_rgba(15,41,66,0.18)]">
+        <div className="rounded-[1.75rem] p-5 sm:p-6 border border-cyan-200/50 bg-[linear-gradient(135deg,#0f2942_0%,#134b63_55%,#14748b_100%)] text-white w-full lg:max-w-sm shadow-[0_24px_60px_rgba(15,41,66,0.18)]">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Mood Snapshot</p>
-          <p className="text-4xl font-semibold mt-3">{dashboard?.moodTrends?.averageMood || '0.0'}</p>
+          <p className="text-3xl sm:text-4xl font-semibold mt-3">{dashboard?.moodTrends?.averageMood || '0.0'}</p>
           <p className="text-sm text-white/80 mt-3">Average mood score from the last 30 days.</p>
           <Link to="/mental-health/suggestions" className="inline-flex mt-6 text-sm font-semibold underline underline-offset-4">
             View personalized suggestions
@@ -135,7 +135,7 @@ export default function StudentDashboard() {
           <h2 className="text-2xl font-semibold text-primary-text">Quick actions</h2>
           <span className="text-sm text-secondary-text">Jump straight into your most common tasks</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {quickActions.map((action) => (
             <Link
               key={action.path}
@@ -150,8 +150,8 @@ export default function StudentDashboard() {
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        <section className="student-surface p-8">
-          <div className="flex items-center justify-between mb-6">
+        <section className="student-surface p-5 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <h2 className="text-2xl font-semibold text-primary-text">Upcoming medical care</h2>
             <Link to="/student/appointments" className="text-sm font-semibold text-accent-primary">
               View all
@@ -169,7 +169,7 @@ export default function StudentDashboard() {
                     : appointment.type === 'Video Call'
                       ? '/student/appointments'
                       : `/student/appointments/${appointment._id}/queue`}
-                  className="flex items-center justify-between gap-4 p-4 rounded-[1.4rem] bg-slate-50/85 hover:bg-slate-100/90 transition-colors border border-slate-100"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 rounded-[1.4rem] bg-slate-50/85 hover:bg-slate-100/90 transition-colors border border-slate-100"
                 >
                   <div>
                     <p className="font-semibold text-primary-text">{appointment.doctorName}</p>
@@ -186,8 +186,8 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        <section className="student-surface p-8">
-          <div className="flex items-center justify-between mb-6">
+        <section className="student-surface p-5 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <h2 className="text-2xl font-semibold text-primary-text">Counseling & wellness</h2>
             <Link to="/mental-health/sessions" className="text-sm font-semibold text-accent-primary">
               View all
@@ -201,7 +201,7 @@ export default function StudentDashboard() {
                 <Link
                   key={session._id}
                   to={`/mental-health/sessions/${session._id}`}
-                  className="flex items-center justify-between gap-4 p-4 rounded-[1.4rem] bg-slate-50/85 hover:bg-slate-100/90 transition-colors border border-slate-100"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 rounded-[1.4rem] bg-slate-50/85 hover:bg-slate-100/90 transition-colors border border-slate-100"
                 >
                   <div>
                     <p className="font-semibold text-primary-text">{session.counselorName}</p>

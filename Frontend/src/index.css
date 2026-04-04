@@ -22,9 +22,14 @@
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     @apply font-sans text-primary-text bg-primary-bg antialiased selection:bg-accent-primary/10;
     letter-spacing: -0.011em;
+    overflow-x: hidden;
     background:
       radial-gradient(circle at top left, rgba(20, 116, 139, 0.08), transparent 24%),
       radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 20%),
@@ -214,5 +219,45 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  .mobile-table-scroll {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-table-scroll table {
+    min-width: 42rem;
+  }
+}
+
+@media (max-width: 767px) {
+  h1 { font-size: 2.25rem; line-height: 1.05; }
+  h2 { font-size: 1.75rem; line-height: 1.1; }
+  h3 { font-size: 1.35rem; line-height: 1.15; }
+
+  .apple-card,
+  .student-surface,
+  .student-card,
+  .pharmacy-panel,
+  .pharmacy-card,
+  .pharmacy-soft-card,
+  .student-hero,
+  .pharmacy-hero {
+    border-radius: 1.5rem;
+  }
+
+  .student-hero,
+  .pharmacy-hero {
+    padding: 1.5rem;
+  }
+
+  .student-primary-button,
+  .student-secondary-button,
+  .pharmacy-primary,
+  .pharmacy-secondary,
+  .apple-button-primary,
+  .apple-button-secondary {
+    width: 100%;
   }
 }

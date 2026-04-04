@@ -117,7 +117,7 @@ const HealthResources = () => {
 
         {/* Resources Table */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="mobile-table-scroll">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">

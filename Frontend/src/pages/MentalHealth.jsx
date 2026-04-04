@@ -103,17 +103,17 @@ export default function MentalHealthHub() {
   const nextSession = upcomingSessions[0] || null;
 
   return (
-    <div className="student-shell pt-36 pb-12">
-      <div className="px-6 max-w-7xl mx-auto">
-      <header className="student-hero mb-16 text-center max-w-5xl mx-auto px-8 py-12">
+    <div className="student-shell pt-28 sm:pt-36 pb-12">
+      <div className="px-4 sm:px-6 max-w-7xl mx-auto">
+      <header className="student-hero mb-10 sm:mb-16 text-center max-w-5xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
         <div className="student-chip bg-purple-100 text-purple-700 mb-8">
           <Heart className="w-3 h-3 fill-current" />
           Mental Health Hub
         </div>
-        <h1 className="text-5xl md:text-6xl font-semibold mb-8 tracking-tight text-primary-text text-balance">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-semibold mb-6 sm:mb-8 tracking-tight text-primary-text text-balance">
           Support that meets you where you are
         </h1>
-        <p className="text-xl text-secondary-text leading-relaxed text-balance">
+        <p className="text-base sm:text-xl text-secondary-text leading-relaxed text-balance">
           Track your mood, book confidential counseling, explore self-help resources, and find anonymous peer support in one calm flow.
         </p>
       </header>
@@ -142,7 +142,7 @@ export default function MentalHealthHub() {
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-[1.2fr,0.8fr] gap-8 mb-12">
-        <div className="student-surface p-8">
+        <div className="student-surface p-5 sm:p-8">
           <p className="text-[10px] uppercase tracking-[0.2em] text-secondary-text font-bold mb-3">Wellness Momentum</p>
           <h2 className="text-3xl font-semibold text-primary-text">{moodStreak} day mood streak</h2>
           <p className="text-secondary-text mt-3 text-lg">
@@ -150,7 +150,7 @@ export default function MentalHealthHub() {
               ? 'You have been checking in consistently. Keep tracking to improve suggestions and counselor continuity.'
               : 'Log your mood to unlock stronger trends and more personalized support.'}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 sm:mt-8">
               <div className="student-muted-panel p-5">
               <p className="text-[10px] uppercase tracking-[0.2em] text-secondary-text font-bold mb-2">Mood Logs</p>
               <p className="text-2xl font-semibold text-primary-text">{stats?.totalLogs || 0}</p>
@@ -166,7 +166,7 @@ export default function MentalHealthHub() {
           </div>
         </div>
 
-        <div className="rounded-[2rem] p-8 bg-[linear-gradient(135deg,#0f2942_0%,#134b63_55%,#14748b_100%)] text-white shadow-[0_24px_60px_rgba(15,41,66,0.18)] border border-cyan-200/20">
+        <div className="rounded-[2rem] p-5 sm:p-8 bg-[linear-gradient(135deg,#0f2942_0%,#134b63_55%,#14748b_100%)] text-white shadow-[0_24px_60px_rgba(15,41,66,0.18)] border border-cyan-200/20">
           <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center mb-6">
             <ShieldCheck className="w-7 h-7" />
           </div>
@@ -194,8 +194,8 @@ export default function MentalHealthHub() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="rounded-[2rem] p-10 bg-[linear-gradient(135deg,#6d28d9_0%,#7c3aed_60%,#9333ea_100%)] text-white shadow-[0_24px_60px_rgba(109,40,217,0.18)] border border-purple-200/20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            <div className="rounded-[2rem] p-6 sm:p-10 bg-[linear-gradient(135deg,#6d28d9_0%,#7c3aed_60%,#9333ea_100%)] text-white shadow-[0_24px_60px_rgba(109,40,217,0.18)] border border-purple-200/20">
               <MessageSquareHeart className="w-12 h-12 mb-8" />
               <h3 className="text-3xl font-semibold mb-4 tracking-tight">Anonymous Forum</h3>
               <p className="text-white/80 mb-8 leading-relaxed">Talk to peers under an alias, ask for gentle support, and respond to others without exposing your identity.</p>
@@ -205,7 +205,7 @@ export default function MentalHealthHub() {
               </Link>
             </div>
 
-            <div className="rounded-[2rem] p-10 bg-[linear-gradient(135deg,#0f766e_0%,#0f9f8c_60%,#14b8a6_100%)] text-white shadow-[0_24px_60px_rgba(15,118,110,0.18)] border border-emerald-200/20">
+            <div className="rounded-[2rem] p-6 sm:p-10 bg-[linear-gradient(135deg,#0f766e_0%,#0f9f8c_60%,#14b8a6_100%)] text-white shadow-[0_24px_60px_rgba(15,118,110,0.18)] border border-emerald-200/20">
               <Video className="w-12 h-12 mb-8" />
               <h3 className="text-3xl font-semibold mb-4 tracking-tight">Counseling Care</h3>
               <p className="text-white/80 mb-8 leading-relaxed">Browse counselor profiles, book sessions, and revisit assigned resources after each conversation.</p>
