@@ -3,7 +3,7 @@ const viteEnv = typeof import.meta !== 'undefined' ? import.meta.env || {} : {};
 function resolveApiBase() {
   const configuredBase = viteEnv.VITE_API_URL?.trim();
 
-  if (configuredBase) {
+  if (viteEnv.DEV && configuredBase) {
     return configuredBase.replace(/\/$/, '');
   }
 
