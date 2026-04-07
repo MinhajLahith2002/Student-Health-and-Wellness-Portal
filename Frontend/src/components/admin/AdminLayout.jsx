@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,25 +14,46 @@ const ROLE_BREADCRUMB = {
 
 const AdminLayout = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
   const location = useLocation();
   const { user } = useAuth();
   const breadcrumbRoot = ROLE_BREADCRUMB[user?.role] || 'Admin';
+  const footerLabel = user?.role === 'admin' ? 'Admin Portal' : breadcrumbRoot;
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setIsMobileSidebarOpen(false);
+    }
+  }, [isDesktop]);
 
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex">
       {/* Sidebar */}
-      <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+      <Sidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isDesktop={isDesktop}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
+      />
 
       {/* Main Content */}
       <main 
-        className={`flex-1 transition-[margin-left] duration-150 ease-out flex flex-col min-h-screen ${user?.role === 'counselor' ? 'pharmacy-shell' : 'bg-[#FCFCFC]'}`}
-        style={{ marginLeft: isCollapsed ? '80px' : '280px' }}
+        className={`flex-1 transition-all duration-300 flex flex-col min-h-screen ${user?.role === 'counselor' ? 'pharmacy-shell' : 'bg-[#FCFCFC]'}`}
+        style={{ marginLeft: isDesktop ? (isCollapsed ? '80px' : '280px') : '0px' }}
       >
-        <TopBar />
+        <TopBar onMenuToggle={() => setIsMobileSidebarOpen((current) => !current)} />
         
-        <div className="flex-1 w-full px-8 pb-8 pt-4">
+        <div className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:p-8 w-full">
           {/* Breadcrumbs */}
-          <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+          <div className="flex flex-wrap items-center gap-2 mb-6 lg:mb-8 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">
             <span>{breadcrumbRoot}</span>
             {location.pathname.split('/').filter(Boolean).slice(1).map((path, i) => (
               <React.Fragment key={i}>
@@ -56,6 +77,13 @@ const AdminLayout = ({ children }) => {
             </motion.div>
           </AnimatePresence>
         </div>
+
+        {/* Footer */}
+        <footer className="px-4 py-5 sm:px-6 lg:p-8 border-t border-slate-50 text-center">
+          <p className="text-xs text-slate-400 font-medium">
+            © 2026 CampusHealth {footerLabel}. All rights reserved.
+          </p>
+        </footer>
       </main>
     </div>
   );

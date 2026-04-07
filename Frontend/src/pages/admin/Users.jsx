@@ -130,7 +130,7 @@ const UserDirectory = () => {
 
         {/* User Table */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="mobile-table-scroll">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -204,7 +204,7 @@ const UserDirectory = () => {
           </div>
 
           {/* Pagination */}
-          <div className="p-6 border-t border-slate-50 flex items-center justify-between">
+          <div className="p-6 border-t border-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
               Showing 1 to {filteredUsers.length} of {MOCK_USERS.length} entries
             </p>

@@ -5,6 +5,15 @@ import Order from '../models/Order.js';
 import Medicine from '../models/Medicine.js';
 import Prescription from '../models/Prescription.js';
 
+const DEMO_PHARMACY_NAMES = new Set([
+  'Campus Central Pharmacy',
+  'North Residence Pharmacy'
+]);
+
+function shouldExposeDemoPharmacies() {
+  return process.env.ENABLE_DEMO_SEED === 'true';
+}
+
 // @desc    Get all pharmacies
 // @route   GET /api/pharmacy
 // @access  Public
@@ -33,7 +42,11 @@ const getPharmacies = async (req, res) => {
     }
 
     const pharmacies = await Pharmacy.find(query);
-    res.json(pharmacies);
+    const filteredPharmacies = shouldExposeDemoPharmacies()
+      ? pharmacies
+      : pharmacies.filter((pharmacy) => !DEMO_PHARMACY_NAMES.has(pharmacy.name));
+
+    res.json(filteredPharmacies);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -48,6 +61,11 @@ const getPharmacyById = async (req, res) => {
     if (!pharmacy) {
       return res.status(404).json({ message: 'Pharmacy not found' });
     }
+
+    if (!shouldExposeDemoPharmacies() && DEMO_PHARMACY_NAMES.has(pharmacy.name)) {
+      return res.status(404).json({ message: 'Pharmacy not found' });
+    }
+
     res.json(pharmacy);
   } catch (error) {
     res.status(500).json({ message: error.message });

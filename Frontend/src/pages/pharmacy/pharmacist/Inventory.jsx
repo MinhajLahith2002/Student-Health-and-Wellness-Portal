@@ -76,7 +76,7 @@ const InventoryManagement = () => {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-8 py-6">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
@@ -108,7 +108,7 @@ const InventoryManagement = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         {/* Low Stock Alert Banner */}
         {lowStockItems.length > 0 && (
           <motion.div
@@ -175,7 +175,7 @@ const InventoryManagement = () => {
 
         {/* Inventory Table */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="mobile-table-scroll">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50">

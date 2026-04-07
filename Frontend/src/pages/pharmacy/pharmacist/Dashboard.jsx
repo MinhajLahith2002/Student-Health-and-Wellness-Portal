@@ -159,21 +159,21 @@ const PharmacistDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-      <div className="bg-white border-b border-slate-200 px-8 py-4 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-4 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-100">
               <Activity className="w-6 h-6" />
             </div>
             <h1 className="text-xl font-bold text-slate-900">Pharmacist Portal</h1>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="relative hidden md:block">
+          <div className="flex items-center gap-3 sm:gap-6 w-full lg:w-auto justify-between lg:justify-end">
+            <div className="relative hidden md:block flex-1 lg:flex-none">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search orders or students..."
-                className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 transition-all w-64"
+                className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 transition-all w-full lg:w-64"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -184,7 +184,7 @@ const PharmacistDashboard = () => {
                 <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
               )}
             </button>
-            <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
+            <div className="flex items-center gap-3 pl-3 sm:pl-6 border-l border-slate-200">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-bold text-slate-900">{displayName}</p>
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{profile?.role || 'Pharmacist'}</p>
@@ -201,7 +201,7 @@ const PharmacistDashboard = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-10 space-y-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8 sm:space-y-10">
         {loading ? (
           <div className="py-24 text-center">
             <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-4" />
@@ -234,13 +234,13 @@ const PharmacistDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
               <div className="lg:col-span-2 space-y-6">
                 <section className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                  <div className="p-5 sm:p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <h2 className="text-xl font-bold text-slate-900">Recent Orders</h2>
                     <Link to="/pharmacist/orders" className="text-emerald-600 font-bold text-sm hover:underline flex items-center">
                       View All <ChevronRight className="w-4 h-4 ml-1" />
                     </Link>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="mobile-table-scroll">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="bg-slate-50/50">
@@ -288,8 +288,8 @@ const PharmacistDashboard = () => {
               </div>
 
               <div className="space-y-8">
-                <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
-                  <div className="flex items-center justify-between mb-6">
+                <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 sm:p-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                     <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                       <AlertTriangle className="w-5 h-5 text-amber-500" /> Stock Alerts
                     </h2>

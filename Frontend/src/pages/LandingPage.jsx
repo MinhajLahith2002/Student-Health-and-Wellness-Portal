@@ -99,7 +99,7 @@ function BrandMark({ className = 'w-12 h-12' }) {
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#f4f8fb] text-slate-900">
-      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#0d2237_0%,#133b5b_52%,#176f7d_100%)] text-white pt-28 pb-20">
+      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#0d2237_0%,#133b5b_52%,#176f7d_100%)] text-white pt-24 sm:pt-28 pb-16 sm:pb-20">
         <div className="absolute inset-0 opacity-35">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.20),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(45,212,191,0.22),transparent_28%)]" />
           <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '46px 46px' }} />
@@ -116,14 +116,14 @@ export default function LandingPage() {
           className="absolute bottom-[-4rem] left-[-6rem] h-80 w-80 rounded-full bg-emerald-300/10 blur-3xl"
         />
 
-        <div className="relative max-w-7xl mx-auto px-6">
-          <div className="grid xl:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid xl:grid-cols-[1.05fr_0.95fr] gap-8 lg:gap-12 items-center">
             <div>
               <motion.div
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7 }}
-                className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-sm font-semibold tracking-wide text-cyan-100 mb-8"
+                className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs sm:text-sm font-semibold tracking-wide text-cyan-100 mb-6 sm:mb-8"
               >
                 <Sparkles className="w-4 h-4" />
                 Professional hospital and pharmacy coordination for campus care
@@ -135,14 +135,14 @@ export default function LandingPage() {
                 transition={{ duration: 0.8, delay: 0.05 }}
                 className="mb-7"
               >
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6">
                   <BrandMark className="w-14 h-14" />
                   <div>
                     <p className="text-sm uppercase tracking-[0.24em] text-cyan-100 font-bold">SLIIT MediBridge Care</p>
                     <p className="text-sm text-slate-200/80">University hospital and pharmacy platform</p>
                   </div>
                 </div>
-                <h1 className="text-[46px] md:text-[72px] leading-[0.93] font-black tracking-[-0.05em]">
+                <h1 className="text-[2.5rem] sm:text-[3.2rem] md:text-[4.5rem] leading-[0.98] md:leading-[0.93] font-black tracking-[-0.05em]">
                   Modern campus healthcare,
                   <span className="block text-cyan-200">built for trust, speed, and professional care delivery.</span>
                 </h1>
@@ -152,7 +152,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.12 }}
-                className="text-lg md:text-xl text-slate-200 max-w-2xl leading-relaxed mb-10"
+                className="text-base sm:text-lg md:text-xl text-slate-200 max-w-2xl leading-relaxed mb-8 sm:mb-10"
               >
                 SLIIT MediBridge Care connects student appointments, clinical records, prescriptions, pharmacy orders, and wellness support into one dependable digital care experience.
               </motion.p>
@@ -161,12 +161,12 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.18 }}
-                className="flex flex-col sm:flex-row gap-4 mb-12"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-10 sm:mb-12"
               >
-                <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white text-slate-900 px-7 py-4 font-bold hover:bg-cyan-50 transition-colors shadow-xl shadow-slate-950/10">
+                <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white text-slate-900 px-6 sm:px-7 py-3.5 sm:py-4 font-bold hover:bg-cyan-50 transition-colors shadow-xl shadow-slate-950/10">
                   Open Platform <ArrowRight className="w-5 h-5" />
                 </Link>
-                <Link to="/pharmacy" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-7 py-4 font-bold text-white hover:bg-white/15 transition-colors backdrop-blur-sm">
+                <Link to="/pharmacy" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-6 sm:px-7 py-3.5 sm:py-4 font-bold text-white hover:bg-white/15 transition-colors backdrop-blur-sm">
                   Visit Pharmacy <Pill className="w-5 h-5" />
                 </Link>
               </motion.div>
@@ -175,11 +175,11 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.24 }}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4"
               >
                 {heroStats.map((stat) => (
-                  <div key={stat.label} className="rounded-2xl border border-white/12 bg-white/8 px-5 py-5 backdrop-blur-sm">
-                    <p className="text-3xl font-black tracking-tight">{stat.value}</p>
+                  <div key={stat.label} className="rounded-2xl border border-white/12 bg-white/8 px-4 sm:px-5 py-4 sm:py-5 backdrop-blur-sm">
+                    <p className="text-2xl sm:text-3xl font-black tracking-tight">{stat.value}</p>
                     <p className="text-sm text-slate-200 mt-1 uppercase tracking-[0.18em]">{stat.label}</p>
                   </div>
                 ))}
@@ -201,7 +201,7 @@ export default function LandingPage() {
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#081420]/90 via-[#0a2031]/25 to-transparent" />
-                  <div className="absolute inset-x-7 bottom-7 flex flex-col md:flex-row gap-4">
+                  <div className="absolute inset-x-4 sm:inset-x-7 bottom-4 sm:bottom-7 flex flex-col md:flex-row gap-3 sm:gap-4">
                     <div className="rounded-2xl bg-white/92 text-slate-900 p-5 shadow-xl backdrop-blur-sm flex-1">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-11 h-11 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center">
@@ -252,7 +252,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 -mt-8 relative z-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 -mt-8 relative z-10">
         <div className="grid md:grid-cols-3 gap-5">
           {serviceCards.map((card, index) => (
             <motion.div

@@ -162,7 +162,7 @@ const ROLE_META = {
   counselor: { label: 'Counselor', accent: 'CarePortal' },
 };
 
-const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
+const Sidebar = ({ isCollapsed, setIsCollapsed, isDesktop, isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -179,6 +179,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
   const handleLogout = () => {
     logout();
+    setIsMobileSidebarOpen(false);
     navigate('/login');
   };
 
@@ -242,16 +243,29 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   }, [role, user?.id]);
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: isCollapsed ? 88 : 280 }}
-      transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed left-0 top-0 bottom-0 bg-white border-r border-slate-100 z-50 flex flex-col"
-    >
+    <>
+      {isMobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/35 lg:hidden"
+        />
+      )}
+
+      <motion.aside
+        initial={false}
+        animate={{
+          width: isCollapsed ? 80 : 280,
+          x: isDesktop ? 0 : (isMobileSidebarOpen ? 0 : -320)
+        }}
+        transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed left-0 top-0 bottom-0 bg-white border-r border-slate-100 z-50 flex flex-col transition-all duration-300 lg:translate-x-0"
+      >
       {/* Logo Area */}
       <div className={cn(
         'h-20 border-b border-slate-50',
-        isCollapsed ? 'flex items-center justify-center px-4' : 'flex items-center px-6'
+        isCollapsed ? 'flex items-center justify-center px-4' : 'flex items-center px-5 lg:px-6'
       )}>
         <div className={cn(
           'flex items-center',
@@ -275,7 +289,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
       {/* Role badge */}
       {!isCollapsed && (
-        <div className="px-6 pt-4 pb-2">
+        <div className="px-5 lg:px-6 pt-4 pb-2">
           <span className={cn(
             'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest',
             role === 'admin' ? 'bg-blue-50 text-blue-600' :
@@ -294,18 +308,19 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {menuGroups.map((group, idx) => (
           <div key={idx} className="mb-6">
             {!isCollapsed && (
-              <p className="px-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+              <p className="px-5 lg:px-6 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
                 {group.title}
               </p>
             )}
             {group.items.map((item, i) => (
-              <SidebarItem
-                key={i}
-                {...item}
-                isCollapsed={isCollapsed}
-                isActive={location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)}
-                hasDot={item.label === 'Notifications' && hasUnreadNotifications}
-              />
+              <div key={i} onClick={() => setIsMobileSidebarOpen(false)}>
+                <SidebarItem
+                  {...item}
+                  isCollapsed={isCollapsed}
+                  isActive={location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)}
+                  hasDot={item.label === 'Notifications' && hasUnreadNotifications}
+                />
+              </div>
             ))}
           </div>
         ))}
@@ -315,7 +330,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       <div className="p-4 border-t border-slate-50">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors duration-150 group"
+          className="hidden lg:flex w-full items-center gap-3 px-3 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors duration-150 group"
         >
           {isCollapsed ? <ChevronRight className="w-5 h-5 mx-auto" /> : (
             <>
@@ -333,6 +348,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         </button>
       </div>
     </motion.aside>
+    </>
   );
 };
 

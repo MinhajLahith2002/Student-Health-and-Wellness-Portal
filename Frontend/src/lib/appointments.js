@@ -1,3 +1,5 @@
+import { apiFetch } from './api';
+
 const STORAGE_USER = 'campushealth_user';
 const APPOINTMENTS_KEY = 'campushealth_demo_appointments_v1';
 const PRESCRIPTIONS_KEY = 'campushealth_demo_prescriptions_v1';
@@ -650,27 +652,7 @@ export function getDoctorDashboard() {
 }
 
 export function getStudentDashboard() {
-  const user = assertAuthenticated();
-  assertRole(user, ['student']);
-
-  const appointments = getAllAppointments()
-    .filter((appointment) => appointment.studentEmail === user.email || appointment.studentId === user.id)
-    .sort((left, right) => {
-      const leftValue = toDateTime(dateOnly(left.date), left.time)?.getTime() || 0;
-      const rightValue = toDateTime(dateOnly(right.date), right.time)?.getTime() || 0;
-      return leftValue - rightValue;
-    });
-
-  const prescriptions = getAllPrescriptions().filter((prescription) => prescription.studentEmail === user.email || prescription.studentId === user.id);
-
-  return Promise.resolve({
-    upcomingAppointments: deepClone(appointments.filter((appointment) => ['Pending', 'Confirmed', 'Ready', 'In Progress'].includes(appointment.status)).slice(0, 4)),
-    upcomingCounselingSessions: [],
-    recentPrescriptions: deepClone(prescriptions.slice(0, 4)),
-    moodTrends: {
-      averageMood: '6.4'
-    }
-  });
+  return apiFetch('/dashboard/student');
 }
 
 export function canOpenVideoVisit(appointment) {

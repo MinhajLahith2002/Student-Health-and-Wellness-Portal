@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Bookmark, CalendarDays, Heart, MessageSquareHeart, ShieldCheck, Sparkles, Users, Video } from 'lucide-react';
-import { getCounselingSessions, prefetchCounselingSessionById, prefetchCounselorDirectory } from '../lib/counseling';
+import {
+  getCachedCounselingSessions,
+  getCounselingSessions,
+  prefetchCounselingSessionById,
+  prefetchCounselorDirectory
+} from '../lib/counseling';
 import {
   buildMoodSuggestions,
   getCachedForumBootstrap,
@@ -75,8 +80,10 @@ function toSessionDateTime(dateValue, timeValue) {
 export default function MentalHealthHub() {
   const cachedStats = getCachedMoodStats();
   const cachedResources = getCachedMentalHealthResources({ limit: 12 });
+  const cachedSessionSummary = getCachedCounselingSessions({ limit: 3 });
   const cachedForumBootstrap = getCachedForumBootstrap();
   const initialResources = Array.isArray(cachedResources) ? cachedResources : [];
+  const initialSessions = Array.isArray(cachedSessionSummary?.sessions) ? cachedSessionSummary.sessions : [];
   const [stats, setStats] = useState(cachedStats);
   const [resources, setResources] = useState(initialResources);
   const [resourceTotal, setResourceTotal] = useState(0);
@@ -84,7 +91,7 @@ export default function MentalHealthHub() {
     stats: cachedStats,
     resources: initialResources
   }));
-  const [sessions, setSessions] = useState([]);
+  const [sessions, setSessions] = useState(initialSessions);
   const [forumThreads, setForumThreads] = useState(() => (
     Array.isArray(cachedForumBootstrap?.threads) ? cachedForumBootstrap.threads : []
   ));
@@ -97,21 +104,33 @@ export default function MentalHealthHub() {
     let active = true;
 
     (async () => {
-      try {
-        const [moodStats, resourceList] = await Promise.all([
-          getMoodStats(),
-          getMentalHealthResources({ limit: 12 })
-        ]);
+      const [moodStatsResult, resourceListResult] = await Promise.allSettled([
+        getMoodStats(),
+        getMentalHealthResources({ limit: 12 })
+      ]);
 
-        if (!active) return;
+      if (!active) return;
 
-        const resourcesData = Array.isArray(resourceList) ? resourceList : [];
-        setStats(moodStats);
-        setResources(resourcesData);
-        setSuggestions(buildMoodSuggestions({ stats: moodStats, resources: resourcesData }));
-      } catch (err) {
-        if (!active) return;
-        setError(err.message || 'Failed to load mental health hub');
+      const nextStats = moodStatsResult.status === 'fulfilled' ? moodStatsResult.value : cachedStats;
+      const nextResources = resourceListResult.status === 'fulfilled' && Array.isArray(resourceListResult.value)
+        ? resourceListResult.value
+        : initialResources;
+
+      if (moodStatsResult.status === 'fulfilled') {
+        setStats(nextStats);
+      }
+
+      if (resourceListResult.status === 'fulfilled') {
+        setResources(nextResources);
+      }
+
+      setSuggestions(buildMoodSuggestions({
+        stats: nextStats,
+        resources: nextResources
+      }));
+
+      if (moodStatsResult.status === 'rejected' && resourceListResult.status === 'rejected') {
+        setError(moodStatsResult.reason?.message || resourceListResult.reason?.message || 'Failed to load mental health hub');
       }
     })();
 
@@ -124,19 +143,25 @@ export default function MentalHealthHub() {
     let active = true;
 
     (async () => {
-      try {
-        const [resourceSummary, sessionData] = await Promise.all([
-          getResources({ category: 'Mental Health', limit: 1 }),
-          getCounselingSessions({ limit: 3 })
-        ]);
+      const [resourceSummaryResult, sessionDataResult] = await Promise.allSettled([
+        getResources({ category: 'Mental Health', limit: 1 }),
+        getCounselingSessions({ limit: 3 })
+      ]);
 
-        if (!active) return;
+      if (!active) return;
 
-        setResourceTotal(Number(resourceSummary?.total || initialResources.length || 0));
-        setSessions(Array.isArray(sessionData?.sessions) ? sessionData.sessions : []);
-      } catch (err) {
-        if (!active) return;
-        setError(err.message || 'Failed to load mental health hub');
+      if (resourceSummaryResult.status === 'fulfilled') {
+        setResourceTotal(Number(resourceSummaryResult.value?.total || initialResources.length || 0));
+      } else if (!resourceTotal) {
+        setResourceTotal(initialResources.length || 0);
+      }
+
+      if (sessionDataResult.status === 'fulfilled') {
+        setSessions(Array.isArray(sessionDataResult.value?.sessions) ? sessionDataResult.value.sessions : []);
+      }
+
+      if (resourceSummaryResult.status === 'rejected' && sessionDataResult.status === 'rejected') {
+        setError(resourceSummaryResult.reason?.message || sessionDataResult.reason?.message || 'Failed to load mental health hub');
       }
     })();
 
