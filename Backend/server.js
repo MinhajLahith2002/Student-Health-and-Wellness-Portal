@@ -31,7 +31,7 @@ import MoodLog from './models/MoodLog.js';
 import seedData from './config/seedData.js';
 
 const { logger, morganStream } = loggerModule;
-const { seedDatabase } = seedData;
+const { seedDatabase, ensureCoreAccessUsers } = seedData;
 
 
 // Get __dirname equivalent in ES modules
@@ -44,11 +44,20 @@ const isProduction = process.env.NODE_ENV === 'production';
 const isVercel = Boolean(process.env.VERCEL);
 let initializationPromise;
 
+const shouldAutoSeedDatabase = () => {
+  const rawValue = `${process.env.ENABLE_AUTO_SEED ?? ''}`.trim().toLowerCase();
+  return ['1', 'true', 'yes', 'on'].includes(rawValue);
+};
+
 const parseOriginList = (...values) =>
   values
     .flatMap((value) => String(value || '').split(','))
     .map((value) => value.trim())
     .filter(Boolean);
+
+const isLocalDevelopmentOrigin = (origin = '') => (
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+);
 
 const allowedOrigins = new Set([
   ...parseOriginList(
@@ -64,6 +73,7 @@ const allowedOrigins = new Set([
 const isAllowedOrigin = (origin = '') => {
   if (!origin) return true;
   if (allowedOrigins.has(origin)) return true;
+  if (!isProduction && isLocalDevelopmentOrigin(origin)) return true;
 
   return /^https:\/\/student-health-and-wellness-portal(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
 };
@@ -71,24 +81,34 @@ const isAllowedOrigin = (origin = '') => {
 const initializeDatabase = async () => {
   await connectDB();
 
-  try {
-    await seedDatabase({
-      User,
-      Medicine,
-      FAQ,
-      Resource,
-      Settings,
-      Order,
-      Prescription,
-      Pharmacy,
-      Availability,
-      Appointment,
-      CounselingSession,
-      MoodLog
-    });
-    logger.info('✅ Database seeded (default users and demo data ready)');
-  } catch (err) {
-    logger.warn('Seed skipped or failed:', err.message);
+  if (shouldAutoSeedDatabase()) {
+    try {
+      await seedDatabase({
+        User,
+        Medicine,
+        FAQ,
+        Resource,
+        Settings,
+        Order,
+        Prescription,
+        Pharmacy,
+        Availability,
+        Appointment,
+        CounselingSession,
+        MoodLog
+      });
+      logger.info('✅ Database seeded (default users and demo data ready)');
+    } catch (err) {
+      logger.warn('Seed skipped or failed:', err.message);
+    }
+  } else {
+    try {
+      await ensureCoreAccessUsers({ User });
+      logger.info('Core auth accounts verified (demo data remains disabled)');
+    } catch (err) {
+      logger.warn('Core auth account sync failed:', err.message);
+    }
+    logger.info('Automatic demo-data seeding is disabled for this server start');
   }
 };
 
@@ -115,9 +135,14 @@ app.use(helmet({
       connectSrc: [
         "'self'",
         "http://localhost:5000",
+        "http://localhost:5001",
+        "http://localhost:*",
         "http://127.0.0.1:5000",
+        "http://127.0.0.1:*",
         "ws://localhost:5173",
+        "ws://localhost:*",
         "ws://localhost:5000",
+        "ws://127.0.0.1:*",
         "wss://*.campushealth.edu"
       ]
     }
@@ -301,33 +326,42 @@ const gracefulShutdown = () => {
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
-// Start server with automatic port fallback when default port is busy.
-const startServer = (port, attempt = 0) => {
+// Start server on one fixed port in local development so the frontend always has one stable backend URL.
+const startServer = (port) => {
   if (!server) {
     return;
   }
-  server.once('error', (error) => {
-    if (error.code === 'EADDRINUSE' && attempt < 10) {
-      const nextPort = port + 1;
-      logger.warn(`Port ${port} is already in use. Retrying on port ${nextPort}...`);
-      startServer(nextPort, attempt + 1);
+
+  const handleListening = () => {
+    server.off('error', handleError);
+    server.off('listening', handleListening);
+    const activePort = server.address()?.port || port;
+    logger.info(`Server running on port ${activePort}`);
+    logger.info(`Environment: ${process.env.NODE_ENV}`);
+    logger.info(`API URL: http://localhost:${activePort}/api`);
+    logger.info('WebSocket ready for connections');
+  };
+
+  const handleError = (error) => {
+    server.off('error', handleError);
+    server.off('listening', handleListening);
+    if (error.code === 'EADDRINUSE') {
+      logger.error(`Port ${port} is already in use. Stop the other backend process and restart so the API stays on one stable URL.`);
+      process.exit(1);
       return;
     }
 
     logger.error('Uncaught Exception:', error);
     process.exit(1);
-  });
+  };
 
-  server.listen(port, () => {
-    logger.info(`Server running on port ${port}`);
-    logger.info(`Environment: ${process.env.NODE_ENV}`);
-    logger.info(`API URL: http://localhost:${port}/api`);
-    logger.info('WebSocket ready for connections');
-  });
+  server.once('listening', handleListening);
+  server.once('error', handleError);
+  server.listen(port);
 };
 
 if (!isVercel) {
-  initializeDatabase()
+  ensureInitialized()
     .then(() => startServer(DEFAULT_PORT))
     .catch((error) => {
       logger.error('Failed to initialize server:', error);

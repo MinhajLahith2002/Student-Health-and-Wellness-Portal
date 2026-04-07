@@ -22,11 +22,19 @@ import { apiFetch } from '../../lib/api';
 
 import { useForm } from '../../hooks/useForm';
 
+const TARGET_OPTIONS = ["All Users", "All Students", "All Doctors", "All Staff", "All Pharmacists", "Specific Role"];
+const ROLE_OPTIONS = ['student', 'doctor', 'pharmacist', 'admin', 'counselor'];
+
+function formatRoleLabel(role) {
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
 const NotificationsHub = () => {
   const [selectedId, setSelectedId] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const validate = (values) => {
     const errors = {};
@@ -35,6 +43,10 @@ const NotificationsHub = () => {
       errors.message = "Message content is required";
     } else if (values.message.length > 250) {
       errors.message = "Message cannot exceed 250 characters";
+    }
+    if (!values.target) errors.target = 'Target audience is required';
+    if (values.target === 'Specific Role' && !values.targetRole) {
+      errors.targetRole = 'Choose a role for this notification';
     }
     return errors;
   };
@@ -52,16 +64,21 @@ const NotificationsHub = () => {
   } = useForm({
     title: '',
     message: '',
-    target: 'All Users'
+    target: 'All Users',
+    targetRole: ''
   }, validate);
+
+  async function loadNotifications() {
+    const data = await apiFetch('/notifications?limit=100&scope=admin');
+    return Array.isArray(data?.notifications) ? data.notifications : [];
+  }
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const data = await apiFetch('/notifications?limit=100');
+        const rows = await loadNotifications();
         if (!active) return;
-        const rows = Array.isArray(data?.notifications) ? data.notifications : [];
         setNotifications(rows);
         if (rows[0]?._id) setSelectedId(rows[0]._id);
       } catch (err) {
@@ -83,28 +100,51 @@ const NotificationsHub = () => {
       setValues({
         title: selectedNotification.title,
         message: selectedNotification.message,
-        target: selectedNotification.target
+        target: selectedNotification.target,
+        targetRole: selectedNotification.targetRole || ''
       });
     } else {
       resetForm();
     }
   }, [selectedNotification, setValues, resetForm]);
 
+  const filteredNotifications = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return notifications;
+
+    return notifications.filter((notification) => (
+      notification.title?.toLowerCase().includes(query)
+      || notification.message?.toLowerCase().includes(query)
+      || notification.target?.toLowerCase().includes(query)
+      || notification.type?.toLowerCase().includes(query)
+      || notification.targetRole?.toLowerCase().includes(query)
+    ));
+  }, [notifications, searchQuery]);
+
   const handleSend = async () => {
     setError('');
     handleSubmit(async (data) => {
       setIsSending(true);
       try {
-        const created = await apiFetch('/notifications', {
-          method: 'POST',
+        const payload = {
+          ...data,
+          title: data.title.trim(),
+          message: data.message.trim(),
+          targetRole: data.target === 'Specific Role' ? data.targetRole : null,
+          type: 'system'
+        };
+        const method = selectedNotification?._id ? 'PUT' : 'POST';
+        const endpoint = selectedNotification?._id ? `/notifications/${selectedNotification._id}` : '/notifications';
+        const saved = await apiFetch(endpoint, {
+          method,
           body: JSON.stringify({
-            ...data,
-            type: 'system'
+            ...payload
           })
         });
-        setNotifications((prev) => [created, ...prev]);
-        setSelectedId(created._id);
-        resetForm();
+        const refreshed = await loadNotifications();
+        setNotifications(refreshed);
+        setSelectedId(saved._id);
+        setSearchQuery('');
       } catch (err) {
         setError(err.message || 'Failed to send notification');
       } finally {
@@ -149,19 +189,21 @@ const NotificationsHub = () => {
                 <input 
                   type="text"
                   placeholder="Search notifications..."
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-600/20 transition-all outline-none"
                 />
               </div>
             </div>
 
             <div className="space-y-4">
-              {notifications.map((notif) => (
+              {filteredNotifications.map((notif) => (
                 <button
                   key={notif._id}
                   onClick={() => setSelectedId(notif._id)}
                   className={cn(
                     "w-full p-6 rounded-[24px] border-2 text-left transition-all relative group",
-                    selectedId === notif.id 
+                    selectedId === notif._id 
                       ? "border-blue-600 bg-blue-50/30" 
                       : "border-white bg-white hover:border-blue-100 shadow-sm"
                   )}
@@ -185,6 +227,11 @@ const NotificationsHub = () => {
                   </div>
                 </button>
               ))}
+              {!filteredNotifications.length && (
+                <div className="rounded-[24px] border border-dashed border-slate-200 bg-white px-5 py-6 text-sm text-slate-500">
+                  No notifications match that search.
+                </div>
+              )}
             </div>
           </div>
 
@@ -253,7 +300,7 @@ const NotificationsHub = () => {
                     <div className="space-y-4">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target Audience</label>
                       <div className="grid grid-cols-2 gap-3">
-                        {["All Users", "All Students", "All Doctors", "Specific Role"].map(t => (
+                        {TARGET_OPTIONS.map(t => (
                           <label key={t} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all border-2 border-transparent has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
                             <input 
                               type="radio" 
@@ -267,6 +314,29 @@ const NotificationsHub = () => {
                           </label>
                         ))}
                       </div>
+                      {values.target === 'Specific Role' && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Specific role</label>
+                          <select
+                            name="targetRole"
+                            value={values.targetRole}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            className={cn(
+                              "w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900",
+                              errors.targetRole && touched.targetRole && "border-rose-500 bg-rose-50/10"
+                            )}
+                          >
+                            <option value="">Choose a role</option>
+                            {ROLE_OPTIONS.map((role) => (
+                              <option key={role} value={role}>{formatRoleLabel(role)}</option>
+                            ))}
+                          </select>
+                          {errors.targetRole && touched.targetRole && (
+                            <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.targetRole}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-6 flex gap-4">

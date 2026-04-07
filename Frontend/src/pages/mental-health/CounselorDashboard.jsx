@@ -1,122 +1,422 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Users, Video } from 'lucide-react';
-import { getCachedCounselorDashboard, getCounselorDashboard } from '../../lib/counseling';
+import {
+  Bell,
+  ChevronRight,
+  CalendarCheck2,
+  CalendarClock,
+  CalendarDays,
+  FileText,
+  HeartHandshake,
+  LayoutDashboard,
+  Library,
+  NotebookPen,
+  NotepadText,
+  Settings2,
+  Video
+} from 'lucide-react';
+import {
+  getCachedCounselorDashboard,
+  getCachedCounselorSessionTrends,
+  COUNSELOR_TREND_GROUP_DEFAULT,
+  COUNSELOR_TREND_RANGE_DEFAULT,
+  getCounselorDashboard,
+  getCounselorSessionTrends,
+  subscribeCounselorDashboardRefresh
+} from '../../lib/counseling';
+import DismissibleBanner from '../../components/DismissibleBanner';
+import CounselorSessionTrendChart from '../../components/mental-health/CounselorSessionTrendChart';
+import { cn } from '../../lib/utils';
 
-function DashboardSkeleton() {
-  return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="bg-white rounded-[32px] border border-[#F0F0F3] p-8 animate-pulse">
-            <div className="w-10 h-10 rounded-2xl bg-[#F4F4F8]" />
-            <div className="w-24 h-3 rounded-full bg-[#F4F4F8] mt-5" />
-            <div className="w-16 h-8 rounded-full bg-[#F4F4F8] mt-4" />
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-[32px] border border-[#F0F0F3] p-8 animate-pulse">
-        <div className="flex items-center justify-between mb-6">
-          <div className="w-52 h-7 rounded-full bg-[#F4F4F8]" />
-          <div className="w-24 h-4 rounded-full bg-[#F4F4F8]" />
-        </div>
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="rounded-3xl bg-[#F4F4F8] p-5">
-              <div className="w-40 h-5 rounded-full bg-white/70" />
-              <div className="w-52 h-4 rounded-full bg-white/70 mt-3" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
+function getDefaultGroupByForRange(range) {
+  if (range === '14d') return 'day';
+  if (range === '12m') return 'month';
+  return 'week';
 }
 
 export default function CounselorDashboard() {
+  const initialTrendCache = getCachedCounselorSessionTrends(
+    COUNSELOR_TREND_RANGE_DEFAULT,
+    COUNSELOR_TREND_GROUP_DEFAULT
+  );
   const [dashboard, setDashboard] = useState(() => getCachedCounselorDashboard());
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(() => !getCachedCounselorDashboard());
+  const [trendRange, setTrendRange] = useState(COUNSELOR_TREND_RANGE_DEFAULT);
+  const [trendGroupBy, setTrendGroupBy] = useState(COUNSELOR_TREND_GROUP_DEFAULT);
+  const [trendData, setTrendData] = useState(() => initialTrendCache?.points || []);
+  const [trendSummary, setTrendSummary] = useState(() => initialTrendCache?.summary || {
+    completedTotal: 0,
+    pendingTotal: 0,
+    pendingAttentionThreshold: 0
+  });
+  const [trendGeneratedAt, setTrendGeneratedAt] = useState(() => initialTrendCache?.generatedAt || '');
+  const [trendLoading, setTrendLoading] = useState(() => !initialTrendCache?.points?.length);
+  const [trendRefreshing, setTrendRefreshing] = useState(false);
+  const [trendError, setTrendError] = useState('');
+  const dashboardRef = useRef(dashboard);
+  const trendDataRef = useRef(trendData);
+  const trendRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    dashboardRef.current = dashboard;
+  }, [dashboard]);
+
+  useEffect(() => {
+    trendDataRef.current = trendData;
+  }, [trendData]);
 
   useEffect(() => {
     let active = true;
-    (async () => {
+    let refreshTimer = null;
+
+    const loadDashboard = async (showLoading = false) => {
+      if (showLoading && active) {
+        setLoading(true);
+      }
+
       try {
         const data = await getCounselorDashboard();
         if (!active) return;
         setDashboard(data);
+        setError('');
       } catch (err) {
         if (!active) return;
-        setError(err.message || 'Failed to load counselor dashboard');
+        if (!dashboardRef.current) {
+          setError(err.message || 'Failed to load counselor dashboard');
+        }
       } finally {
-        if (active) setLoading(false);
+        if (active && showLoading) {
+          setLoading(false);
+        }
       }
-    })();
+    };
+
+    const loadAll = () => {
+      loadDashboard();
+    };
+
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === 'visible') {
+        loadAll();
+      }
+    };
+
+    const unsubscribeDashboardRefresh = subscribeCounselorDashboardRefresh(() => {
+      loadAll();
+    });
+
+    loadDashboard(!getCachedCounselorDashboard());
+    refreshTimer = window.setInterval(loadAll, 10000);
+    window.addEventListener('focus', loadAll);
+    document.addEventListener('visibilitychange', handleVisibilityRefresh);
+
     return () => {
       active = false;
+      if (refreshTimer) {
+        window.clearInterval(refreshTimer);
+      }
+      window.removeEventListener('focus', loadAll);
+      document.removeEventListener('visibilitychange', handleVisibilityRefresh);
+      unsubscribeDashboardRefresh();
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    let refreshTimer = null;
+    const cachedTrendForSelection = getCachedCounselorSessionTrends(trendRange, trendGroupBy);
+
+    if (cachedTrendForSelection) {
+      setTrendData(cachedTrendForSelection.points || []);
+      setTrendSummary(cachedTrendForSelection.summary || {
+        completedTotal: 0,
+        pendingTotal: 0,
+        pendingAttentionThreshold: 0
+      });
+      setTrendGeneratedAt(cachedTrendForSelection.generatedAt || '');
+      setTrendError('');
+      setTrendLoading(false);
+    }
+
+    const loadTrends = async ({
+      showLoading = false,
+      showRefreshing = false,
+      nextRange = trendRange,
+      nextGroupBy = trendGroupBy
+    } = {}) => {
+      const requestId = trendRequestIdRef.current + 1;
+      trendRequestIdRef.current = requestId;
+
+      if (showLoading && active) {
+        setTrendLoading(true);
+      } else if (showRefreshing && active && trendDataRef.current.length) {
+        setTrendRefreshing(true);
+      }
+
+      try {
+        const data = await getCounselorSessionTrends({
+          range: nextRange,
+          groupBy: nextGroupBy
+        });
+        if (!active || requestId !== trendRequestIdRef.current) return;
+        setTrendData(data.points || []);
+        setTrendSummary(data.summary || {
+          completedTotal: 0,
+          pendingTotal: 0,
+          pendingAttentionThreshold: 0
+        });
+        setTrendGeneratedAt(data.generatedAt || '');
+        setTrendError('');
+      } catch (err) {
+        if (!active || requestId !== trendRequestIdRef.current) return;
+        if (!trendDataRef.current.length) {
+          setTrendError(err.message || 'Failed to load counselor session trends');
+        }
+      } finally {
+        const isLatestRequest = active && requestId === trendRequestIdRef.current;
+        if (isLatestRequest) {
+          if (showLoading) {
+            setTrendLoading(false);
+          }
+          if (showRefreshing) {
+            setTrendRefreshing(false);
+          }
+        }
+      }
+    };
+
+    const refreshTrends = () => {
+      loadTrends({ showRefreshing: true });
+    };
+
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === 'visible') {
+        refreshTrends();
+      }
+    };
+
+    const unsubscribeDashboardRefresh = subscribeCounselorDashboardRefresh(() => {
+      refreshTrends();
+    });
+
+    loadTrends({
+      showLoading: !trendDataRef.current.length,
+      showRefreshing: Boolean(trendDataRef.current.length)
+    });
+    refreshTimer = window.setInterval(refreshTrends, 10000);
+    window.addEventListener('focus', refreshTrends);
+    document.addEventListener('visibilitychange', handleVisibilityRefresh);
+
+    return () => {
+      active = false;
+      if (refreshTimer) {
+        window.clearInterval(refreshTimer);
+      }
+      window.removeEventListener('focus', refreshTrends);
+      document.removeEventListener('visibilitychange', handleVisibilityRefresh);
+      unsubscribeDashboardRefresh();
+    };
+  }, [trendGroupBy, trendRange]);
+
+  function handleTrendRangeChange(nextRange) {
+    setTrendRange(nextRange);
+    setTrendGroupBy(getDefaultGroupByForRange(nextRange));
+  }
+
+  const shouldShowDashboardError = Boolean(error) && !dashboard;
+  const shouldShowTrendError = Boolean(trendError) && !trendData.length;
 
   const stats = dashboard?.stats || {};
   const upcomingSessions = dashboard?.upcomingSessions || [];
 
   return (
-    <div className="bg-[#FCFCFC] pb-20">
-      <div className="bg-white border-b border-[#F0F0F3] pt-8 pb-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-bold text-[#18181B] tracking-tight">Counselor Dashboard</h1>
-            <p className="text-[#71717A] mt-2 text-lg">Guide students through upcoming sessions, notes, and assigned wellness resources.</p>
-          </div>
-          <div className="flex gap-4">
-            <Link to="/counselor/sessions" className="px-6 py-3 bg-[#2563EB] text-white rounded-full font-bold">Open Sessions</Link>
-            <Link to="/counselor/profile" className="px-6 py-3 bg-white border border-[#F0F0F3] text-[#18181B] rounded-full font-bold">Profile Settings</Link>
-          </div>
-        </div>
-      </div>
+    <div className="pharmacy-shell min-h-screen pb-16">
+      <div className="max-w-7xl mx-auto px-8 pt-4 space-y-8">
+        <section className="pharmacy-hero">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+            <div className="max-w-4xl">
+              <span className="pharmacy-pill inline-flex items-center gap-2 bg-emerald-50 text-emerald-700">
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                Counselor Workspace
+              </span>
+              <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-tight leading-[1.02] text-primary-text">Manage open slots, booked sessions, notes, and follow-up care.</h1>
+              <p className="mt-5 max-w-3xl text-lg leading-8 text-secondary-text">
+                This workspace follows the same pharmacy-style surface system while focusing on counselor-owned slot inventory, session completion, and student-visible follow-up.
+              </p>
+            </div>
 
-      <div className="max-w-7xl mx-auto px-6 mt-12 space-y-8">
-        {loading && !dashboard && !error ? (
-          <DashboardSkeleton />
+            <div className="justify-self-end rounded-[2rem] border border-[#d9e8ee] bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.12)] xl:mt-[3.75rem] xl:w-[340px]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Quick Access</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <Link to="/counselor/sessions" className="pharmacy-primary inline-flex items-center justify-center gap-3">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                    <CalendarCheck2 className="h-4 w-4" />
+                  </span>
+                  <span>Open Sessions</span>
+                </Link>
+                <Link to="/counselor/notes" className="pharmacy-secondary inline-flex items-center justify-center gap-3">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <span>Recent Notes</span>
+                </Link>
+                <Link to="/counselor/profile" className="pharmacy-secondary inline-flex items-center justify-center gap-3 sm:col-span-2 xl:col-span-1">
+                  <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                    <Settings2 className="h-4 w-4" />
+                  </span>
+                  <span>Profile Settings</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {loading && !dashboard ? (
+          <section className="pharmacy-panel p-8 text-secondary-text">Loading counselor dashboard...</section>
         ) : (
           <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
-          {[
-            { label: 'Upcoming Sessions', value: upcomingSessions.length, icon: Video },
-            { label: 'Active Students', value: stats.activeStudents || 0, icon: Users },
-            { label: 'Pending Notes', value: stats.pendingNotes || 0, icon: FileText },
-            { label: 'Assigned Resources', value: stats.assignedResources || 0, icon: FileText },
-            { label: 'Follow-Ups', value: stats.pendingFollowUps || 0, icon: FileText }
-          ].map((item) => (
-            <div key={item.label} className="bg-white rounded-[32px] border border-[#F0F0F3] p-8">
-              <item.icon className="w-6 h-6 text-purple-600 mb-5" />
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[#71717A] font-bold">{item.label}</p>
-              <p className="text-3xl font-bold text-[#18181B] mt-3">{item.value}</p>
-            </div>
-          ))}
-        </div>
+            <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+              {[
+                { label: 'Upcoming Sessions', value: upcomingSessions.length, icon: CalendarClock },
+                { label: 'Active Students', value: stats.activeStudents || 0, icon: HeartHandshake },
+                { label: 'Pending Notes', value: stats.pendingNotes || 0, icon: FileText },
+                { label: 'Assigned Resources', value: stats.assignedResources || 0, icon: NotebookPen },
+                { label: 'Open Slots', value: stats.openSlots || 0, icon: CalendarDays }
+              ].map((item) => (
+                <div key={item.label} className="pharmacy-card p-6">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">{item.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-primary-text">{item.value}</p>
+                </div>
+              ))}
+            </section>
 
-        <div className="bg-white rounded-[32px] border border-[#F0F0F3] p-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-[#18181B]">Upcoming sessions</h2>
-            <Link to="/counselor/sessions" className="text-sm font-semibold text-[#2563EB]">Manage all</Link>
-          </div>
-          <div className="space-y-4">
-            {upcomingSessions.map((session) => (
-              <Link key={session._id} to={`/counselor/sessions/${session._id}`} className="block rounded-3xl bg-[#F4F4F8] p-5">
-                <p className="font-bold text-[#18181B]">{session.studentName}</p>
-                <p className="text-sm text-[#71717A] mt-1">{new Date(session.date).toLocaleDateString()} • {session.time} • {session.type}</p>
-              </Link>
-            ))}
-            {!upcomingSessions.length && <p className="text-[#71717A]">No counseling sessions are booked yet.</p>}
-          </div>
-        </div>
+            <CounselorSessionTrendChart
+              data={trendData}
+              loading={trendLoading}
+              refreshing={trendRefreshing}
+              error={shouldShowTrendError ? trendError : ''}
+              range={trendRange}
+              groupBy={trendGroupBy}
+              generatedAt={trendGeneratedAt}
+              pendingThreshold={trendSummary.pendingAttentionThreshold}
+              onRangeChange={handleTrendRangeChange}
+              onGroupByChange={setTrendGroupBy}
+              onRetry={() => {
+                const requestId = trendRequestIdRef.current + 1;
+                trendRequestIdRef.current = requestId;
+                setTrendLoading(true);
+                getCounselorSessionTrends({
+                  range: trendRange,
+                  groupBy: trendGroupBy
+                })
+                  .then((data) => {
+                    if (requestId !== trendRequestIdRef.current) return;
+                    setTrendData(data.points || []);
+                    setTrendSummary(data.summary || {
+                      completedTotal: 0,
+                      pendingTotal: 0,
+                      pendingAttentionThreshold: 0
+                    });
+                    setTrendGeneratedAt(data.generatedAt || '');
+                    setTrendError('');
+                  })
+                  .catch((err) => {
+                    if (requestId !== trendRequestIdRef.current) return;
+                    if (!trendDataRef.current.length) {
+                      setTrendError(err.message || 'Failed to load counselor session trends');
+                    }
+                  })
+                  .finally(() => {
+                    if (requestId !== trendRequestIdRef.current) return;
+                    setTrendLoading(false);
+                  });
+              }}
+            />
+
+            <section className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
+              <div className="pharmacy-panel p-7">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Upcoming booked sessions</p>
+                    <h2 className="mt-2 text-3xl font-semibold text-primary-text">Stay ahead of today’s counseling flow.</h2>
+                  </div>
+                  <Link to="/counselor/sessions" className="pharmacy-secondary inline-flex items-center gap-2 px-5">
+                    Manage all
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                <div className="mt-6">
+                  {upcomingSessions.length > 0 ? (
+                    <div className="max-h-[440px] overflow-y-auto rounded-[1.75rem] bg-secondary-bg/70">
+                      {upcomingSessions.map((session, index) => (
+                        <Link
+                          key={session._id}
+                          to={`/counselor/sessions/${session._id}`}
+                          className={cn(
+                            'block px-5 py-4',
+                            index !== upcomingSessions.length - 1 && 'border-b border-white/70'
+                          )}
+                        >
+                          <p className="font-semibold text-primary-text">{session.studentName}</p>
+                          <p className="mt-1 text-sm text-secondary-text">{new Date(session.date).toLocaleDateString()} • {session.time} • {session.type}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-secondary-text">No counseling sessions are booked yet.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="pharmacy-panel p-7">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Follow-up queue</p>
+                  <p className="mt-3 text-sm leading-6 text-secondary-text">
+                    {stats.pendingFollowUps || 0} session{stats.pendingFollowUps === 1 ? '' : 's'} currently carry a follow-up recommendation that should stay visible in the student view.
+                  </p>
+                </div>
+
+                <div className="pharmacy-panel p-7">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Quick links</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-3">
+                    <Link to="/counselor/resources" className="pharmacy-secondary inline-flex min-h-[4.5rem] items-center justify-start gap-3 px-6">
+                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                        <Library className="h-4 w-4" />
+                      </span>
+                      <span className="text-left">Browse Resources</span>
+                    </Link>
+                    <Link to="/counselor/notifications" className="pharmacy-secondary inline-flex min-h-[4.5rem] items-center justify-start gap-3 px-6">
+                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                        <Bell className="h-4 w-4" />
+                      </span>
+                      <span className="text-left">Open Notifications</span>
+                    </Link>
+                    <Link to="/counselor/notes" className="pharmacy-secondary inline-flex min-h-[4.5rem] items-center justify-start gap-3 px-6">
+                      <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                        <NotepadText className="h-4 w-4" />
+                      </span>
+                      <span className="text-left">Review Notes History</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </section>
           </>
         )}
 
-        {loading && dashboard && <p className="text-[#71717A]">Refreshing counselor dashboard...</p>}
-        {error && <p className="text-red-600">{error}</p>}
+        {shouldShowDashboardError && (
+          <DismissibleBanner
+            message={error}
+            tone="error"
+            onClose={() => setError('')}
+            autoHideMs={0}
+          />
+        )}
       </div>
     </div>
   );

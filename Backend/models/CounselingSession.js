@@ -1,6 +1,11 @@
 import { Schema, model } from 'mongoose';
 
 const counselingSessionSchema = new Schema({
+  availabilityEntryId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Availability',
+    default: null
+  },
   studentId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -108,6 +113,10 @@ const counselingSessionSchema = new Schema({
     type: Date,
     default: null
   },
+  feedbackSubmitted: {
+    type: Boolean,
+    default: false
+  },
   cancellationReason: {
     type: String,
     trim: true,
@@ -127,6 +136,7 @@ const counselingSessionSchema = new Schema({
   timestamps: true
 });
 
+counselingSessionSchema.index({ availabilityEntryId: 1 });
 counselingSessionSchema.index({ studentId: 1, date: -1 });
 counselingSessionSchema.index({ counselorId: 1, date: -1 });
 counselingSessionSchema.index({ status: 1, date: 1 });

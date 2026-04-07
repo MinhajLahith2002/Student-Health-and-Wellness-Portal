@@ -6,6 +6,28 @@ import Conversation from '../models/Conversation.js';
 
 let io;
 
+function isAllowedSocketOrigin(origin = '') {
+  if (!origin) return true;
+
+  const configuredOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.ALLOWED_ORIGINS
+  ]
+    .flatMap((value) => String(value || '').split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (configuredOrigins.includes(origin)) {
+    return true;
+  }
+
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+}
+
+function isConversationParticipant(conversation, userId) {
+  return conversation?.participants?.some((participantId) => participantId?.toString() === userId?.toString());
+}
+
 /**
  * Initialize Socket.IO
  * @param {Object} server - HTTP server instance
@@ -13,7 +35,14 @@ let io;
 export const initializeSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+      origin(origin, callback) {
+        if (isAllowedSocketOrigin(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error(`Socket CORS blocked for origin: ${origin || 'unknown'}`));
+      },
       methods: ['GET', 'POST'],
       credentials: true
     }
@@ -44,7 +73,7 @@ export const initializeSocket = (server) => {
 
     socket.on('join-conversation', async (conversationId) => {
       const conversation = await Conversation.findById(conversationId);
-      if (conversation && conversation.participants.includes(socket.user.id)) {
+      if (conversation && isConversationParticipant(conversation, socket.user.id)) {
         socket.join(`conversation:${conversationId}`);
         socket.emit('joined-conversation', conversationId);
       }
@@ -53,7 +82,7 @@ export const initializeSocket = (server) => {
     socket.on('send-message', async ({ conversationId, text }) => {
       try {
         const conversation = await Conversation.findById(conversationId);
-        if (!conversation || !conversation.participants.includes(socket.user.id)) {
+        if (!conversation || !isConversationParticipant(conversation, socket.user.id)) {
           socket.emit('error', { message: 'Unauthorized' });
           return;
         }
@@ -104,7 +133,7 @@ export const initializeSocket = (server) => {
     socket.on('mark-read', async ({ conversationId }) => {
       try {
         const conversation = await Conversation.findById(conversationId);
-        if (conversation && conversation.participants.includes(socket.user.id)) {
+        if (conversation && isConversationParticipant(conversation, socket.user.id)) {
           let updated = false;
           conversation.messages.forEach((message) => {
             if (message.sender.toString() !== socket.user.id && !message.read) {

@@ -49,7 +49,7 @@ export default function Navbar() {
   const dropdownRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, booting, logout, redirectPathForRole } = useAuth();
+  const { user, booting, logout } = useAuth();
 
   const dashboardPathForRole = (role) => {
     switch (role) {

@@ -17,7 +17,6 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
   const { user } = useAuth();
   const breadcrumbRoot = ROLE_BREADCRUMB[user?.role] || 'Admin';
-  const footerLabel = user?.role === 'admin' ? 'Admin Portal' : `${breadcrumbRoot}`;
 
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex">
@@ -26,14 +25,14 @@ const AdminLayout = ({ children }) => {
 
       {/* Main Content */}
       <main 
-        className="flex-1 transition-all duration-300 flex flex-col min-h-screen"
+        className={`flex-1 transition-[margin-left] duration-150 ease-out flex flex-col min-h-screen ${user?.role === 'counselor' ? 'pharmacy-shell' : 'bg-[#FCFCFC]'}`}
         style={{ marginLeft: isCollapsed ? '80px' : '280px' }}
       >
         <TopBar />
         
-        <div className="flex-1 p-8 w-full">
+        <div className="flex-1 w-full px-8 pb-8 pt-4">
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 mb-8 text-xs font-bold text-slate-400 uppercase tracking-widest">
+          <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
             <span>{breadcrumbRoot}</span>
             {location.pathname.split('/').filter(Boolean).slice(1).map((path, i) => (
               <React.Fragment key={i}>
@@ -57,13 +56,6 @@ const AdminLayout = ({ children }) => {
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {/* Footer */}
-        <footer className="p-8 border-t border-slate-50 text-center">
-          <p className="text-xs text-slate-400 font-medium">
-            © 2026 CampusHealth {footerLabel}. All rights reserved.
-          </p>
-        </footer>
       </main>
     </div>
   );

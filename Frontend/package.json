@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/ensure-port-free.js 5173",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -18,6 +19,7 @@
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.1",
     "recharts": "^3.8.0",
+    "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

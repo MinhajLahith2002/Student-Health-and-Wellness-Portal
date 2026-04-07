@@ -24,6 +24,36 @@ function createDateOnlyOffset(days) {
   return date;
 }
 
+function uniqueUsersByEmail(users = []) {
+  const seen = new Set();
+
+  return users.filter((user) => {
+    const email = String(user?.email || '').trim().toLowerCase();
+    if (!email || seen.has(email)) return false;
+    seen.add(email);
+    return true;
+  });
+}
+
+const defaultCounselorAccount = {
+  name: 'Dr. Ava Thompson',
+  email: 'counselor@gmail.com',
+  password: 'counselor123',
+  role: 'counselor',
+  specialty: 'Student Wellness Counselor',
+  experience: 7,
+  bio: 'Supports students with stress, anxiety, burnout, grief, and academic-life balance through confidential counseling.',
+  education: ['MSc Counseling Psychology - UCLA', 'Licensed Campus Wellness Counselor'],
+  isActive: true,
+  isVerified: true
+};
+
+const configuredCounselorAccount = {
+  ...defaultCounselorAccount,
+  email: process.env.COUNSELOR_EMAIL || defaultCounselorAccount.email,
+  password: process.env.COUNSELOR_PASSWORD || defaultCounselorAccount.password
+};
+
 /**
  * Seed data for initial database population
  */
@@ -175,32 +205,11 @@ const seedData = {
   ],
 
   // Default Counselor
-  counselor: {
-    name: 'Dr. Ava Thompson',
-    email: process.env.COUNSELOR_EMAIL || 'counselor@gmail.com',
-    password: process.env.COUNSELOR_PASSWORD || 'counselor123',
-    role: 'counselor',
-    specialty: 'Student Wellness Counselor',
-    experience: 7,
-    bio: 'Supports students with stress, anxiety, burnout, grief, and academic-life balance through confidential counseling.',
-    education: ['MSc Counseling Psychology - UCLA', 'Licensed Campus Wellness Counselor'],
-    isActive: true,
-    isVerified: true
-  },
+  counselor: defaultCounselorAccount,
 
-  counselors: [
-    {
-      name: 'Dr. Ava Thompson',
-      email: process.env.COUNSELOR_EMAIL || 'counselor@gmail.com',
-      password: process.env.COUNSELOR_PASSWORD || 'counselor123',
-      role: 'counselor',
-      specialty: 'Student Wellness Counselor',
-      experience: 7,
-      bio: 'Supports students with stress, anxiety, burnout, grief, and academic-life balance through confidential counseling.',
-      education: ['MSc Counseling Psychology - UCLA', 'Licensed Campus Wellness Counselor'],
-      isActive: true,
-      isVerified: true
-    },
+  counselors: uniqueUsersByEmail([
+    configuredCounselorAccount,
+    defaultCounselorAccount,
     {
       name: 'Dr. Maya Patel',
       email: 'maya.patel@campushealth.edu',
@@ -249,7 +258,7 @@ const seedData = {
       isActive: true,
       isVerified: true
     }
-  ],
+  ]),
   
   // Sample Medicines
   medicines: [
@@ -431,18 +440,6 @@ const seedData = {
   // Default mental health resources for counseling and suggestions flows
   resources: [
     {
-      title: 'Five-Minute Reset for Stressful Days',
-      description: 'A short guided routine students can use between classes to reduce stress and reset focus.',
-      type: 'Guide',
-      category: 'Mental Health',
-      subCategory: 'Stress Management',
-      content: 'Pause, unclench your jaw, breathe in for four counts, hold for four, and release for six. Repeat this cycle five times, then write down the next single task you can realistically complete in the next fifteen minutes.',
-      author: 'Campus Wellness Team',
-      readTime: '5 min',
-      tags: ['stress', 'breathing', 'focus'],
-      status: 'Published'
-    },
-    {
       title: 'Sleep Recovery Tips During Exam Week',
       description: 'Practical steps to improve sleep quality when deadlines and revision start stacking up.',
       type: 'Article',
@@ -455,16 +452,213 @@ const seedData = {
       status: 'Published'
     },
     {
+      title: 'How to Reset After a Bad Mental Health Day',
+      description: 'A gentle article on recovering after a day that felt heavier than expected.',
+      type: 'Article',
+      category: 'Mental Health',
+      subCategory: 'Emotional Recovery',
+      content: 'Start by lowering pressure rather than trying to fix everything at once. Hydrate, eat something steady, reduce unnecessary noise, and choose one supportive action such as a shower, short walk, or message to someone safe.',
+      author: 'Campus Wellness Team',
+      readTime: '5 min',
+      tags: ['recovery', 'reset', 'self-support'],
+      status: 'Published'
+    },
+    {
+      title: 'Spotting Early Signs of Burnout on Campus',
+      description: 'Learn the common warning signs of academic burnout before they become harder to manage.',
+      type: 'Article',
+      category: 'Mental Health',
+      subCategory: 'Burnout',
+      content: 'Burnout often builds slowly through irritability, exhaustion, poor concentration, numbness, and a sense that even easy tasks feel expensive. Noticing the pattern early makes rest, boundaries, and support easier to use effectively.',
+      author: 'Campus Wellness Team',
+      readTime: '7 min',
+      tags: ['burnout', 'awareness', 'campus life'],
+      status: 'Published'
+    },
+    {
+      title: 'When Overthinking Starts Running the Day',
+      description: 'A quick read on interrupting spirals before they take over your routine.',
+      type: 'Article',
+      category: 'Mental Health',
+      subCategory: 'Anxiety Support',
+      content: 'Overthinking often sounds productive but leaves you stuck, tense, and tired. Shift from replaying every possibility to naming what is known, what is not known, and the smallest useful next step you can actually take.',
+      author: 'Campus Wellness Team',
+      readTime: '4 min',
+      tags: ['overthinking', 'anxiety', 'focus'],
+      status: 'Published'
+    },
+    {
+      title: 'Rebuilding Motivation After Falling Behind',
+      description: 'A realistic article for students trying to restart after missed tasks or low-energy weeks.',
+      type: 'Article',
+      category: 'Mental Health',
+      subCategory: 'Motivation',
+      content: 'Motivation usually returns after movement, not before it. Shrink tasks, lower perfection, and rebuild trust with yourself through a few small completions instead of one dramatic recovery plan.',
+      author: 'Campus Wellness Team',
+      readTime: '6 min',
+      tags: ['motivation', 'procrastination', 'restart'],
+      status: 'Published'
+    },
+    {
+      title: 'Protecting Energy During Busy Social Weeks',
+      description: 'A short article on keeping your energy steady when campus life gets crowded.',
+      type: 'Article',
+      category: 'Mental Health',
+      subCategory: 'Boundaries',
+      content: 'Not every invitation deserves an automatic yes. Protecting energy can look like shorter hangouts, earlier exits, or a recovery evening with no extra demands after a packed social stretch.',
+      author: 'Campus Wellness Team',
+      readTime: '5 min',
+      tags: ['energy', 'boundaries', 'social pressure'],
+      status: 'Published'
+    },
+    {
+      title: 'Five-Minute Reset for Stressful Days',
+      description: 'A short guided routine students can use between classes to reduce stress and reset focus.',
+      type: 'Guide',
+      category: 'Mental Health',
+      subCategory: 'Stress Management',
+      content: 'Pause, unclench your jaw, breathe in for four counts, hold for four, and release for six. Repeat this cycle five times, then write down the next single task you can realistically complete in the next fifteen minutes.',
+      author: 'Campus Wellness Team',
+      readTime: '5 min',
+      tags: ['stress', 'breathing', 'focus'],
+      status: 'Published'
+    },
+    {
+      title: 'A Simple Grounding Guide for Panic Moments',
+      description: 'Step-by-step grounding prompts for moments when anxiety rises fast.',
+      type: 'Guide',
+      category: 'Mental Health',
+      subCategory: 'Anxiety Support',
+      content: 'Plant both feet, name five things you see, four things you feel, three things you hear, two things you smell, and one thing you can taste. Then slow your breath and take one safe action such as sitting down or texting support.',
+      author: 'Campus Wellness Team',
+      readTime: '4 min',
+      tags: ['grounding', 'panic', 'anxiety'],
+      status: 'Published'
+    },
+    {
+      title: 'Managing Exam Stress Without Burning Out',
+      description: 'A practical counselor guide that helps students recognize overload early and reset their study routine before burnout builds up.',
+      type: 'Guide',
+      category: 'Mental Health',
+      subCategory: 'Burnout',
+      content: 'Break revision into smaller blocks, plan meals and rest before deadlines peak, and choose two daily priorities instead of carrying ten half-finished tasks. Add one recovery habit that stays even on your busiest days.',
+      author: 'Campus Wellness Team',
+      readTime: '7 min',
+      tags: ['exam stress', 'burnout', 'planning'],
+      status: 'Published'
+    },
+    {
+      title: 'The Study-Day Recovery Plan',
+      description: 'A guide for recovering your attention after hours of heavy coursework.',
+      type: 'Guide',
+      category: 'Mental Health',
+      subCategory: 'Focus',
+      content: 'Use a reset loop of water, movement, light food, and no-screen rest before returning to difficult work. Protect the quality of the next hour instead of forcing one more low-energy block.',
+      author: 'Campus Wellness Team',
+      readTime: '5 min',
+      tags: ['focus', 'recovery', 'study routine'],
+      status: 'Published'
+    },
+    {
+      title: 'A Gentle Night Routine for Better Sleep',
+      description: 'A student-friendly guide for winding down when your brain still feels switched on.',
+      type: 'Guide',
+      category: 'Mental Health',
+      subCategory: 'Sleep',
+      content: 'Dim lights, lower stimulation, stop academic work, and choose three repeatable cues that tell your body the day is closing: a warm drink, light stretching, and a written plan for tomorrow.',
+      author: 'Campus Wellness Team',
+      readTime: '5 min',
+      tags: ['sleep', 'night routine', 'calm'],
+      status: 'Published'
+    },
+    {
+      title: 'Getting Through a Low-Energy Morning',
+      description: 'A guide that helps students restart the day without demanding too much too quickly.',
+      type: 'Guide',
+      category: 'Mental Health',
+      subCategory: 'Energy Management',
+      content: 'Reduce the first hour to basics: water, sunlight, simple food, and one easy win. When energy is low, the goal is not peak productivity. The goal is stable momentum.',
+      author: 'Campus Wellness Team',
+      readTime: '4 min',
+      tags: ['energy', 'morning', 'momentum'],
+      status: 'Published'
+    },
+    {
       title: 'Guided Breathing for Anxiety Relief',
       description: 'A counselor-recommended video resource for grounding during anxious moments.',
       type: 'Video',
       category: 'Mental Health',
       subCategory: 'Anxiety Support',
       content: 'Use this guided breathing video whenever you feel overwhelmed, restless, or mentally overloaded. Pair it with a short walk or hydration break afterward for better recovery.',
+      videoUrl: 'https://www.youtube.com/results?search_query=guided+breathing+for+anxiety+relief+for+students',
       author: 'Campus Wellness Team',
       duration: '8 min',
-      videoUrl: 'https://www.youtube.com/watch?v=odADwWzHR24',
       tags: ['anxiety', 'video', 'breathing'],
+      status: 'Published'
+    },
+    {
+      title: 'Desk Stretch Flow for Study Breaks',
+      description: 'A short video routine for loosening tension after long sitting sessions.',
+      type: 'Video',
+      category: 'Mental Health',
+      subCategory: 'Stress Management',
+      content: 'This video guides students through easy shoulder, neck, wrist, and back stretches that can be done beside a desk. It works well during revision breaks or after long classes.',
+      videoUrl: 'https://www.youtube.com/results?search_query=desk+stretch+flow+for+study+breaks+students',
+      author: 'Campus Wellness Team',
+      duration: '7 min',
+      tags: ['stretching', 'study breaks', 'tension'],
+      status: 'Published'
+    },
+    {
+      title: 'Morning Calm Routine Before Class',
+      description: 'A grounding video for starting the day with steadier energy and less rush.',
+      type: 'Video',
+      category: 'Mental Health',
+      subCategory: 'Morning Routine',
+      content: 'Use this quick morning video to slow your breathing, settle your attention, and start the day without carrying immediate stress into the first class or task.',
+      videoUrl: 'https://www.youtube.com/results?search_query=morning+calm+routine+before+class+guided+mindfulness',
+      author: 'Campus Wellness Team',
+      duration: '6 min',
+      tags: ['morning', 'calm', 'video'],
+      status: 'Published'
+    },
+    {
+      title: 'Body Scan for Sleep Recovery',
+      description: 'A gentle wind-down video designed for students who struggle to settle before bed.',
+      type: 'Video',
+      category: 'Mental Health',
+      subCategory: 'Sleep',
+      content: 'This body-scan video helps release physical tension from the day and gives your attention something steady to follow while preparing for sleep.',
+      videoUrl: 'https://www.youtube.com/results?search_query=body+scan+for+sleep+recovery+guided+meditation',
+      author: 'Campus Wellness Team',
+      duration: '10 min',
+      tags: ['sleep', 'body scan', 'recovery'],
+      status: 'Published'
+    },
+    {
+      title: 'Quick Reset After a Tough Conversation',
+      description: 'A short video for decompressing after emotionally heavy social moments.',
+      type: 'Video',
+      category: 'Mental Health',
+      subCategory: 'Emotional Recovery',
+      content: 'When a conversation leaves you activated or drained, this video helps you regulate first before deciding what to say or do next.',
+      videoUrl: 'https://www.youtube.com/results?search_query=quick+reset+after+a+tough+conversation+emotional+recovery',
+      author: 'Campus Wellness Team',
+      duration: '5 min',
+      tags: ['recovery', 'relationships', 'regulation'],
+      status: 'Published'
+    },
+    {
+      title: 'Focus Reboot Between Study Blocks',
+      description: 'A practical video to help students re-enter work after distraction or mental fatigue.',
+      type: 'Video',
+      category: 'Mental Health',
+      subCategory: 'Focus',
+      content: 'This reset video combines breathing, posture, and a short planning prompt so you can restart a study block without carrying scattered energy forward.',
+      videoUrl: 'https://www.youtube.com/results?search_query=focus+reboot+between+study+blocks+students',
+      author: 'Campus Wellness Team',
+      duration: '6 min',
+      tags: ['focus', 'reset', 'study'],
       status: 'Published'
     },
     {
@@ -476,6 +670,133 @@ const seedData = {
       content: 'Burnout often appears as ongoing exhaustion, reduced concentration, irritability, and withdrawal from usual routines. If several signs persist for more than two weeks, consider booking counseling support and reducing nonessential commitments.',
       author: 'Campus Wellness Team',
       tags: ['burnout', 'checklist', 'self-awareness'],
+      status: 'Published'
+    },
+    {
+      title: 'Anxiety First-Aid Steps',
+      description: 'A visual quick-guide for what to do when anxious thoughts start escalating.',
+      type: 'Infographic',
+      category: 'Mental Health',
+      subCategory: 'Anxiety Support',
+      content: 'This visual breaks anxiety response into simple actions: pause, breathe, ground, reduce stimulation, and choose one safe next step. It is designed for fast reference during high-stress moments.',
+      author: 'Campus Wellness Team',
+      tags: ['anxiety', 'first aid', 'visual guide'],
+      status: 'Published'
+    },
+    {
+      title: 'Healthy Study Break Formula',
+      description: 'A visual reference for building breaks that actually restore attention.',
+      type: 'Infographic',
+      category: 'Mental Health',
+      subCategory: 'Focus',
+      content: 'The best breaks include movement, hydration, eye rest, and a mental reset. This infographic shows quick combinations students can use between classes, revision blocks, or online lectures.',
+      author: 'Campus Wellness Team',
+      tags: ['study breaks', 'focus', 'visual'],
+      status: 'Published'
+    },
+    {
+      title: 'Sleep Hygiene Essentials for Students',
+      description: 'A compact visual on the most effective habits for protecting sleep.',
+      type: 'Infographic',
+      category: 'Mental Health',
+      subCategory: 'Sleep',
+      content: 'This infographic highlights the biggest sleep disruptors on campus, including inconsistent bedtimes, late caffeine, light exposure, and exam-night cramming.',
+      author: 'Campus Wellness Team',
+      tags: ['sleep', 'hygiene', 'habits'],
+      status: 'Published'
+    },
+    {
+      title: 'Mood Tracking Pattern Map',
+      description: 'A visual guide to understanding how mood, sleep, stress, and routine connect.',
+      type: 'Infographic',
+      category: 'Mental Health',
+      subCategory: 'Self-Awareness',
+      content: 'This visual map helps students connect repeated low mood, tension, exhaustion, and social withdrawal with routines that may be making recovery harder.',
+      author: 'Campus Wellness Team',
+      tags: ['mood tracking', 'patterns', 'self-awareness'],
+      status: 'Published'
+    },
+    {
+      title: 'Boundary Scripts for Busy Weeks',
+      description: 'A visual mini-sheet of short phrases students can use to protect time and energy.',
+      type: 'Infographic',
+      category: 'Mental Health',
+      subCategory: 'Boundaries',
+      content: 'Includes short, respectful phrases for saying no, delaying commitments, or asking for more space during demanding academic stretches.',
+      author: 'Campus Wellness Team',
+      tags: ['boundaries', 'communication', 'visual guide'],
+      status: 'Published'
+    },
+    {
+      title: 'The Quiet Reset Podcast',
+      description: 'A calm audio episode for students who need a gentle mental reset after intense days.',
+      type: 'Podcast',
+      category: 'Mental Health',
+      subCategory: 'Emotional Recovery',
+      content: 'This episode walks through low-pressure recovery habits, including how to slow your evening, lower internal pressure, and regain steadier energy after difficult academic or social days.',
+      author: 'Campus Wellness Team',
+      duration: '14 min',
+      tags: ['podcast', 'recovery', 'calm'],
+      status: 'Published'
+    },
+    {
+      title: 'Campus Anxiety Conversations',
+      description: 'A podcast episode about handling anxious thoughts during deadlines and uncertainty.',
+      type: 'Podcast',
+      category: 'Mental Health',
+      subCategory: 'Anxiety Support',
+      content: 'The episode explores how students can notice anxiety earlier, build a fast calming routine, and avoid turning every uncertain moment into a full spiral.',
+      author: 'Campus Wellness Team',
+      duration: '18 min',
+      tags: ['podcast', 'anxiety', 'deadlines'],
+      status: 'Published'
+    },
+    {
+      title: 'Sleep Talk for Busy Students',
+      description: 'An audio discussion on realistic sleep recovery when schedules are crowded.',
+      type: 'Podcast',
+      category: 'Mental Health',
+      subCategory: 'Sleep',
+      content: 'Covers late-night study habits, racing thoughts, and how to build a repeatable wind-down even when your timetable is far from perfect.',
+      author: 'Campus Wellness Team',
+      duration: '16 min',
+      tags: ['podcast', 'sleep', 'routine'],
+      status: 'Published'
+    },
+    {
+      title: 'Study Pressure Without Self-Blame',
+      description: 'A supportive podcast episode on working through stress without turning it into shame.',
+      type: 'Podcast',
+      category: 'Mental Health',
+      subCategory: 'Stress Management',
+      content: 'This conversation focuses on replacing harsh self-talk with practical adjustment, helping students respond to pressure with support instead of punishment.',
+      author: 'Campus Wellness Team',
+      duration: '20 min',
+      tags: ['podcast', 'stress', 'self-talk'],
+      status: 'Published'
+    },
+    {
+      title: 'Rebuilding Focus After Overload',
+      description: 'An audio episode on getting attention back after mentally exhausting weeks.',
+      type: 'Podcast',
+      category: 'Mental Health',
+      subCategory: 'Focus',
+      content: 'The episode shares ways to reduce overstimulation, reset expectations, and rebuild concentration without expecting instant high performance from a tired brain.',
+      author: 'Campus Wellness Team',
+      duration: '15 min',
+      tags: ['podcast', 'focus', 'overload'],
+      status: 'Published'
+    },
+    {
+      title: 'Friendship Stress and Emotional Boundaries',
+      description: 'A podcast episode about navigating relationship pressure while protecting your own capacity.',
+      type: 'Podcast',
+      category: 'Mental Health',
+      subCategory: 'Boundaries',
+      content: 'This episode helps students think through guilt, people-pleasing, and how to stay kind without overextending yourself when energy is already low.',
+      author: 'Campus Wellness Team',
+      duration: '17 min',
+      tags: ['podcast', 'boundaries', 'friendship'],
       status: 'Published'
     }
   ],
@@ -575,6 +896,115 @@ const seedData = {
   }
 };
 
+function applyRoleSpecificUserFields(targetUser, templateUser) {
+  if (templateUser.role === 'student') {
+    targetUser.studentId = templateUser.studentId;
+    targetUser.phone = templateUser.phone;
+    targetUser.address = templateUser.address;
+    targetUser.bloodType = templateUser.bloodType;
+    targetUser.allergies = templateUser.allergies;
+    targetUser.medicalHistory = templateUser.medicalHistory;
+  }
+
+  if (['doctor', 'counselor'].includes(templateUser.role)) {
+    targetUser.specialty = templateUser.specialty;
+    targetUser.experience = templateUser.experience;
+    targetUser.bio = templateUser.bio;
+    targetUser.education = templateUser.education;
+  }
+}
+
+function buildCounselorDemoSlots(counselorUser) {
+  if (!counselorUser) return [];
+
+  return [
+    {
+      providerId: counselorUser._id,
+      role: 'counselor',
+      title: 'Demo Video Counseling Slot',
+      date: createDateOnlyOffset(1),
+      recurringDays: [],
+      startTime: '09:00 AM',
+      endTime: '09:50 AM',
+      slotDuration: 50,
+      consultationTypes: ['Video Call'],
+      breaks: [],
+      isUnavailable: false,
+      notes: 'Demo slot for student testing - video counseling session.',
+      status: 'Active'
+    },
+    {
+      providerId: counselorUser._id,
+      role: 'counselor',
+      title: 'Demo Chat Counseling Slot',
+      date: createDateOnlyOffset(1),
+      recurringDays: [],
+      startTime: '11:00 AM',
+      endTime: '11:50 AM',
+      slotDuration: 50,
+      consultationTypes: ['Chat'],
+      breaks: [],
+      isUnavailable: false,
+      notes: 'Demo slot for student testing - live chat counseling session.',
+      status: 'Active'
+    },
+    {
+      providerId: counselorUser._id,
+      role: 'counselor',
+      title: 'Demo In-Person Counseling Slot',
+      date: createDateOnlyOffset(1),
+      recurringDays: [],
+      startTime: '02:00 PM',
+      endTime: '02:50 PM',
+      slotDuration: 50,
+      consultationTypes: ['In-Person'],
+      breaks: [],
+      isUnavailable: false,
+      notes: 'Demo slot for student testing - on-campus counseling session.',
+      status: 'Active'
+    }
+  ];
+}
+
+async function syncDemoUser(User, templateUser, label) {
+  const existingUser = await User.findOne({ email: templateUser.email });
+
+  if (!existingUser) {
+    await User.create(templateUser);
+    safeSeedLog(`${label} created`);
+    return;
+  }
+
+  existingUser.name = templateUser.name;
+  existingUser.password = templateUser.password;
+  existingUser.role = templateUser.role;
+  existingUser.isActive = true;
+  existingUser.isVerified = true;
+
+  applyRoleSpecificUserFields(existingUser, templateUser);
+
+  await existingUser.save();
+  safeSeedLog(`${label} synced`);
+}
+
+const ensureCoreAccessUsers = async ({ User }) => {
+  await syncDemoUser(User, seedData.admin, 'Admin user');
+
+  for (const doctor of seedData.doctors) {
+    await syncDemoUser(User, doctor, `Doctor ${doctor.name}`);
+  }
+
+  for (const student of seedData.students) {
+    await syncDemoUser(User, student, `Student ${student.name}`);
+  }
+
+  await syncDemoUser(User, seedData.pharmacist, 'Pharmacist');
+
+  for (const counselor of seedData.counselors) {
+    await syncDemoUser(User, counselor, `Counselor ${counselor.name}`);
+  }
+};
+
 /**
  * Seed the database with initial data
  * @param {Object} models - Mongoose models
@@ -596,99 +1026,9 @@ const seedDatabase = async (models) => {
   } = models;
   
   try {
-    // Check if admin exists and sync credentials
-    const adminUser = await User.findOne({ email: seedData.admin.email });
-    if (!adminUser) {
-      await User.create(seedData.admin);
-      safeSeedLog('Admin user created');
-    } else {
-      adminUser.name = seedData.admin.name;
-      adminUser.password = seedData.admin.password;
-      await adminUser.save();
-      safeSeedLog('Admin user synced');
-    }
+    await ensureCoreAccessUsers({ User });
 
     const seededAdmin = await User.findOne({ email: seedData.admin.email });
-    
-    // Seed doctors and keep demo accounts in sync
-    for (const doctor of seedData.doctors) {
-      const doctorUser = await User.findOne({ email: doctor.email });
-      if (!doctorUser) {
-        await User.create(doctor);
-        safeSeedLog(`Doctor ${doctor.name} created`);
-      } else {
-        doctorUser.name = doctor.name;
-        doctorUser.password = doctor.password;
-        doctorUser.role = 'doctor';
-        doctorUser.specialty = doctor.specialty;
-        doctorUser.experience = doctor.experience;
-        doctorUser.bio = doctor.bio;
-        doctorUser.education = doctor.education;
-        doctorUser.isActive = true;
-        doctorUser.isVerified = true;
-        await doctorUser.save();
-        safeSeedLog(`Doctor ${doctor.name} synced`);
-      }
-    }
-    
-    // Seed students and keep sample credentials deterministic for demo verification
-    for (const student of seedData.students) {
-      const studentUser = await User.findOne({ email: student.email });
-      if (!studentUser) {
-        await User.create(student);
-        safeSeedLog(`Student ${student.name} created`);
-      } else {
-        studentUser.name = student.name;
-        studentUser.password = student.password;
-        studentUser.role = 'student';
-        studentUser.studentId = student.studentId;
-        studentUser.phone = student.phone;
-        studentUser.address = student.address;
-        studentUser.bloodType = student.bloodType;
-        studentUser.allergies = student.allergies;
-        studentUser.medicalHistory = student.medicalHistory;
-        studentUser.isActive = true;
-        studentUser.isVerified = true;
-        await studentUser.save();
-        safeSeedLog(`Student ${student.name} synced`);
-      }
-    }
-    
-    // Seed pharmacist and keep credentials synced
-    const pharmacistUser = await User.findOne({ email: seedData.pharmacist.email });
-    if (!pharmacistUser) {
-      await User.create(seedData.pharmacist);
-      safeSeedLog('Pharmacist created');
-    } else {
-      pharmacistUser.name = seedData.pharmacist.name;
-      pharmacistUser.password = seedData.pharmacist.password;
-      pharmacistUser.role = 'pharmacist';
-      pharmacistUser.isActive = true;
-      pharmacistUser.isVerified = true;
-      await pharmacistUser.save();
-      safeSeedLog('Pharmacist synced');
-    }
-
-    // Seed counselors and keep demo continuity plus directory data
-    for (const counselor of seedData.counselors) {
-      const counselorUser = await User.findOne({ email: counselor.email });
-      if (!counselorUser) {
-        await User.create(counselor);
-        safeSeedLog(`Counselor ${counselor.name} created`);
-      } else {
-        counselorUser.name = counselor.name;
-        counselorUser.password = counselor.password;
-        counselorUser.role = 'counselor';
-        counselorUser.specialty = counselor.specialty;
-        counselorUser.experience = counselor.experience;
-        counselorUser.bio = counselor.bio;
-        counselorUser.education = counselor.education;
-        counselorUser.isActive = true;
-        counselorUser.isVerified = true;
-        await counselorUser.save();
-        safeSeedLog(`Counselor ${counselor.name} synced`);
-      }
-    }
     
     // Seed medicines
     for (const medicine of seedData.medicines) {
@@ -714,13 +1054,22 @@ const seedDatabase = async (models) => {
     if (Resource && seededAdmin) {
       for (const resource of seedData.resources) {
         const existingResource = await Resource.findOne({ title: resource.title });
+        const resourcePayload = {
+          ...resource,
+          createdBy: existingResource?.createdBy || seededAdmin._id,
+          publishedAt: existingResource?.publishedAt || new Date()
+        };
+
         if (!existingResource) {
           await Resource.create({
-            ...resource,
-            createdBy: seededAdmin._id,
-            publishedAt: new Date()
+            ...resourcePayload
           });
           safeSeedLog(`Resource ${resource.title} created`);
+        } else {
+          await Resource.findByIdAndUpdate(existingResource._id, resourcePayload, {
+            runValidators: true
+          });
+          safeSeedLog(`Resource ${resource.title} synced`);
         }
       }
     }
@@ -762,6 +1111,24 @@ const seedDatabase = async (models) => {
               ...template
             });
             safeSeedLog(`Availability ${template.title} created for ${counselorUser.name}`);
+          }
+        }
+      }
+
+      if (seededCounselor) {
+        for (const demoSlot of buildCounselorDemoSlots(seededCounselor)) {
+          const existingDemoSlot = await Availability.findOne({
+            providerId: demoSlot.providerId,
+            role: demoSlot.role,
+            title: demoSlot.title,
+            date: demoSlot.date,
+            startTime: demoSlot.startTime,
+            isUnavailable: false
+          });
+
+          if (!existingDemoSlot) {
+            await Availability.create(demoSlot);
+            safeSeedLog(`Counselor demo slot ${demoSlot.title} created for ${seededCounselor.name}`);
           }
         }
       }
@@ -1012,5 +1379,5 @@ const seedDatabase = async (models) => {
   }
 };
 
-export default { seedData, seedDatabase };
+export default { seedData, seedDatabase, ensureCoreAccessUsers };
 

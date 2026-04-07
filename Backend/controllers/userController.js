@@ -4,6 +4,22 @@ import cloudinaryService from '../utils/cloudinaryService.js';
 
 const { cloudinary, uploader } = cloudinaryService;
 
+function hasLetters(value) {
+  return /[A-Za-z]/.test(value);
+}
+
+function hasDigits(value) {
+  return /\d/.test(value);
+}
+
+function hasInvalidNameCharacters(value) {
+  return /[^A-Za-z.\s'-]/.test(value);
+}
+
+function hasInvalidSpecialtyCharacters(value) {
+  return /[^A-Za-z\s&/-]/.test(value);
+}
+
 // @desc    Get all users
 // @route   GET /api/users
 // @access  Private/Admin
@@ -149,24 +165,81 @@ const updateProfile = async (req, res) => {
       education
     } = req.body;
 
-    user.name = name || user.name;
-    user.address = address || user.address;
-    user.bloodType = bloodType || user.bloodType;
-    user.allergies = allergies || user.allergies;
-    user.dateOfBirth = dateOfBirth || user.dateOfBirth;
-    user.gender = gender || user.gender;
-    user.phone = phone || user.phone;
+    if (name !== undefined) {
+      const trimmedName = `${name}`.trim();
+      if (!trimmedName) {
+        return res.status(400).json({ message: 'Display name is required' });
+      }
+      if (!hasLetters(trimmedName) || hasDigits(trimmedName) || hasInvalidNameCharacters(trimmedName)) {
+        return res.status(400).json({ message: 'Display name must contain words only and cannot include invalid characters' });
+      }
+      user.name = trimmedName;
+    }
+
+    if (address !== undefined) user.address = address;
+    if (bloodType !== undefined) user.bloodType = bloodType;
+    if (allergies !== undefined) user.allergies = allergies;
+    if (dateOfBirth !== undefined) user.dateOfBirth = dateOfBirth;
+    if (gender !== undefined) user.gender = gender;
+    if (phone !== undefined) user.phone = phone;
 
     if (['doctor', 'counselor'].includes(user.role)) {
-      user.specialty = specialty || user.specialty;
-      user.bio = bio || user.bio;
-      user.experience = experience ?? user.experience;
-      user.education = Array.isArray(education) ? education : user.education;
+      if (specialty !== undefined) {
+        const trimmedSpecialty = `${specialty}`.trim();
+        if (!trimmedSpecialty) {
+          return res.status(400).json({ message: 'Specialty is required' });
+        }
+        if (!hasLetters(trimmedSpecialty) || hasDigits(trimmedSpecialty) || hasInvalidSpecialtyCharacters(trimmedSpecialty)) {
+          return res.status(400).json({ message: 'Specialty must contain words only and cannot include invalid characters' });
+        }
+        user.specialty = trimmedSpecialty;
+      }
+
+      if (bio !== undefined) {
+        const trimmedBio = `${bio}`.trim();
+        if (trimmedBio.length < 20) {
+          return res.status(400).json({ message: 'Bio must be at least 20 characters long' });
+        }
+        if (!hasLetters(trimmedBio)) {
+          return res.status(400).json({ message: 'Bio must include meaningful words' });
+        }
+        user.bio = trimmedBio;
+      }
+
+      if (experience !== undefined) {
+        if (experience === '') {
+          user.experience = null;
+        } else {
+          const normalizedExperience = Number(experience);
+          if (Number.isNaN(normalizedExperience) || normalizedExperience < 0 || normalizedExperience > 80) {
+            return res.status(400).json({ message: 'Years of experience must be between 0 and 80' });
+          }
+          user.experience = normalizedExperience;
+        }
+      }
+
+      if (education !== undefined) {
+        if (!Array.isArray(education)) {
+          return res.status(400).json({ message: 'Education must be provided as a list' });
+        }
+
+        const normalizedEducation = education
+          .map((entry) => `${entry ?? ''}`.trim())
+          .filter(Boolean);
+
+        const invalidEducation = normalizedEducation.find((entry) => !hasLetters(entry));
+        if (invalidEducation) {
+          return res.status(400).json({ message: 'Each education entry must contain meaningful words' });
+        }
+
+        user.education = normalizedEducation;
+      }
     }
 
     await user.save();
 
-    res.json(user);
+    const updatedUser = await User.findById(user._id).select('-password');
+    res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

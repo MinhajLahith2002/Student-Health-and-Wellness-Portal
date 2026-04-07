@@ -1,14 +1,19 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { CalendarDays, History, MessageSquareText, XCircle } from 'lucide-react';
-import { getCounselingSessions, rescheduleCounselingSession, updateCounselingSessionStatus } from '../../lib/counseling';
+import { ArrowLeft, CalendarDays, MessageSquareText, RefreshCcw, Trash2 } from 'lucide-react';
+import {
+  getCachedCounselingSessions,
+  deleteCounselingSession,
+  getCounselingSessions,
+  getCounselorSlots,
+  prefetchCounselingSessionById,
+  rescheduleCounselingSession
+} from '../../lib/counseling';
+import DismissibleBanner from '../../components/DismissibleBanner';
 import { useAuth } from '../../hooks/useAuth';
+import { cn } from '../../lib/utils';
 
-const TIME_OPTIONS = [
-  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-  '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM',
-  '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM'
-];
+const SESSION_FETCH_LIMIT = 100;
 
 function getTomorrow() {
   const date = new Date();
@@ -16,217 +21,182 @@ function getTomorrow() {
   return date.toISOString().slice(0, 10);
 }
 
-function getTodayValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getTimeBucket(time) {
-  if (!time) return 'Unknown';
-  const [clock, meridiem] = time.split(' ');
-  const [hourText] = clock.split(':');
-  let hour = Number(hourText);
-
-  if (meridiem === 'PM' && hour !== 12) hour += 12;
-  if (meridiem === 'AM' && hour === 12) hour = 0;
-
-  if (hour < 12) return 'Morning';
-  if (hour < 17) return 'Afternoon';
-  return 'Evening';
-}
-
-function toSessionDateTime(dateValue, timeValue) {
-  if (!dateValue || !timeValue) return null;
-
-  const [year, month, day] = dateValue.split('-').map(Number);
-  const [clock, meridiem] = timeValue.split(' ');
-  const [hourText, minuteText] = clock.split(':');
-  let hour = Number(hourText);
-  const minute = Number(minuteText);
-
-  if (meridiem === 'PM' && hour !== 12) hour += 12;
-  if (meridiem === 'AM' && hour === 12) hour = 0;
-
-  return new Date(year, month - 1, day, hour, minute, 0, 0);
-}
-
-function isPastSelection(dateValue, timeValue) {
-  const selected = toSessionDateTime(dateValue, timeValue);
-  if (!selected) return false;
-  return selected.getTime() < Date.now();
-}
-
 function SessionCard({
   session,
-  userRole,
   actionId,
-  rescheduleDraft,
-  setRescheduleDraft,
-  handleReschedule,
-  handleCancel,
-  isRescheduleOpen,
-  openReschedule,
-  closeReschedule
+  rescheduleState,
+  onSelectDate,
+  onLoadSlots,
+  onPickSlot,
+  onPrefetchSession,
+  onReschedule,
+  onDelete,
+  onOpenReschedule
 }) {
-  const sessionPath = userRole === 'counselor' ? `/counselor/sessions/${session._id}` : `/mental-health/sessions/${session._id}`;
-  const canManageSession = userRole === 'counselor'
-    ? ['Confirmed', 'Ready', 'In Progress'].includes(session.status)
-    : ['Confirmed', 'Ready'].includes(session.status);
-  const hasPastRescheduleSelection = rescheduleDraft.id === session._id && isPastSelection(rescheduleDraft.date, rescheduleDraft.time);
+  const isRescheduleOpen = rescheduleState.sessionId === session._id;
 
   return (
-    <div className="apple-card p-7 border-none bg-white/70 backdrop-blur-sm">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <article className="pharmacy-card p-7">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <Link to={sessionPath} className="text-2xl font-semibold text-primary-text">
-            {userRole === 'counselor' ? session.studentName : session.counselorName}
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Counseling session</p>
+          <Link
+            to={`/mental-health/sessions/${session._id}`}
+            onMouseEnter={() => onPrefetchSession(session._id)}
+            onFocus={() => onPrefetchSession(session._id)}
+            className="mt-3 block text-2xl font-semibold text-primary-text"
+          >
+            {session.counselorName}
           </Link>
-          <p className="text-sm text-secondary-text mt-2">{new Date(session.date).toLocaleDateString()} â€¢ {session.time} â€¢ {session.type}</p>
+          <p className="mt-2 text-sm text-secondary-text">{new Date(session.date).toLocaleDateString()} • {session.time} • {session.typeLabel}</p>
+          <p className="mt-4 text-sm leading-6 text-secondary-text">{session.reason}</p>
         </div>
-        <span className="text-xs font-bold uppercase tracking-[0.2em] text-accent-primary">{session.status}</span>
+
+        <span className={cn(
+          'pharmacy-pill',
+          session.status === 'Completed' ? 'bg-emerald-50 text-emerald-700'
+            : session.status === 'Cancelled' ? 'bg-rose-50 text-rose-700'
+              : 'bg-sky-50 text-sky-700'
+        )}>
+          {session.status}
+        </span>
       </div>
 
-      <p className="text-sm text-primary-text/80 mt-4">{session.reason}</p>
-
-      {canManageSession && isRescheduleOpen && (
-        <div className="mt-6 rounded-2xl bg-secondary-bg/70 p-5">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-secondary-text font-bold">Reschedule session</p>
-            <button
-              type="button"
-              onClick={closeReschedule}
-              className="text-xs font-bold text-secondary-text"
-            >
-              Close
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input
-              type="date"
-              value={rescheduleDraft.id === session._id ? rescheduleDraft.date : getTomorrow()}
-              min={new Date().toISOString().slice(0, 10)}
-              onChange={(event) => setRescheduleDraft((current) => ({
-                ...current,
-                id: session._id,
-                date: event.target.value
-              }))}
-              className={`px-4 py-3 rounded-2xl bg-white outline-none ${
-                hasPastRescheduleSelection ? 'ring-2 ring-red-300' : ''
-              }`}
-            />
-            <select
-              value={rescheduleDraft.id === session._id ? rescheduleDraft.time : '10:00 AM'}
-              onChange={(event) => setRescheduleDraft((current) => ({
-                ...current,
-                id: session._id,
-                time: event.target.value
-              }))}
-              className={`px-4 py-3 rounded-2xl bg-white outline-none ${hasPastRescheduleSelection ? 'ring-2 ring-red-300' : ''}`}
-            >
-              {TIME_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-            </select>
-            <select
-              value={rescheduleDraft.id === session._id ? rescheduleDraft.type : session.type}
-              onChange={(event) => setRescheduleDraft((current) => ({
-                ...current,
-                id: session._id,
-                type: event.target.value
-              }))}
-              className="px-4 py-3 rounded-2xl bg-white outline-none"
-            >
-              {['Video Call', 'Chat', 'In-Person'].map((option) => <option key={option} value={option}>{option}</option>)}
-            </select>
-          </div>
-          {hasPastRescheduleSelection && (
-            <p className="mt-3 text-sm text-red-600">Please choose a future date and time for rescheduling.</p>
-          )}
-          <div className="flex flex-wrap gap-3 mt-4">
-            <button
-              type="button"
-              onClick={() => handleReschedule(session._id)}
-              disabled={actionId === session._id}
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-accent-primary text-white font-bold disabled:opacity-50"
-            >
-              <CalendarDays className="w-4 h-4" />
-              Reschedule
-            </button>
-            <button
-              type="button"
-              onClick={() => handleCancel(session._id)}
-              disabled={actionId === session._id}
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-rose-50 text-rose-600 font-bold disabled:opacity-50"
-            >
-              <XCircle className="w-4 h-4" />
-              Cancel Session
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-3 mt-6">
-        <Link to={sessionPath} className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-secondary-bg text-primary-text font-bold">
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          to={`/mental-health/sessions/${session._id}`}
+          onMouseEnter={() => onPrefetchSession(session._id)}
+          onFocus={() => onPrefetchSession(session._id)}
+          className="pharmacy-secondary"
+        >
           <MessageSquareText className="w-4 h-4" />
           Open Session
         </Link>
-        {canManageSession && (
-          <button
-            type="button"
-            onClick={isRescheduleOpen ? closeReschedule : () => openReschedule(session)}
-            className={`inline-flex items-center gap-2 px-4 py-3 rounded-2xl font-bold ${
-              isRescheduleOpen ? 'bg-accent-primary text-white' : 'bg-secondary-bg text-primary-text'
-            }`}
-          >
-            <CalendarDays className="w-4 h-4" />
-            {isRescheduleOpen ? 'Reschedule Open' : userRole === 'counselor' ? 'Manage Schedule' : 'Reschedule Session'}
+        {session.allowedActions?.canReschedule && (
+          <button type="button" onClick={() => onOpenReschedule(session)} className="pharmacy-secondary">
+            <RefreshCcw className="w-4 h-4" />
+            Change Slot
           </button>
         )}
-        {canManageSession && (
+        {session.allowedActions?.canCancel && (
           <button
             type="button"
-            onClick={() => handleCancel(session._id)}
+            onClick={() => onDelete(session._id)}
             disabled={actionId === session._id}
-            className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-rose-50 text-rose-600 font-bold disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-100 bg-rose-50 px-5 py-3.5 font-bold text-rose-700 transition-all hover:-translate-y-0.5 disabled:opacity-50"
           >
-            <XCircle className="w-4 h-4" />
-            Cancel Session
+            <Trash2 className="w-4 h-4" />
+            Delete Booking
           </button>
         )}
-        {session.status === 'Completed' && userRole !== 'counselor' && (
-          <Link to={`/mental-health/sessions/${session._id}/feedback`} className="inline-flex px-4 py-3 rounded-2xl bg-accent-primary text-white font-bold">
+        {session.allowedActions?.canLeaveFeedback && (
+          <Link to={`/mental-health/sessions/${session._id}/feedback`} className="pharmacy-primary">
             Leave Feedback
           </Link>
         )}
       </div>
-    </div>
+
+      {session.status === 'Cancelled' && (
+        <div className="mt-6 rounded-[1.5rem] border border-rose-100 bg-rose-50/90 px-5 py-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-rose-700">Cancelled session</p>
+          <p className="mt-2 text-sm leading-6 text-secondary-text">
+            This counseling booking has been cancelled and is no longer active.
+            {session.cancellationReason ? ` Reason: ${session.cancellationReason}` : ''}
+          </p>
+        </div>
+      )}
+
+      {isRescheduleOpen && (
+        <div className="mt-6 rounded-[1.5rem] border border-[#d7e4ea] bg-white/80 p-5">
+          <div className="grid gap-4 lg:grid-cols-[220px,1fr]">
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Choose a new date</label>
+              <input
+                type="date"
+                min={new Date().toISOString().slice(0, 10)}
+                value={rescheduleState.date}
+                onChange={(event) => {
+                  onSelectDate(event.target.value);
+                  onLoadSlots(session, event.target.value);
+                }}
+                className="student-field"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Available replacement slots</label>
+              <div className="grid gap-3 md:grid-cols-2">
+                {rescheduleState.slots.map((slot) => (
+                  <button
+                    key={slot.availabilityEntryId}
+                    type="button"
+                    onClick={() => onPickSlot(slot.availabilityEntryId)}
+                    className={cn(
+                      'rounded-[1.25rem] border px-4 py-3 text-left',
+                      rescheduleState.selectedSlotId === slot.availabilityEntryId
+                        ? 'border-accent-primary bg-white shadow-[0_16px_32px_rgba(20,116,139,0.10)]'
+                        : 'border-white/80 bg-secondary-bg/70'
+                    )}
+                  >
+                    <p className="font-semibold text-primary-text">{slot.time}</p>
+                    <p className="mt-1 text-sm text-secondary-text">{slot.typeLabel} • {slot.duration} min</p>
+                  </button>
+                ))}
+              </div>
+              {!rescheduleState.loading && !rescheduleState.slots.length && (
+                <p className="text-sm text-secondary-text">No open slots are available for that date.</p>
+              )}
+            </div>
+          </div>
+
+          {rescheduleState.error && <p className="mt-4 text-sm text-red-600">{rescheduleState.error}</p>}
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => onReschedule(session._id)}
+              disabled={!rescheduleState.selectedSlotId || actionId === session._id}
+              className="pharmacy-primary disabled:opacity-50"
+            >
+              Confirm New Slot
+            </button>
+          </div>
+        </div>
+      )}
+    </article>
   );
 }
 
 export default function MySessions() {
   const { user } = useAuth();
   const location = useLocation();
-  const [sessions, setSessions] = useState([]);
+  const cachedSessions = getCachedCounselingSessions({ limit: SESSION_FETCH_LIMIT });
+  const [sessions, setSessions] = useState(() => Array.isArray(cachedSessions?.sessions) ? cachedSessions.sessions : []);
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState(location.state?.statusMessage || '');
-  const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [loading, setLoading] = useState(() => !Array.isArray(cachedSessions?.sessions));
   const [actionId, setActionId] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [dateFilterError, setDateFilterError] = useState('');
-  const [timeFilter, setTimeFilter] = useState('All');
-  const [rescheduleOpenId, setRescheduleOpenId] = useState('');
-  const [rescheduleDraft, setRescheduleDraft] = useState({
-    id: '',
+  const [rescheduleState, setRescheduleState] = useState({
+    sessionId: '',
     date: getTomorrow(),
-    time: '10:00 AM',
-    type: 'Video Call'
+    slots: [],
+    selectedSlotId: '',
+    loading: false,
+    error: ''
   });
 
   async function loadSessions() {
     try {
-      const data = await getCounselingSessions();
+      const data = await getCounselingSessions({ limit: SESSION_FETCH_LIMIT });
       setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
+      setError('');
     } catch (err) {
-      setError(err.message || 'Failed to load sessions');
+      setError(err.message || 'Failed to load counseling sessions');
     }
+  }
+
+  function handlePrefetchSession(sessionId) {
+    prefetchCounselingSessionById(sessionId).catch(() => {});
   }
 
   useEffect(() => {
@@ -234,12 +204,13 @@ export default function MySessions() {
 
     (async () => {
       try {
-        const data = await getCounselingSessions();
+        const data = await getCounselingSessions({ limit: SESSION_FETCH_LIMIT });
         if (!active) return;
         setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
+        setError('');
       } catch (err) {
         if (!active) return;
-        setError(err.message || 'Failed to load sessions');
+        setError(err.message || 'Failed to load counseling sessions');
       } finally {
         if (active) setLoading(false);
       }
@@ -250,56 +221,82 @@ export default function MySessions() {
     };
   }, []);
 
-  const title = user?.role === 'counselor' ? 'Session Management' : 'My Sessions';
-  const subtitle = user?.role === 'counselor'
-    ? 'Review upcoming counseling sessions, confidential notes, and follow-up actions.'
-    : 'Every booked counseling session is stored here, including your upcoming sessions and counseling history.';
-
-  const filteredSessions = useMemo(() => {
-    return sessions.filter((session) => {
-      const matchesStatus = activeFilter === 'All' || session.status === activeFilter;
-      const matchesDate = !dateFilter || (session.date && new Date(session.date).toISOString().slice(0, 10) === dateFilter);
-      const matchesTime = timeFilter === 'All' || getTimeBucket(session.time) === timeFilter;
-      return matchesStatus && matchesDate && matchesTime;
-    });
-  }, [activeFilter, dateFilter, sessions, timeFilter]);
-
   const upcomingSessions = useMemo(
-    () => filteredSessions.filter((session) => ['Confirmed', 'Ready', 'In Progress'].includes(session.status)),
-    [filteredSessions]
+    () => sessions
+      .filter((session) => ['Confirmed', 'Ready', 'In Progress'].includes(session.status))
+      .sort((left, right) => (
+        new Date(left.date).getTime() - new Date(right.date).getTime()
+        || `${left.time}`.localeCompare(`${right.time}`)
+      )),
+    [sessions]
+  );
+  const historySessions = useMemo(
+    () => sessions
+      .filter((session) => ['Completed', 'Cancelled'].includes(session.status))
+      .sort((left, right) => (
+        new Date(right.date).getTime() - new Date(left.date).getTime()
+        || `${right.time}`.localeCompare(`${left.time}`)
+      )),
+    [sessions]
   );
 
-  const sessionHistory = useMemo(
-    () => filteredSessions.filter((session) => ['Completed', 'Cancelled'].includes(session.status)),
-    [filteredSessions]
-  );
-
-  async function handleCancel(sessionId) {
-    try {
-      setActionId(sessionId);
-      setError('');
-      setStatusMessage('');
-      await updateCounselingSessionStatus(sessionId, {
-        status: 'Cancelled',
-        cancellationReason: user?.role === 'counselor' ? 'Cancelled by counselor' : 'Cancelled by student'
-      });
-      setStatusMessage('Session cancelled successfully.');
-      await loadSessions();
-    } catch (err) {
-      setError(err.message || 'Failed to cancel session');
-    } finally {
-      setActionId('');
-    }
-  }
-
-  async function handleReschedule(sessionId) {
-    if (!rescheduleDraft.date || !rescheduleDraft.time) {
-      setError('Choose a valid date and time before rescheduling.');
+  async function loadRescheduleSlots(session, date) {
+    if (!session?.counselorId) {
+      setRescheduleState((current) => ({
+        ...current,
+        loading: false,
+        slots: [],
+        selectedSlotId: '',
+        error: 'Counselor information is missing for this session. Refresh the page and try again.'
+      }));
       return;
     }
 
-    if (isPastSelection(rescheduleDraft.date, rescheduleDraft.time)) {
-      setError('Please choose a future date and time before rescheduling.');
+    try {
+      setRescheduleState((current) => ({
+        ...current,
+        loading: true,
+        error: '',
+        slots: [],
+        selectedSlotId: ''
+      }));
+
+      const data = await getCounselorSlots(session.counselorId, { date });
+      const slots = Array.isArray(data?.slots)
+        ? data.slots.filter((slot) => slot.availabilityEntryId !== session.availabilityEntryId)
+        : [];
+
+      setRescheduleState((current) => ({
+        ...current,
+        loading: false,
+        slots,
+        selectedSlotId: slots[0]?.availabilityEntryId || ''
+      }));
+    } catch (err) {
+      setRescheduleState((current) => ({
+        ...current,
+        loading: false,
+        error: err.message || 'Failed to load replacement slots'
+      }));
+    }
+  }
+
+  function openReschedule(session) {
+    const nextDate = session.date ? new Date(session.date).toISOString().slice(0, 10) : getTomorrow();
+    setRescheduleState({
+      sessionId: session._id,
+      date: nextDate,
+      slots: [],
+      selectedSlotId: '',
+      loading: false,
+      error: ''
+    });
+    loadRescheduleSlots(session, nextDate);
+  }
+
+  async function handleReschedule(sessionId) {
+    if (!rescheduleState.selectedSlotId) {
+      setRescheduleState((current) => ({ ...current, error: 'Choose a replacement open slot before saving.' }));
       return;
     }
 
@@ -308,214 +305,134 @@ export default function MySessions() {
       setError('');
       setStatusMessage('');
       await rescheduleCounselingSession(sessionId, {
-        date: rescheduleDraft.date,
-        time: rescheduleDraft.time,
-        type: rescheduleDraft.type
+        availabilityEntryId: rescheduleState.selectedSlotId
       });
-      setRescheduleDraft((current) => ({ ...current, id: '' }));
-      setRescheduleOpenId('');
-      setStatusMessage('Session rescheduled successfully.');
+      setRescheduleState({
+        sessionId: '',
+        date: getTomorrow(),
+        slots: [],
+        selectedSlotId: '',
+        loading: false,
+        error: ''
+      });
+      setStatusMessage('Counseling session updated successfully.');
       await loadSessions();
     } catch (err) {
-      setError(err.message || 'Failed to reschedule session');
+      setError(err.message || 'Failed to update the counseling booking');
     } finally {
       setActionId('');
     }
   }
 
-  function openReschedule(session) {
-    setRescheduleOpenId(session._id);
-    setRescheduleDraft({
-      id: session._id,
-      date: session.date ? new Date(session.date).toISOString().slice(0, 10) : getTomorrow(),
-      time: session.time || '10:00 AM',
-      type: session.type || 'Video Call'
-    });
+  async function handleDelete(sessionId) {
+    try {
+      setActionId(sessionId);
+      setError('');
+      setStatusMessage('');
+      await deleteCounselingSession(sessionId);
+      setStatusMessage('Booking deleted and the slot is available again.');
+      await loadSessions();
+    } catch (err) {
+      setError(err.message || 'Failed to delete the booking');
+    } finally {
+      setActionId('');
+    }
   }
 
-  function closeReschedule() {
-    setRescheduleOpenId('');
-    setRescheduleDraft({
-      id: '',
-      date: getTomorrow(),
-      time: '10:00 AM',
-      type: 'Video Call'
-    });
-  }
-
-  function clearFilters() {
-    setActiveFilter('All');
-    setDateFilter('');
-    setDateFilterError('');
-    setTimeFilter('All');
+  if (user?.role !== 'student') {
+    return null;
   }
 
   return (
-    <div className={`${user?.role === 'counselor' ? 'pt-8' : 'pt-36'} pb-12 px-6 max-w-6xl mx-auto student-shell`}>
-      <header className="mb-12">
-        <h1 className="text-5xl font-semibold tracking-tight text-primary-text">{title}</h1>
-        <p className="text-lg text-secondary-text mt-4 max-w-3xl">{subtitle}</p>
-        <div className="flex flex-wrap gap-3 mt-8">
-          {['All', 'Confirmed', 'Ready', 'In Progress', 'Completed', 'Cancelled'].map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              onClick={() => setActiveFilter(filter)}
-              className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider ${activeFilter === filter ? 'bg-accent-primary text-white' : 'bg-white/70 text-secondary-text'}`}
-            >
-              {filter}
-            </button>
-          ))}
+    <div className="pharmacy-shell pt-36 pb-16 px-6">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div>
+          <Link to="/mental-health/counselors" className="pharmacy-secondary w-full justify-center sm:w-auto">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Counselor Directory
+          </Link>
         </div>
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-[220px,220px,auto] gap-3 max-w-3xl">
-          <input
-            type="date"
-            min={getTodayValue()}
-            value={dateFilter}
-            onChange={(event) => {
-              const nextValue = event.target.value;
 
-              if (nextValue && nextValue < getTodayValue()) {
-                setDateFilterError('Please choose today or a future date.');
-                return;
-              }
+        <section className="pharmacy-hero">
+          <span className="pharmacy-pill bg-emerald-50 text-emerald-700">My Counseling Sessions</span>
+          <h1 className="mt-5 text-5xl font-semibold tracking-tight text-primary-text">Manage booked sessions and counseling history.</h1>
+          <p className="mt-4 text-lg text-secondary-text">
+            Reschedule by choosing a new open slot from the same counselor, remove bookings before completion, and return after completion for follow-up summaries and feedback.
+          </p>
+        </section>
 
-              setDateFilter(nextValue);
-              setDateFilterError('');
-            }}
-            className={`px-4 py-3 rounded-2xl bg-white/70 backdrop-blur-sm outline-none ${
-              dateFilterError ? 'ring-2 ring-red-300' : ''
-            }`}
-          />
-          <select
-            value={timeFilter}
-            onChange={(event) => setTimeFilter(event.target.value)}
-            className="px-4 py-3 rounded-2xl bg-white/70 backdrop-blur-sm outline-none"
-          >
-            <option value="All">All times</option>
-            <option value="Morning">Morning</option>
-            <option value="Afternoon">Afternoon</option>
-            <option value="Evening">Evening</option>
-          </select>
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="px-4 py-3 rounded-2xl bg-secondary-bg text-primary-text font-semibold"
-          >
-            Clear filters
-          </button>
-        </div>
-        {dateFilterError && (
-          <p className="mt-3 text-sm text-red-600">{dateFilterError}</p>
-        )}
-      </header>
+        <DismissibleBanner
+          message={statusMessage}
+          tone="success"
+          onClose={() => setStatusMessage('')}
+        />
 
-      {statusMessage && (
-        <div className="apple-card p-5 border-none bg-[#e8f7f5] text-emerald-700 mb-8">
-          {statusMessage}
-        </div>
-      )}
-
-      <div className="space-y-10">
-        {loading && (
-          <div className="apple-card p-8 border-none bg-white/70 backdrop-blur-sm text-secondary-text">
-            Loading sessions...
-          </div>
-        )}
-
-        {!loading && user?.role !== 'counselor' && (
+        {loading ? (
+          <section className="pharmacy-panel p-8 text-secondary-text">Loading counseling sessions...</section>
+        ) : (
           <>
-            <section>
-              <div className="flex items-center gap-3 mb-5">
+            <section className="space-y-4">
+              <div className="flex items-center gap-3">
                 <CalendarDays className="w-5 h-5 text-accent-primary" />
-                <h2 className="text-2xl font-semibold text-primary-text">Upcoming counseling</h2>
+                <h2 className="text-3xl font-semibold text-primary-text">Upcoming sessions</h2>
               </div>
-              <div className="space-y-4">
-                {upcomingSessions.length === 0 ? (
-                  <div className="apple-card p-8 border-none bg-white/70 backdrop-blur-sm text-secondary-text">
-                    No upcoming counseling sessions for this filter yet.
-                  </div>
-                ) : (
-                  upcomingSessions.map((session) => (
-                    <SessionCard
-                      key={session._id}
-                      session={session}
-                      userRole={user?.role}
-                      actionId={actionId}
-                      rescheduleDraft={rescheduleDraft}
-                      setRescheduleDraft={setRescheduleDraft}
-                      handleReschedule={handleReschedule}
-                      handleCancel={handleCancel}
-                      isRescheduleOpen={rescheduleOpenId === session._id}
-                      openReschedule={openReschedule}
-                      closeReschedule={closeReschedule}
-                    />
-                  ))
-                )}
-              </div>
+
+              {upcomingSessions.length === 0 ? (
+                <div className="pharmacy-panel p-8 text-secondary-text">No upcoming counseling sessions yet.</div>
+              ) : (
+                upcomingSessions.map((session) => (
+                  <SessionCard
+                    key={session._id}
+                    session={session}
+                    actionId={actionId}
+                    rescheduleState={rescheduleState}
+                    onSelectDate={(date) => setRescheduleState((current) => ({ ...current, date }))}
+                    onLoadSlots={loadRescheduleSlots}
+                    onPickSlot={(slotId) => setRescheduleState((current) => ({ ...current, selectedSlotId: slotId, error: '' }))}
+                    onPrefetchSession={handlePrefetchSession}
+                    onReschedule={handleReschedule}
+                    onDelete={handleDelete}
+                    onOpenReschedule={openReschedule}
+                  />
+                ))
+              )}
             </section>
 
-            <section>
-              <div className="flex items-center gap-3 mb-5">
-                <History className="w-5 h-5 text-accent-primary" />
-                <h2 className="text-2xl font-semibold text-primary-text">My counseling history</h2>
+            <section className="space-y-4">
+              <div className="flex items-center gap-3">
+                <CalendarDays className="w-5 h-5 text-accent-primary" />
+                <h2 className="text-3xl font-semibold text-primary-text">History</h2>
               </div>
-              <div className="space-y-4">
-                {sessionHistory.length === 0 ? (
-                  <div className="apple-card p-8 border-none bg-white/70 backdrop-blur-sm text-secondary-text">
-                    No completed or cancelled counseling sessions yet.
-                  </div>
-                ) : (
-                  sessionHistory.map((session) => (
-                    <SessionCard
-                      key={session._id}
-                      session={session}
-                      userRole={user?.role}
-                      actionId={actionId}
-                      rescheduleDraft={rescheduleDraft}
-                      setRescheduleDraft={setRescheduleDraft}
-                      handleReschedule={handleReschedule}
-                      handleCancel={handleCancel}
-                      isRescheduleOpen={rescheduleOpenId === session._id}
-                      openReschedule={openReschedule}
-                      closeReschedule={closeReschedule}
-                    />
-                  ))
-                )}
-              </div>
+
+              {historySessions.length === 0 ? (
+                <div className="pharmacy-panel p-8 text-secondary-text">Completed and cancelled sessions will appear here.</div>
+              ) : (
+                historySessions.map((session) => (
+                  <SessionCard
+                    key={session._id}
+                    session={session}
+                    actionId={actionId}
+                    rescheduleState={rescheduleState}
+                    onSelectDate={(date) => setRescheduleState((current) => ({ ...current, date }))}
+                    onLoadSlots={loadRescheduleSlots}
+                    onPickSlot={(slotId) => setRescheduleState((current) => ({ ...current, selectedSlotId: slotId, error: '' }))}
+                    onPrefetchSession={handlePrefetchSession}
+                    onReschedule={handleReschedule}
+                    onDelete={handleDelete}
+                    onOpenReschedule={openReschedule}
+                  />
+                ))
+              )}
             </section>
           </>
         )}
 
-        {!loading && user?.role === 'counselor' && (
-          <section className="space-y-4">
-            {filteredSessions.map((session) => (
-              <SessionCard
-                key={session._id}
-                session={session}
-                userRole={user?.role}
-                actionId={actionId}
-                rescheduleDraft={rescheduleDraft}
-                setRescheduleDraft={setRescheduleDraft}
-                handleReschedule={handleReschedule}
-                handleCancel={handleCancel}
-                isRescheduleOpen={rescheduleOpenId === session._id}
-                openReschedule={openReschedule}
-                closeReschedule={closeReschedule}
-              />
-            ))}
-
-            {!filteredSessions.length && (
-              <div className="apple-card p-8 border-none bg-white/70 backdrop-blur-sm text-secondary-text">
-                No sessions found for this filter yet.
-              </div>
-            )}
-          </section>
-        )}
+        <DismissibleBanner
+          message={error}
+          tone="error"
+          onClose={() => setError('')}
+        />
       </div>
-
-      {error && <p className="text-red-600 mt-8">{error}</p>}
     </div>
   );
 }
-

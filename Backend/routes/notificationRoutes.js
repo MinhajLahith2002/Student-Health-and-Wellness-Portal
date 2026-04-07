@@ -10,6 +10,7 @@ const {
   markAsRead,
   markAllAsRead,
   createNotification,
+  updateNotification,
   deleteNotification
 } = notificationController;
 
@@ -23,6 +24,7 @@ router.put('/:id/read', protect, markAsRead);
 
 // Admin only routes
 router.post('/', protect, authorize('admin'), createNotification);
+router.put('/:id', protect, authorize('admin'), updateNotification);
 router.delete('/:id', protect, authorize('admin'), deleteNotification);
 
 export default router;

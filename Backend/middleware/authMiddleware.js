@@ -32,16 +32,20 @@ const protect = async (req, res, next) => {
       throw error;
     }
   } catch (error) {
-    await AuditLog.create({
-      userId: null,
-      userName: 'Unknown',
-      action: 'Failed Authentication',
-      module: 'Auth',
-      details: error.message,
-      ipAddress: req.ip,
-      userAgent: req.get('user-agent'),
-      level: 'warning'
-    });
+    try {
+      await AuditLog.create({
+        userId: null,
+        userName: 'Unknown',
+        action: 'Failed Authentication',
+        module: 'Auth',
+        details: error.message,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent'),
+        level: 'warning'
+      });
+    } catch (auditError) {
+      console.error('Failed to log authentication error to AuditLog:', auditError.message);
+    }
 
     res.status(401).json({ success: false, message: 'Not authorized to access this route' });
   }

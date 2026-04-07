@@ -6,13 +6,21 @@ import { randomBytes } from 'crypto';
 
 const { generateToken } = tokenUtils;
 
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
 
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+
+    if (!name?.trim() || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -65,7 +73,12 @@ const register = async (req, res) => {
 // @access  Public
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
 
     // Find user with password
     const user = await User.findOne({ email }).select('+password');
@@ -120,7 +133,7 @@ const login = async (req, res) => {
 // @access  Public
 const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = normalizeEmail(req.body.email);
     const user = await User.findOne({ email });
 
     if (!user) {

@@ -39,6 +39,11 @@ const conversationSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Appointment'
   },
+  counselingSessionId: {
+    type: Schema.Types.ObjectId,
+    ref: 'CounselingSession',
+    default: null
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -57,5 +62,6 @@ const conversationSchema = new Schema({
 
 conversationSchema.index({ participants: 1 });
 conversationSchema.index({ updatedAt: -1 });
+conversationSchema.index({ counselingSessionId: 1, isActive: 1 });
 
 export default model('Conversation', conversationSchema);

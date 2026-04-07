@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
+    "predev": "node scripts/ensure-port-free.js 5001",
     "dev": "nodemon server.js",
+    "prestart": "node scripts/ensure-port-free.js 5001",
     "seed": "node scripts/seed.js",
     "seed:dev": "NODE_ENV=development node scripts/seed.js",
     "seed:prod": "NODE_ENV=production node scripts/seed.js",

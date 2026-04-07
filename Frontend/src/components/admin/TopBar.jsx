@@ -4,6 +4,7 @@ import {
   Bell,
   ChevronDown,
   HelpCircle,
+  LayoutDashboard,
   Settings,
   LogOut,
   User,
@@ -11,6 +12,16 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../../lib/api';
+import {
+  emitNotificationsRefresh,
+  getCachedNotifications,
+  getUnreadNotificationCount,
+  isNotificationRead,
+  markNotificationListRead,
+  setCachedNotifications,
+  subscribeNotificationsRefresh
+} from '../../lib/notifications';
 
 const ROLE_LABEL = {
   admin: 'Super Admin',
@@ -28,6 +39,34 @@ const ROLE_COLOR = {
   student: 'bg-slate-600',
 };
 
+const NOTIFICATION_ROUTE_BY_ROLE = {
+  admin: '/admin/notifications',
+  counselor: '/counselor/notifications'
+};
+
+const ACCOUNT_MENU_BY_ROLE = {
+  admin: [
+    { icon: LayoutDashboard, label: 'My Dashboard', to: '/admin/dashboard' },
+    { icon: Settings, label: 'System Settings', to: '/admin/settings' },
+    { icon: HelpCircle, label: 'Help Center', to: '/admin/faq' }
+  ],
+  counselor: [
+    { icon: LayoutDashboard, label: 'My Dashboard', to: '/counselor/dashboard' },
+    { icon: Settings, label: 'Profile Settings', to: '/counselor/profile-settings' },
+    { icon: HelpCircle, label: 'Help Center', to: '/counselor/help-center' }
+  ],
+  doctor: [
+    { icon: LayoutDashboard, label: 'My Dashboard', to: '/doctor/dashboard' },
+    { icon: User, label: 'Appointments', to: '/doctor/appointments' },
+    { icon: HelpCircle, label: 'Patient Records', to: '/doctor/patients' }
+  ],
+  pharmacist: [
+    { icon: LayoutDashboard, label: 'My Dashboard', to: '/pharmacist/dashboard' },
+    { icon: Settings, label: 'Inventory', to: '/pharmacist/inventory' },
+    { icon: HelpCircle, label: 'Orders', to: '/pharmacist/orders' }
+  ]
+};
+
 function getDisplayName(user) {
   const rawName = (user?.name || '').trim();
   if (!rawName) return 'Staff User';
@@ -40,10 +79,14 @@ function getDisplayName(user) {
 }
 
 const TopBar = () => {
-  const [showProfile, setShowProfile] = React.useState(false);
-  const [showNotifications, setShowNotifications] = React.useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showProfile, setShowProfile] = React.useState(false);
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const [notifications, setNotifications] = React.useState(() => (
+    getCachedNotifications(user?.id, user?.role === 'admin' ? 'admin' : 'mine')
+  ));
+  const [notificationsLoading, setNotificationsLoading] = React.useState(false);
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -52,10 +95,129 @@ const TopBar = () => {
   const roleLabel = ROLE_LABEL[user?.role] || 'Staff';
   const avatarColor = ROLE_COLOR[user?.role] || 'bg-blue-600';
   const displayName = getDisplayName(user);
+  const unreadNotifications = notifications.filter((notification) => !isNotificationRead(notification, user?.id));
+  const notificationsRoute = NOTIFICATION_ROUTE_BY_ROLE[user?.role] || '';
+  const accountMenuItems = ACCOUNT_MENU_BY_ROLE[user?.role] || [];
+
+  const loadNotifications = React.useCallback(async () => {
+    setNotificationsLoading(true);
+    try {
+      const scopeQuery = user?.role === 'admin' ? '&scope=admin' : '';
+      const data = await apiFetch(`/notifications?limit=5${scopeQuery}`);
+      const nextNotifications = Array.isArray(data?.notifications) ? data.notifications : [];
+      setNotifications(nextNotifications);
+      setCachedNotifications(user?.id, nextNotifications, user?.role === 'admin' ? 'admin' : 'mine');
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [user?.id, user?.role]);
+
+  React.useEffect(() => {
+    if (!['admin', 'counselor'].includes(user?.role)) {
+      setNotifications([]);
+      return undefined;
+    }
+
+    let active = true;
+
+    setNotifications(getCachedNotifications(user?.id, user?.role === 'admin' ? 'admin' : 'mine'));
+
+    const refreshNotifications = async () => {
+      try {
+        await loadNotifications();
+      } catch {
+        if (active) {
+          // Keep the current unread state visible during transient failures.
+        }
+      }
+    };
+
+    refreshNotifications();
+
+    const intervalId = window.setInterval(refreshNotifications, 10000);
+    const handleFocus = () => { refreshNotifications(); };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshNotifications();
+      }
+    };
+
+    const unsubscribe = subscribeNotificationsRefresh((detail) => {
+      if (detail?.type === 'mark-all-read' && detail?.userId === user?.id) {
+        setNotifications((currentNotifications) => {
+          const nextNotifications = markNotificationListRead(currentNotifications, user?.id);
+          setCachedNotifications(user?.id, nextNotifications, user?.role === 'admin' ? 'admin' : 'mine');
+          return nextNotifications;
+        });
+        return;
+      }
+
+      refreshNotifications();
+    });
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      unsubscribe();
+    };
+  }, [loadNotifications, user?.id, user?.role]);
+
+  React.useEffect(() => {
+    if (!showNotifications) return undefined;
+    loadNotifications().catch(() => {});
+    return undefined;
+  }, [showNotifications, loadNotifications]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const openAccountRoute = (to) => {
+    setShowProfile(false);
+    navigate(to);
+  };
+
+  const markAllNotificationsRead = async () => {
+    if (!getUnreadNotificationCount(notifications, user?.id)) {
+      return;
+    }
+
+    setNotifications((currentNotifications) => {
+      const nextNotifications = markNotificationListRead(currentNotifications, user?.id);
+      setCachedNotifications(user?.id, nextNotifications, user?.role === 'admin' ? 'admin' : 'mine');
+      return nextNotifications;
+    });
+    emitNotificationsRefresh({ type: 'mark-all-read', userId: user?.id });
+    await apiFetch('/notifications/read-all', { method: 'PUT' });
+    await loadNotifications();
+  };
+
+  const openNotification = async (notification) => {
+    const alreadyRead = isNotificationRead(notification, user?.id);
+
+    if (!alreadyRead) {
+      setNotifications((currentNotifications) => {
+        const nextNotifications = currentNotifications.map((currentNotification) => (
+          currentNotification._id === notification._id
+            ? markNotificationListRead([currentNotification], user?.id)[0]
+            : currentNotification
+        ));
+        setCachedNotifications(user?.id, nextNotifications, user?.role === 'admin' ? 'admin' : 'mine');
+        return nextNotifications;
+      });
+      emitNotificationsRefresh({ type: 'notification-read', userId: user?.id, notificationId: notification._id });
+      await apiFetch(`/notifications/${notification._id}/read`, { method: 'PUT' });
+      await loadNotifications();
+    }
+
+    setShowNotifications(false);
+    navigate(notification.link || notificationsRoute || '/');
   };
 
   return (
@@ -81,7 +243,9 @@ const TopBar = () => {
             className="p-2.5 text-slate-500 hover:bg-slate-50 rounded-full transition-all relative"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
+            {unreadNotifications.length > 0 && (
+              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
+            )}
           </button>
 
           <AnimatePresence>
@@ -90,29 +254,71 @@ const TopBar = () => {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl shadow-slate-200 border border-slate-100 p-2 overflow-hidden"
+                className="absolute right-0 mt-3 w-[23rem] overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-2xl shadow-slate-200"
               >
-                <div className="p-4 border-b border-slate-50 flex justify-between items-center">
-                  <h3 className="font-bold text-slate-900">Notifications</h3>
-                  <button className="text-xs text-blue-600 font-bold hover:underline">Mark all read</button>
-                </div>
-                <div className="max-h-80 overflow-y-auto py-2">
-                  {[1, 2, 3].map((i) => (
-                    <button key={i} className="w-full p-4 hover:bg-slate-50 rounded-xl text-left transition-colors flex gap-3">
-                      <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
-                        <Bell className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">New Activity</p>
-                        <p className="text-xs text-slate-500 mt-0.5">System notification #{i}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase mt-2">{i * 5} minutes ago</p>
-                      </div>
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <h3 className="text-2xl font-semibold tracking-tight text-slate-900">Notifications</h3>
+                      <p className="mt-1 text-xs font-medium text-slate-500">
+                        {unreadNotifications.length > 0
+                          ? `${unreadNotifications.length} unread update${unreadNotifications.length === 1 ? '' : 's'}`
+                          : 'All caught up'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={markAllNotificationsRead}
+                      className="shrink-0 rounded-full px-3 py-1.5 text-xs font-bold text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      Mark all read
                     </button>
-                  ))}
+                  </div>
                 </div>
-                <div className="p-3 border-t border-slate-50 text-center">
-                  <button className="text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors">View All Notifications</button>
+                <div className="max-h-80 overflow-y-auto px-3 py-3">
+                  {notificationsLoading ? (
+                    <div className="px-3 py-8 text-sm text-slate-500">Loading notifications...</div>
+                  ) : notifications.length ? (
+                    notifications.map((notification) => {
+                      const isRead = isNotificationRead(notification, user?.id);
+
+                      return (
+                        <button
+                          key={notification._id}
+                          onClick={() => openNotification(notification)}
+                          className="flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-slate-50"
+                        >
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50">
+                            <Bell className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-start gap-2">
+                              <p className="line-clamp-1 text-base font-semibold leading-6 text-slate-900">
+                                {notification.title}
+                              </p>
+                              {!isRead && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-rose-500" />}
+                            </div>
+                            <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{notification.message}</p>
+                            <p className="mt-2 text-[11px] font-bold text-slate-400">
+                              {new Date(notification.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="px-3 py-8 text-sm text-slate-500">No notifications yet.</div>
+                  )}
                 </div>
+                {notificationsRoute && (
+                  <div className="border-t border-slate-100 px-5 py-4">
+                    <button
+                      onClick={() => { setShowNotifications(false); navigate(notificationsRoute); }}
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      View All Notifications
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -148,18 +354,19 @@ const TopBar = () => {
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Account</p>
                   <p className="text-sm font-bold text-slate-900 mt-1 truncate">{user?.email}</p>
                 </div>
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl text-slate-600 hover:text-slate-900 transition-all">
-                  <User className="w-4 h-4" />
-                  <span className="text-sm font-medium">My Profile</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl text-slate-600 hover:text-slate-900 transition-all">
-                  <Settings className="w-4 h-4" />
-                  <span className="text-sm font-medium">Settings</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl text-slate-600 hover:text-slate-900 transition-all">
-                  <HelpCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Help Center</span>
-                </button>
+                {accountMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.to}
+                      onClick={() => openAccountRoute(item.to)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-xl text-slate-600 hover:text-slate-900 transition-all"
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm font-medium">{item.label}</span>
+                    </button>
+                  );
+                })}
                 <div className="h-px bg-slate-50 my-1" />
                 <button
                   onClick={handleLogout}

@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
+import { useCallback } from 'react';
 
 const DEFAULT_RADIUS_KM = 10;
 
@@ -70,7 +71,7 @@ function normalizePharmacies(pharmacies, userLocation) {
       id,
       coords,
       distanceKm,
-      waitTime: pharmacy.estimatedWaitTime ?? pharmacy.queueLength * 2 ?? 0,
+      waitTime: pharmacy.estimatedWaitTime ?? ((pharmacy.queueLength ?? 0) * 2),
       todayHours: formatHours(pharmacy.openingHours)
     };
   });
@@ -114,7 +115,7 @@ const PharmacyLocator = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
 
-  const loadPharmacies = async (location = userLocation, radius = radiusKm) => {
+  const loadPharmacies = useCallback(async (location = userLocation, radius = radiusKm) => {
     setLoading(true);
     setError('');
 
@@ -140,9 +141,9 @@ const PharmacyLocator = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [radiusKm, userLocation]);
 
-  const requestUserLocation = () => {
+  const requestUserLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocationError('Location services are not available in this browser. Showing all pharmacies instead.');
       loadPharmacies(null, radiusKm);
@@ -165,17 +166,17 @@ const PharmacyLocator = () => {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
-  };
+  }, [loadPharmacies, radiusKm]);
 
   useEffect(() => {
     requestUserLocation();
-  }, []);
+  }, [requestUserLocation]);
 
   useEffect(() => {
     if (userLocation) {
       loadPharmacies(userLocation, radiusKm);
     }
-  }, [radiusKm]);
+  }, [loadPharmacies, radiusKm, userLocation]);
 
   const filteredPharmacies = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

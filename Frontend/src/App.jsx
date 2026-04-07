@@ -57,6 +57,11 @@ import CounselingSessionPage from './pages/mental-health/CounselingSessionPage';
 import SessionFeedback from './pages/mental-health/SessionFeedback';
 import CounselorDashboard from './pages/mental-health/CounselorDashboard';
 import CounselorProfileSettings from './pages/mental-health/CounselorProfileSettings';
+import CounselorSessionsWorkspace from './pages/mental-health/CounselorSessionsWorkspace';
+import CounselorNotes from './pages/mental-health/CounselorNotes';
+import CounselorResources from './pages/mental-health/CounselorResources';
+import CounselorNotifications from './pages/mental-health/CounselorNotifications';
+import CounselorHelpCenter from './pages/mental-health/CounselorHelpCenter';
 import AdminLayout from './components/admin/AdminLayout';
 import { useAuth } from './hooks/useAuth';
 
@@ -193,9 +198,16 @@ function AppLayout() {
 
           <Route path="/counselor" element={<Navigate to="/counselor/dashboard" replace />} />
           <Route path="/counselor/dashboard" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorDashboard /></AdminWrapped></ProtectedRoute>} />
-          <Route path="/counselor/sessions" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><MySessions /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/sessions" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorSessionsWorkspace /></AdminWrapped></ProtectedRoute>} />
           <Route path="/counselor/sessions/:sessionId" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselingSessionPage /></AdminWrapped></ProtectedRoute>} />
           <Route path="/counselor/profile" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorProfileSettings /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/profile-settings" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorProfileSettings /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/help-center" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorHelpCenter /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/notes" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorNotes /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/resources" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorResources /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/resources/saved" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><ResourceLibrary /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/resources/:resourceId" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><ResourceDetail /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/notifications" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorNotifications /></AdminWrapped></ProtectedRoute>} />
 
           <Route path="/admin/pharmacist/*" element={<Navigate to="/pharmacist" replace />} />
           <Route path="/admin/doctor/*" element={<Navigate to="/doctor" replace />} />

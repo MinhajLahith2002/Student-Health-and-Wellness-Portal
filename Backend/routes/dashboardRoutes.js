@@ -9,6 +9,7 @@ const {
   getStudentDashboard,
   getDoctorDashboard,
   getCounselorDashboard,
+  getCounselorSessionTrends,
   getPharmacistDashboard,
   getAdminDashboard
 } = dashboardController;
@@ -20,6 +21,7 @@ const { authorize } = roleMiddleware;
 router.get('/student', protect, authorize('student'), getStudentDashboard);
 router.get('/doctor', protect, authorize('doctor'), getDoctorDashboard);
 router.get('/counselor', protect, authorize('counselor'), getCounselorDashboard);
+router.get('/counselor/session-trends', protect, authorize('counselor'), getCounselorSessionTrends);
 router.get('/pharmacist', protect, authorize('pharmacist'), getPharmacistDashboard);
 router.get('/admin', protect, authorize('admin'), getAdminDashboard);
 

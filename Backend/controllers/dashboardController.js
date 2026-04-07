@@ -6,6 +6,190 @@ import MoodLog from '../models/MoodLog.js';
 import Order from '../models/Order.js';
 import Prescription from '../models/Prescription.js';
 import User from '../models/User.js';
+import { isDateTimeInPast } from '../utils/timeSlots.js';
+
+const COUNSELING_PENDING_STATUSES = ['Pending', 'Confirmed', 'Ready', 'In Progress'];
+const COUNSELING_COMPLETED_STATUSES = ['Completed'];
+const COUNSELING_TREND_PENDING_THRESHOLD = 8;
+
+function normalizeTrendDate(value) {
+  const date = value instanceof Date ? new Date(value) : new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function getTrendRangeDefaults(range) {
+  switch (range) {
+    case '14d':
+      return { steps: 14, defaultGroupBy: 'day' };
+    case '12m':
+      return { steps: 12, defaultGroupBy: 'month' };
+    case '8w':
+    default:
+      return { steps: 8, defaultGroupBy: 'week' };
+  }
+}
+
+function startOfWeek(dateValue) {
+  const date = normalizeTrendDate(dateValue);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  return date;
+}
+
+function startOfMonth(dateValue) {
+  const date = normalizeTrendDate(dateValue);
+  date.setDate(1);
+  return date;
+}
+
+function addDays(dateValue, amount) {
+  const next = normalizeTrendDate(dateValue);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function addWeeks(dateValue, amount) {
+  return addDays(dateValue, amount * 7);
+}
+
+function addMonths(dateValue, amount) {
+  const next = normalizeTrendDate(dateValue);
+  next.setMonth(next.getMonth() + amount, 1);
+  return next;
+}
+
+function formatShortMonthDay(dateValue, timeZone) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone
+  }).format(dateValue);
+}
+
+function formatShortMonth(dateValue, timeZone) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone
+  }).format(dateValue);
+}
+
+function formatLocalIsoDate(dateValue) {
+  const date = normalizeTrendDate(dateValue);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-');
+}
+
+function createTrendPeriods({ range, groupBy, timeZone, from, to }) {
+  const today = normalizeTrendDate(new Date());
+
+  if (from && to) {
+    const periods = [];
+    let cursor;
+    let periodEnd;
+    let endBoundary;
+
+    if (groupBy === 'month') {
+      cursor = startOfMonth(from);
+      endBoundary = addMonths(startOfMonth(to), 1);
+    } else if (groupBy === 'week') {
+      cursor = startOfWeek(from);
+      endBoundary = addWeeks(startOfWeek(to), 1);
+    } else {
+      cursor = normalizeTrendDate(from);
+      endBoundary = addDays(normalizeTrendDate(to), 1);
+    }
+
+    while (cursor < endBoundary) {
+      if (groupBy === 'month') {
+        periodEnd = addMonths(cursor, 1);
+      } else if (groupBy === 'week') {
+        periodEnd = addWeeks(cursor, 1);
+      } else {
+        periodEnd = addDays(cursor, 1);
+      }
+
+      const label = groupBy === 'month'
+        ? formatShortMonth(cursor, timeZone)
+        : groupBy === 'week'
+          ? `${formatShortMonthDay(cursor, timeZone)}-${formatShortMonthDay(addDays(periodEnd, -1), timeZone)}`
+          : formatShortMonthDay(cursor, timeZone);
+
+      periods.push({
+        key: cursor.toISOString(),
+        start: cursor,
+        end: periodEnd,
+        periodLabel: label,
+        isCurrentPeriod: today >= cursor && today < periodEnd
+      });
+
+      cursor = periodEnd;
+    }
+
+    return periods;
+  }
+
+  const { steps } = getTrendRangeDefaults(range);
+  const periods = [];
+
+  if (groupBy === 'month') {
+    const currentStart = startOfMonth(today);
+    for (let index = steps - 1; index >= 0; index -= 1) {
+      const start = addMonths(currentStart, -index);
+      const end = addMonths(start, 1);
+      periods.push({
+        key: start.toISOString(),
+        start,
+        end,
+        periodLabel: formatShortMonth(start, timeZone),
+        isCurrentPeriod: index === 0
+      });
+    }
+    return periods;
+  }
+
+  if (groupBy === 'week') {
+    const currentStart = startOfWeek(today);
+    for (let index = steps - 1; index >= 0; index -= 1) {
+      const start = addWeeks(currentStart, -index);
+      const end = addWeeks(start, 1);
+      periods.push({
+        key: start.toISOString(),
+        start,
+        end,
+        periodLabel: `${formatShortMonthDay(start, timeZone)}-${formatShortMonthDay(addDays(end, -1), timeZone)}`,
+        isCurrentPeriod: index === 0
+      });
+    }
+    return periods;
+  }
+
+  const currentStart = normalizeTrendDate(today);
+  for (let index = steps - 1; index >= 0; index -= 1) {
+    const start = addDays(currentStart, -index);
+    const end = addDays(start, 1);
+    periods.push({
+      key: start.toISOString(),
+      start,
+      end,
+      periodLabel: formatShortMonthDay(start, timeZone),
+      isCurrentPeriod: index === 0
+    });
+  }
+
+  return periods;
+}
+
+function getTrendPointStatusBucket(status) {
+  if (COUNSELING_COMPLETED_STATUSES.includes(status)) return 'completedSessions';
+  if (COUNSELING_PENDING_STATUSES.includes(status)) return 'pendingSessions';
+  return '';
+}
 
 const getStudentDashboard = async (req, res) => {
   try {
@@ -49,7 +233,10 @@ const getStudentDashboard = async (req, res) => {
       MoodLog.find({
         userId: req.user.id,
         date: { $gte: thirtyDaysAgo }
-      }).sort({ date: 1 }),
+      })
+        .select('date moodScore')
+        .sort({ date: 1 })
+        .lean(),
 
       Promise.resolve(85)
     ]);
@@ -136,6 +323,27 @@ const getCounselorDashboard = async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const counselorEntries = await Availability.find({
+      providerId: req.user.id,
+      role: 'counselor',
+      status: 'Active',
+      isUnavailable: false,
+      date: { $gte: today, $ne: null }
+    }).select('_id date startTime');
+
+    const futureCounselorEntries = counselorEntries.filter((entry) => (
+      !isDateTimeInPast(entry.date, entry.startTime)
+    ));
+
+    const bookedSlotIds = futureCounselorEntries.length > 0
+      ? await CounselingSession.distinct('availabilityEntryId', {
+        availabilityEntryId: { $in: futureCounselorEntries.map((entry) => entry._id) },
+        status: { $in: ['Confirmed', 'Ready', 'In Progress', 'Completed'] }
+      })
+      : [];
+
+    const openSlots = Math.max(0, futureCounselorEntries.length - bookedSlotIds.length);
+
     const [
       upcomingSessions,
       activeStudents,
@@ -183,8 +391,98 @@ const getCounselorDashboard = async (req, res) => {
         activeStudents,
         pendingNotes,
         assignedResources,
-        pendingFollowUps
+        pendingFollowUps,
+        openSlots
       }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getCounselorSessionTrends = async (req, res) => {
+  try {
+    const range = ['14d', '8w', '12m'].includes(req.query.range) ? req.query.range : '8w';
+    const defaults = getTrendRangeDefaults(range);
+    const groupBy = ['day', 'week', 'month'].includes(req.query.groupBy)
+      ? req.query.groupBy
+      : defaults.defaultGroupBy;
+    const timeZone = `${req.query.timezone || 'UTC'}`.trim() || 'UTC';
+    const customFrom = req.query.from ? normalizeTrendDate(req.query.from) : null;
+    const customTo = req.query.to ? normalizeTrendDate(req.query.to) : null;
+
+    const periods = createTrendPeriods({
+      range,
+      groupBy,
+      timeZone,
+      from: customFrom,
+      to: customTo
+    });
+
+    if (!periods.length) {
+      return res.json({
+        range,
+        groupBy,
+        generatedAt: new Date().toISOString(),
+        summary: {
+          completedTotal: 0,
+          pendingTotal: 0,
+          pendingAttentionThreshold: COUNSELING_TREND_PENDING_THRESHOLD
+        },
+        points: []
+      });
+    }
+
+    const overallStart = periods[0].start;
+    const overallEnd = periods[periods.length - 1].end;
+
+    const sessions = await CounselingSession.find({
+      counselorId: req.user.id,
+      date: { $gte: overallStart, $lt: overallEnd },
+      status: { $ne: 'Cancelled' }
+    })
+      .select('date status')
+      .lean();
+
+    const points = periods.map((period) => ({
+      periodStart: formatLocalIsoDate(period.start),
+      periodEnd: formatLocalIsoDate(addDays(period.end, -1)),
+      periodLabel: period.periodLabel,
+      completedSessions: 0,
+      pendingSessions: 0,
+      isCurrentPeriod: period.isCurrentPeriod
+    }));
+
+    sessions.forEach((session) => {
+      const bucket = getTrendPointStatusBucket(session.status);
+      if (!bucket) return;
+
+      const sessionDate = normalizeTrendDate(session.date);
+      const pointIndex = periods.findIndex((period) => (
+        sessionDate >= period.start && sessionDate < period.end
+      ));
+
+      if (pointIndex >= 0) {
+        points[pointIndex][bucket] += 1;
+      }
+    });
+
+    const summary = points.reduce((accumulator, point) => ({
+      completedTotal: accumulator.completedTotal + point.completedSessions,
+      pendingTotal: accumulator.pendingTotal + point.pendingSessions,
+      pendingAttentionThreshold: COUNSELING_TREND_PENDING_THRESHOLD
+    }), {
+      completedTotal: 0,
+      pendingTotal: 0,
+      pendingAttentionThreshold: COUNSELING_TREND_PENDING_THRESHOLD
+    });
+
+    res.json({
+      range,
+      groupBy,
+      generatedAt: new Date().toISOString(),
+      summary,
+      points
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -277,6 +575,7 @@ export default {
   getStudentDashboard,
   getDoctorDashboard,
   getCounselorDashboard,
+  getCounselorSessionTrends,
   getPharmacistDashboard,
   getAdminDashboard
 };

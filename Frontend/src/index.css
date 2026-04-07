@@ -124,40 +124,39 @@
   .pharmacy-shell {
     @apply min-h-screen text-primary-text;
     background:
-      radial-gradient(circle at top left, rgba(15, 159, 140, 0.12), transparent 22%),
-      radial-gradient(circle at top right, rgba(20, 116, 139, 0.16), transparent 26%),
-      linear-gradient(180deg, #f6fbfc 0%, #edf5f8 48%, #e4eef3 100%);
+      radial-gradient(circle at top right, rgba(20, 116, 139, 0.035), transparent 24%),
+      linear-gradient(180deg, #fbfdfe 0%, #f7fafc 44%, #f3f7fa 100%);
   }
 
   .pharmacy-hero {
-    @apply relative overflow-hidden rounded-[2.25rem] border border-white/80 px-8 py-10 shadow-[0_28px_70px_rgba(10,40,60,0.12)];
+    @apply relative overflow-hidden rounded-[2.25rem] border border-[#d9e8ee] px-8 py-10 shadow-[0_18px_44px_rgba(10,40,60,0.08)];
     background:
-      radial-gradient(circle at 82% 18%, rgba(148, 226, 217, 0.35), transparent 18%),
-      radial-gradient(circle at 20% 0%, rgba(125, 211, 252, 0.28), transparent 22%),
-      linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(241,250,252,0.96) 48%, rgba(226,242,248,0.98) 100%);
+      radial-gradient(circle at 84% 16%, rgba(148, 226, 217, 0.08), transparent 16%),
+      radial-gradient(circle at 14% 0%, rgba(125, 211, 252, 0.05), transparent 18%),
+      linear-gradient(145deg, #ffffff 0%, #fbfdfe 54%, #f5f9fb 100%);
   }
 
   .pharmacy-hero::after {
     content: "";
     position: absolute;
-    inset: auto -10% -45% auto;
-    width: 22rem;
-    height: 22rem;
+    inset: auto -8% -34% auto;
+    width: 18rem;
+    height: 18rem;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(20, 116, 139, 0.18) 0%, rgba(20, 116, 139, 0) 68%);
+    background: radial-gradient(circle, rgba(20, 116, 139, 0.04) 0%, rgba(20, 116, 139, 0) 70%);
     pointer-events: none;
   }
 
   .pharmacy-panel {
-    @apply rounded-[2rem] border border-white/80 bg-white/82 backdrop-blur-sm shadow-[0_16px_44px_rgba(10,40,60,0.10)];
+    @apply rounded-[2rem] border border-[#dbe7ee] bg-white shadow-[0_14px_34px_rgba(10,40,60,0.08)];
   }
 
   .pharmacy-card {
-    @apply rounded-[1.75rem] border border-white/80 bg-white/80 backdrop-blur-sm shadow-[0_14px_38px_rgba(10,40,60,0.08)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_22px_48px_rgba(10,40,60,0.14)];
+    @apply rounded-[1.75rem] border border-[#dbe7ee] bg-white shadow-[0_12px_28px_rgba(10,40,60,0.07)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(10,40,60,0.10)];
   }
 
   .pharmacy-soft-card {
-    @apply rounded-[1.5rem] border border-[#d9e8ee] bg-[#f8fcfd]/90 shadow-[0_10px_24px_rgba(10,40,60,0.06)];
+    @apply rounded-[1.5rem] border border-[#dbe7ee] bg-[#f8fbfd] shadow-[0_8px_20px_rgba(10,40,60,0.05)];
   }
 
   .pharmacy-search {
@@ -173,7 +172,7 @@
   }
 
   .pharmacy-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-[#d3e4ea] bg-white/92 px-5 py-3.5 font-bold text-primary-text shadow-[0_10px_24px_rgba(10,40,60,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-secondary-bg;
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-[#d3e4ea] bg-white px-5 py-3.5 font-bold text-primary-text shadow-[0_8px_18px_rgba(10,40,60,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#f8fbfd];
   }
 
   .pharmacy-shell input,

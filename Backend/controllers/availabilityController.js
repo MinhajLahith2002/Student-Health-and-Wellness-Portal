@@ -1,4 +1,5 @@
 import Availability from '../models/Availability.js';
+import CounselingSession from '../models/CounselingSession.js';
 import User from '../models/User.js';
 import { getAvailabilityForProvider } from '../services/availabilityService.js';
 import { normalizeDateOnly, toMinutes } from '../utils/timeSlots.js';
@@ -98,6 +99,10 @@ const getMyAvailability = async (req, res) => {
 // @access  Private/Doctor,Counselor
 const createAvailability = async (req, res) => {
   try {
+    if (req.user.role === 'counselor') {
+      return res.status(403).json({ message: 'Counselors must create session slots through the counseling workspace' });
+    }
+
     const recurringDays = normalizeRecurringDays(req.body.recurringDays);
     const breaks = normalizeBreaks(req.body.breaks);
     const isUnavailable = Boolean(req.body.isUnavailable);
@@ -138,6 +143,10 @@ const createAvailability = async (req, res) => {
 // @access  Private/Doctor,Counselor
 const updateAvailability = async (req, res) => {
   try {
+    if (req.user.role === 'counselor') {
+      return res.status(403).json({ message: 'Counselors must manage slots through the counseling workspace' });
+    }
+
     const entry = await Availability.findOne({ _id: req.params.id, providerId: req.user.id });
 
     if (!entry) {
@@ -180,6 +189,19 @@ const updateAvailability = async (req, res) => {
 // @access  Private/Doctor,Counselor
 const deleteAvailability = async (req, res) => {
   try {
+    if (req.user.role === 'counselor') {
+      const linkedSession = await CounselingSession.findOne({
+        availabilityEntryId: req.params.id,
+        status: { $in: ['Confirmed', 'Ready', 'In Progress', 'Completed'] }
+      }).select('_id');
+
+      if (linkedSession) {
+        return res.status(409).json({ message: 'Booked counselor slots cannot be deleted' });
+      }
+
+      return res.status(403).json({ message: 'Counselors must manage slots through the counseling workspace' });
+    }
+
     const entry = await Availability.findOne({ _id: req.params.id, providerId: req.user.id });
 
     if (!entry) {

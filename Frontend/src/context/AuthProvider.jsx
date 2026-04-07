@@ -35,6 +35,30 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [booting, setBooting] = useState(() => !!localStorage.getItem('token') && !readStoredUser());
 
+  const syncUser = useCallback((nextUser) => {
+    if (!nextUser) {
+      localStorage.removeItem(STORAGE_USER);
+      setUser(null);
+      return;
+    }
+
+    const normalized = {
+      id: nextUser._id || nextUser.id,
+      name: nextUser.name,
+      email: nextUser.email,
+      role: nextUser.role,
+      isVerified: nextUser.isVerified,
+      profileImage: nextUser.profileImage,
+      specialty: nextUser.specialty,
+      bio: nextUser.bio,
+      experience: nextUser.experience,
+      education: nextUser.education,
+    };
+
+    localStorage.setItem(STORAGE_USER, JSON.stringify(normalized));
+    setUser(normalized);
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem(STORAGE_USER);
@@ -58,20 +82,18 @@ export function AuthProvider({ children }) {
         }
         const profile = await apiFetch('/users/profile');
         if (!cancelled && profile?._id) {
-          const u = profile;
-          const normalized = {
-            id: u._id || u.id,
-            name: u.name,
-            email: u.email,
-            role: u.role,
-            isVerified: u.isVerified,
-            profileImage: u.profileImage,
-          };
-          setUser(normalized);
-          localStorage.setItem(STORAGE_USER, JSON.stringify(normalized));
+          syncUser(profile);
         }
-      } catch {
-        if (!cancelled) logout();
+      } catch (error) {
+        if (!cancelled) {
+          const authFailed = error?.status === 401 || error?.status === 403;
+
+          // Keep the existing session on transient reload/network/backend issues.
+          // Only clear auth state when the backend explicitly rejects the token.
+          if (authFailed) {
+            logout();
+          }
+        }
       } finally {
         if (!cancelled) setBooting(false);
       }
@@ -80,7 +102,7 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [token, logout]);
+  }, [token, logout, syncUser]);
 
   const login = useCallback(async (email, password) => {
     const data = await apiFetch('/auth/login', {
@@ -92,11 +114,10 @@ export function AuthProvider({ children }) {
       setToken(data.token);
     }
     if (data.user) {
-      localStorage.setItem(STORAGE_USER, JSON.stringify(data.user));
-      setUser(data.user);
+      syncUser(data.user);
     }
     return { ...data, redirectTo: redirectPathForRole(data.user?.role) };
-  }, []);
+  }, [syncUser]);
 
   const register = useCallback(async (payload) => {
     const body = {
@@ -122,9 +143,10 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
+      syncUser,
       redirectPathForRole,
     }),
-    [user, token, booting, login, register, logout]
+    [user, token, booting, login, register, logout, syncUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
