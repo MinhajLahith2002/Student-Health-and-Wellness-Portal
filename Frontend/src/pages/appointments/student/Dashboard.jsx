@@ -7,7 +7,6 @@ import {
   Clock,
   FileText,
   MapPin,
-  MessageSquare,
   Plus,
   Search,
   Stethoscope,
@@ -18,8 +17,7 @@ import { motion } from 'motion/react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAppointments } from '../../../hooks/useAppointments';
 import { useSocket } from '../../../hooks/useSocket';
-import { getProviders, getProviderAvailability } from '../../../lib/providers';
-import { LoadingState } from '../../../components/LoadingState';
+import { getLiveProviderAvailability } from '../../../lib/providers';
 import { AppointmentStatusBadge } from '../../../components/AppointmentStatusBadge';
 import ErrorBoundary from '../../../components/ErrorBoundary';
 import {
@@ -117,7 +115,7 @@ function SummaryCard({ label, value, hint, icon, tone }) {
   const CardIcon = icon;
 
   return (
-    <div className="bg-white p-6 rounded-[28px] border border-border-gray shadow-sm">
+    <div className="flex h-full min-h-[14.25rem] flex-col bg-white p-6 rounded-[28px] border border-border-gray shadow-sm">
       <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center mb-5', tone)}>
         <CardIcon className="w-6 h-6" />
       </div>
@@ -361,7 +359,6 @@ export default function AppointmentDashboard() {
   // PHASE 3: Use new useAppointments hook (replaces localStorage)
   const {
     appointments,
-    loading,
     error,
     refetch,
     rescheduleAppointment,
@@ -421,37 +418,29 @@ export default function AppointmentDashboard() {
     setDoctorSuggestionsError('');
 
     try {
-      const providerResponse = await getProviders({ role: 'doctor', publishedOnly: 'true' });
+      const providerResponse = await getLiveProviderAvailability({
+        role: 'doctor',
+        publishedOnly: 'true',
+        date: bookingPreviewDate
+      });
       const providers = Array.isArray(providerResponse?.providers) ? providerResponse.providers : [];
+      const suggestions = providers.map((provider) => {
+        const availableSlots = Array.isArray(provider.availableSlots) ? provider.availableSlots : [];
+        const availabilityEntries = Array.isArray(provider.availabilityEntries) ? provider.availabilityEntries : [];
+        const bookedSlots = Array.isArray(provider.bookedSlots) ? provider.bookedSlots : [];
 
-      const suggestions = await Promise.all(providers.map(async (provider) => {
-        try {
-          const availability = await getProviderAvailability(provider._id, bookingPreviewDate);
-          const availableSlots = Array.isArray(availability?.availableSlots) ? availability.availableSlots : [];
-          const availabilityEntries = Array.isArray(availability?.entries) ? availability.entries : [];
-          const bookedSlots = Array.isArray(availability?.bookedSlots) ? availability.bookedSlots : [];
-
-          return {
-            ...provider,
-            previewDate: bookingPreviewDate,
-            requestedDate: bookingPreviewDate,
-            availableSlots: availableSlots.slice(0, 4),
-            availabilityEntries,
-            bookedSlots,
-            foundUpcomingAvailability: availableSlots.length > 0 || availabilityEntries.length > 0
-          };
-        } catch {
-          return {
-            ...provider,
-            previewDate: bookingPreviewDate,
-            requestedDate: bookingPreviewDate,
-            availableSlots: [],
-            availabilityEntries: [],
-            bookedSlots: [],
-            foundUpcomingAvailability: false
-          };
-        }
-      }));
+        return {
+          ...provider,
+          previewDate: provider.previewDate || provider.requestedDate || bookingPreviewDate,
+          requestedDate: provider.requestedDate || bookingPreviewDate,
+          availableSlots: availableSlots.slice(0, 4),
+          availabilityEntries,
+          bookedSlots,
+          foundUpcomingAvailability: Boolean(provider.foundUpcomingAvailability)
+            || availableSlots.length > 0
+            || availabilityEntries.length > 0
+        };
+      });
 
       setDoctorSuggestions(suggestions);
     } catch (err) {
@@ -620,30 +609,28 @@ export default function AppointmentDashboard() {
   return (
     <ErrorBoundary>
       <div className="student-shell pb-20">
-        {/* Show loading skeleton on initial load */}
-        {loading && appointments.length === 0 ? (
-          <LoadingState message="Loading your appointments..." />
-        ) : (
-          <>
+        <>
             <div className="pt-32 px-6">
-              <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="student-hero px-8 py-10 w-full md:flex md:items-center md:justify-between gap-8">
-                  <div>
-                    <h1 className="text-4xl font-bold text-primary-text tracking-tight">My Appointments</h1>
-                    <p className="text-secondary-text mt-2 text-lg">Track, reschedule, cancel, and check in for your appointments from one place.</p>
+              <div className="max-w-7xl mx-auto">
+                <div className="student-hero w-full px-6 py-8 sm:px-8 sm:py-10">
+                  <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between md:gap-8">
+                    <div className="min-w-0">
+                      <h1 className="text-4xl font-bold text-primary-text tracking-tight">My Appointments</h1>
+                      <p className="text-secondary-text mt-2 max-w-3xl text-lg">Track, reschedule, cancel, and check in for your appointments from one place.</p>
+                    </div>
+                    <Link
+                      to="/student/appointments/find"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent-primary px-8 py-4 font-bold text-white shadow-lg shadow-accent-primary/15 transition-all hover:bg-[#105f72] sm:w-auto md:mt-1 md:shrink-0"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Book New Appointment
+                    </Link>
                   </div>
-                  <Link
-                    to="/student/appointments/find"
-                    className="px-8 py-4 bg-accent-primary text-white rounded-full font-bold hover:bg-[#105f72] transition-all shadow-lg shadow-accent-primary/15 flex items-center gap-2"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Book New Appointment
-                  </Link>
                 </div>
               </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-6 mt-12 space-y-12">
+            <div className="max-w-7xl mx-auto mt-12 space-y-12 px-6 xl:px-0">
               {/* PHASE 3: Show error with retry button */}
               {error && (
                 <div className="rounded-2xl bg-rose-50 border border-rose-100 px-5 py-4 flex items-center justify-between gap-4">
@@ -839,34 +826,38 @@ export default function AppointmentDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredUpcomingAppointments.length === 0 ? (
-              <div className="col-span-full py-12 text-center student-surface border-dashed">
-                <p className="text-secondary-text">
-                  {activeTab === 'Ready'
-                    ? 'No appointments are checked in yet.'
-                    : activeTab === 'Video'
-                      ? 'No upcoming video visits yet.'
-                      : 'You do not have any upcoming appointments yet.'}
-                </p>
+          <div className="rounded-[2rem] border border-border-gray/80 bg-white/55 p-3 shadow-sm sm:p-4">
+            <div className="max-h-[44rem] overflow-y-auto pr-1 [scrollbar-gutter:stable] sm:pr-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredUpcomingAppointments.length === 0 ? (
+                  <div className="col-span-full rounded-[1.5rem] border border-dashed border-border-gray bg-white/70 py-12 text-center">
+                    <p className="text-secondary-text">
+                      {activeTab === 'Ready'
+                        ? 'No appointments are checked in yet.'
+                        : activeTab === 'Video'
+                          ? 'No upcoming video visits yet.'
+                          : 'You do not have any upcoming appointments yet.'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredUpcomingAppointments.map((appointment) => (
+                    <AppointmentCard
+                      key={appointment._id}
+                      appointment={appointment}
+                      actionState={actionState}
+                      manageDraft={manageDraft}
+                      manageOpenId={manageOpenId}
+                      onOpenManage={openManagePanel}
+                      onCloseManage={closeManagePanel}
+                      onDraftChange={updateManageDraft}
+                      onReschedule={handleRescheduleAppointment}
+                      onCancel={handleCancelAppointment}
+                      onCheckIn={handleCheckIn}
+                    />
+                  ))
+                )}
               </div>
-            ) : (
-              filteredUpcomingAppointments.map((appointment) => (
-                <AppointmentCard
-                  key={appointment._id}
-                  appointment={appointment}
-                  actionState={actionState}
-                  manageDraft={manageDraft}
-                  manageOpenId={manageOpenId}
-                  onOpenManage={openManagePanel}
-                  onCloseManage={closeManagePanel}
-                  onDraftChange={updateManageDraft}
-                  onReschedule={handleRescheduleAppointment}
-                  onCancel={handleCancelAppointment}
-                  onCheckIn={handleCheckIn}
-                />
-              ))
-            )}
+            </div>
           </div>
         </section>
 
@@ -928,139 +919,145 @@ export default function AppointmentDashboard() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {doctorSuggestionsLoading ? (
-              <div className="col-span-full py-12 text-center student-surface border-dashed">
-                <p className="text-secondary-text">Loading doctor availability cards...</p>
-              </div>
-            ) : doctorSuggestionsError ? (
-              <div className="col-span-full py-12 text-center student-surface border-dashed">
-                <p className="text-secondary-text">{doctorSuggestionsError}</p>
-              </div>
-            ) : filteredDoctorSuggestions.length === 0 ? (
-              <div className="col-span-full py-12 text-center student-surface border-dashed">
-                <p className="text-secondary-text">No doctor has published availability for this selected date yet. Try another date or open the full doctor directory.</p>
-              </div>
-            ) : (
-              filteredDoctorSuggestions.map((doctor) => (
-                <motion.article
-                  key={doctor._id}
-                  whileHover={{ y: -4, scale: 1.01 }}
-                  className="bg-white p-6 rounded-2xl border border-border-gray shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="flex items-start justify-between gap-4 mb-5">
-                    <div>
-                      <h3 className="font-bold text-primary-text">{doctor.name}</h3>
-                      <p className="text-sm text-secondary-text">{doctor.specialty || 'General Physician'}</p>
-                    </div>
-                    <span className="px-3 py-1 rounded-full bg-accent-primary/10 text-accent-primary text-xs font-bold">
-                      Active
-                    </span>
+          <div className="rounded-[2rem] border border-border-gray/80 bg-white/55 p-3 shadow-sm sm:p-4">
+            <div className="max-h-[44rem] overflow-y-auto pr-1 [scrollbar-gutter:stable] sm:pr-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {doctorSuggestionsLoading ? (
+                  <div className="col-span-full rounded-[1.5rem] border border-dashed border-border-gray bg-white/70 py-12 text-center">
+                    <p className="text-secondary-text">Loading doctor availability cards...</p>
                   </div>
-
-                  <div className="rounded-2xl bg-secondary-bg px-4 py-4 mb-4">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-secondary-text font-bold mb-2">
-                      Published Availability
-                    </p>
-                    <p className="text-sm font-semibold text-primary-text">
-                      {formatDateLabel(doctor.previewDate)}
-                    </p>
-                    <p className="text-xs text-secondary-text mt-2">
-                      Filtered exactly to the student-selected date.
-                    </p>
+                ) : doctorSuggestionsError ? (
+                  <div className="col-span-full rounded-[1.5rem] border border-dashed border-border-gray bg-white/70 py-12 text-center">
+                    <p className="text-secondary-text">{doctorSuggestionsError}</p>
                   </div>
-
-                  {doctor.availabilityEntries.length > 0 && (
-                    <div className="space-y-2 mb-4">
-                      {doctor.availabilityEntries.map((entry) => (
-                        <div key={`${doctor._id}-${entry._id || entry.title || `${entry.startTime}-${entry.endTime}`}`} className="rounded-2xl border border-border-gray px-4 py-3">
-                          <p className="text-sm font-semibold text-primary-text">
-                            {entry.title || `${entry.startTime} - ${entry.endTime}`}
-                          </p>
-                          <p className="text-xs text-secondary-text mt-1">
-                            {(entry.consultationTypes || []).join(', ') || 'All consultation types'}
-                          </p>
+                ) : filteredDoctorSuggestions.length === 0 ? (
+                  <div className="col-span-full rounded-[1.5rem] border border-dashed border-border-gray bg-white/70 py-12 text-center">
+                    <p className="text-secondary-text">No doctor has published availability for this selected date yet. Try another date or open the full doctor directory.</p>
+                  </div>
+                ) : (
+                  filteredDoctorSuggestions.map((doctor) => (
+                    <motion.article
+                      key={doctor._id}
+                      whileHover={{ y: -4, scale: 1.01 }}
+                      className="bg-white p-6 rounded-2xl border border-border-gray shadow-sm hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-5">
+                        <div>
+                          <h3 className="font-bold text-primary-text">{doctor.name}</h3>
+                          <p className="text-sm text-secondary-text">{doctor.specialty || 'General Physician'}</p>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <span className="px-3 py-1 rounded-full bg-accent-primary/10 text-accent-primary text-xs font-bold">
+                          Active
+                        </span>
+                      </div>
 
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {doctor.availableSlots.length > 0 ? doctor.availableSlots.map((slot) => (
-                      <span key={`${doctor._id}-${slot}`} className="px-3 py-2 rounded-full bg-secondary-bg text-xs font-bold text-primary-text">
-                        {formatTimeLabel(slot)}
-                      </span>
-                    )) : (
-                      <p className="text-sm text-secondary-text">No free slots were returned for this date.</p>
-                    )}
-                  </div>
+                      <div className="rounded-2xl bg-secondary-bg px-4 py-4 mb-4">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-secondary-text font-bold mb-2">
+                          Published Availability
+                        </p>
+                        <p className="text-sm font-semibold text-primary-text">
+                          {formatDateLabel(doctor.previewDate)}
+                        </p>
+                        <p className="text-xs text-secondary-text mt-2">
+                          Filtered exactly to the student-selected date.
+                        </p>
+                      </div>
 
-                  <p className="text-xs text-secondary-text mb-5">
-                    {doctor.availableSlots.length > 0
-                      ? `Next free slot: ${formatTimeLabel(doctor.availableSlots[0])}`
-                      : doctor.bookedSlots.length > 0
-                        ? `${doctor.bookedSlots.length} slot(s) are already booked on this published date`
-                        : 'Open the full profile to inspect more dates and consultation details.'}
-                  </p>
+                      {doctor.availabilityEntries.length > 0 && (
+                        <div className="space-y-2 mb-4">
+                          {doctor.availabilityEntries.map((entry) => (
+                            <div key={`${doctor._id}-${entry._id || entry.title || `${entry.startTime}-${entry.endTime}`}`} className="rounded-2xl border border-border-gray px-4 py-3">
+                              <p className="text-sm font-semibold text-primary-text">
+                                {entry.title || `${entry.startTime} - ${entry.endTime}`}
+                              </p>
+                              <p className="text-xs text-secondary-text mt-1">
+                                {(entry.consultationTypes || []).join(', ') || 'All consultation types'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link
-                      to={`/student/appointments/doctors/${doctor._id}`}
-                      className="py-3 bg-secondary-bg text-primary-text rounded-xl font-bold text-sm text-center"
-                    >
-                      View Profile
-                    </Link>
-                    <Link
-                      to={`/student/appointments/book/${doctor._id}?date=${doctor.previewDate}`}
-                      className="py-3 bg-accent-primary text-white rounded-xl font-bold text-sm text-center"
-                    >
-                      {doctor.availableSlots.length > 0 ? 'Book Slot' : 'View Dates'}
-                    </Link>
-                  </div>
-                </motion.article>
-              ))
-            )}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {doctor.availableSlots.length > 0 ? doctor.availableSlots.map((slot) => (
+                          <span key={`${doctor._id}-${slot}`} className="px-3 py-2 rounded-full bg-secondary-bg text-xs font-bold text-primary-text">
+                            {formatTimeLabel(slot)}
+                          </span>
+                        )) : (
+                          <p className="text-sm text-secondary-text">No free slots were returned for this date.</p>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-secondary-text mb-5">
+                        {doctor.availableSlots.length > 0
+                          ? `Next free slot: ${formatTimeLabel(doctor.availableSlots[0])}`
+                          : doctor.bookedSlots.length > 0
+                            ? `${doctor.bookedSlots.length} slot(s) are already booked on this published date`
+                            : 'Open the full profile to inspect more dates and consultation details.'}
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <Link
+                          to={`/student/appointments/doctors/${doctor._id}`}
+                          className="py-3 bg-secondary-bg text-primary-text rounded-xl font-bold text-sm text-center"
+                        >
+                          View Profile
+                        </Link>
+                        <Link
+                          to={`/student/appointments/book/${doctor._id}?date=${doctor.previewDate}`}
+                          className="py-3 bg-accent-primary text-white rounded-xl font-bold text-sm text-center"
+                        >
+                          {doctor.availableSlots.length > 0 ? 'Book Slot' : 'View Dates'}
+                        </Link>
+                      </div>
+                    </motion.article>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </section>
 
         <section className="space-y-6">
           <h2 className="text-2xl font-bold text-primary-text mb-2">Past appointments</h2>
           <div className="student-surface rounded-2xl overflow-hidden">
-            <div className="divide-y divide-border-gray">
-              {pastAppointments.length === 0 ? (
-                <div className="p-6 text-secondary-text">Completed and cancelled appointments will appear here.</div>
-              ) : (
-                pastAppointments.map((appointment) => (
-                  <div key={appointment._id} className="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-secondary-bg/30 transition-colors">
-                    <div>
-                      <h3 className="font-bold text-primary-text">{appointment.doctorName}</h3>
-                      <p className="text-xs text-secondary-text">
-                        {appointment.doctorSpecialty} • {formatDateLabel(appointment.date)} • {appointment.time}
-                      </p>
-                      {appointment.cancellationReason && (
-                        <p className="text-xs text-rose-600 mt-2">{appointment.cancellationReason}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <AppointmentStatusBadge status={appointment.status} size="sm" />
-                      {appointment.status === 'Completed' && (
+            <div className="max-h-[34rem] overflow-y-auto [scrollbar-gutter:stable]">
+              <div className="divide-y divide-border-gray">
+                {pastAppointments.length === 0 ? (
+                  <div className="p-6 text-secondary-text">Completed and cancelled appointments will appear here.</div>
+                ) : (
+                  pastAppointments.map((appointment) => (
+                    <div key={appointment._id} className="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-secondary-bg/30 transition-colors">
+                      <div>
+                        <h3 className="font-bold text-primary-text">{appointment.doctorName}</h3>
+                        <p className="text-xs text-secondary-text">
+                          {appointment.doctorSpecialty} • {formatDateLabel(appointment.date)} • {appointment.time}
+                        </p>
+                        {appointment.cancellationReason && (
+                          <p className="text-xs text-rose-600 mt-2">{appointment.cancellationReason}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <AppointmentStatusBadge status={appointment.status} size="sm" />
+                        {appointment.status === 'Completed' && (
+                          <Link
+                            to={`/student/appointments/${appointment._id}/feedback`}
+                            className="text-sm font-semibold text-accent-primary"
+                          >
+                            Leave feedback
+                          </Link>
+                        )}
                         <Link
-                          to={`/student/appointments/${appointment._id}/feedback`}
-                          className="text-sm font-semibold text-accent-primary"
+                          to={getRevisitPath(appointment)}
+                          className="text-sm font-semibold text-primary-text"
                         >
-                          Leave feedback
+                          Rebook
                         </Link>
-                      )}
-                      <Link
-                        to={getRevisitPath(appointment)}
-                        className="text-sm font-semibold text-primary-text"
-                      >
-                        Rebook
-                      </Link>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -1076,15 +1073,14 @@ export default function AppointmentDashboard() {
               <FileText className="w-6 h-6 text-accent-green mb-4" />
               <p className="font-bold text-primary-text">Prescription History</p>
             </Link>
-            <Link to="/mental-health/counselors" className="student-card p-6">
-              <MessageSquare className="w-6 h-6 text-accent-purple mb-4" />
-              <p className="font-bold text-primary-text">Explore Counselors</p>
-            </Link>
+            <a href="#live-availability" className="student-card p-6">
+              <CalendarClock className="w-6 h-6 text-accent-purple mb-4" />
+              <p className="font-bold text-primary-text">Live Availability</p>
+            </a>
           </div>
         </section>
       </div>
-      </>
-        )}
+        </>
       </div>
     </ErrorBoundary>
   );

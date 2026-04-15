@@ -61,19 +61,26 @@ function writeLocal(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function getStoredUser() {
+  try {
+    const rawUser = localStorage.getItem('campushealth_user');
+    return rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    return null;
+  }
+}
+
 function canUseSessionStorage() {
   return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined';
 }
 
 function getUserKey(suffix) {
-  const rawUser = localStorage.getItem('campushealth_user');
-  const user = rawUser ? JSON.parse(rawUser) : null;
+  const user = getStoredUser();
   return `${STORAGE_PREFIX}:${user?.id || 'guest'}:${suffix}`;
 }
 
 function getSessionUserKey(suffix) {
-  const rawUser = localStorage.getItem('campushealth_user');
-  const user = rawUser ? JSON.parse(rawUser) : null;
+  const user = getStoredUser();
   return `${SESSION_CACHE_PREFIX}:${user?.id || 'guest'}:${suffix}`;
 }
 

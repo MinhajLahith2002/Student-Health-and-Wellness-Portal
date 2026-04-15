@@ -492,23 +492,26 @@ export default function MentalHealthDiscussion() {
   return (
     <div className="pt-36 pb-12 px-6 max-w-7xl mx-auto min-h-screen bg-primary-bg">
       <header className="mb-12">
-        <div className="flex flex-col items-start gap-4 mb-6">
+        <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-purple/10 text-accent-purple text-[10px] font-bold uppercase tracking-widest">
+              <MessageCircle className="w-3 h-3" />
+              Anonymous Peer Support
+            </div>
+            <h1 className="mt-8 text-5xl font-semibold tracking-tight text-primary-text">Peer Support Forum</h1>
+            <p className="mt-4 max-w-3xl text-lg text-secondary-text">
+              Post anonymously, reply gently, edit your own messages, and keep the conversation grounded in supportive campus wellness care.
+            </p>
+          </div>
+
           <Link
             to="/mental-health"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-5 py-3 text-sm font-semibold text-primary-text shadow-[0_18px_40px_rgba(15,41,66,0.08)] backdrop-blur-sm"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/85 px-5 py-3 text-sm font-semibold text-primary-text shadow-[0_18px_40px_rgba(15,41,66,0.08)] backdrop-blur-sm lg:w-auto lg:shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to mental health
           </Link>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-purple/10 text-accent-purple text-[10px] font-bold uppercase tracking-widest">
-            <MessageCircle className="w-3 h-3" />
-            Anonymous Peer Support
-          </div>
         </div>
-        <h1 className="text-5xl font-semibold tracking-tight text-primary-text">Peer Support Forum</h1>
-        <p className="text-lg text-secondary-text mt-4 max-w-3xl">
-          Post anonymously, reply gently, edit your own messages, and keep the conversation grounded in supportive campus wellness care.
-        </p>
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">

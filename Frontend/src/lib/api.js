@@ -1,7 +1,7 @@
 const viteEnv = typeof import.meta !== 'undefined' ? import.meta.env || {} : {};
 const API_ORIGIN_OVERRIDE_KEY = 'campushealth_api_origin_override';
-const DEV_DISCOVERY_TIMEOUT_MS = 15000;
-const DEV_DISCOVERY_RETRY_DELAY_MS = 700;
+const DEV_DISCOVERY_TIMEOUT_MS = 2500;
+const DEV_DISCOVERY_RETRY_DELAY_MS = 350;
 const CONFIGURED_DEV_API_URL = `${viteEnv.VITE_API_URL || ''}`.trim();
 const CONFIGURED_DEV_PROXY_TARGET = `${viteEnv.VITE_API_PROXY_TARGET || ''}`.trim();
 

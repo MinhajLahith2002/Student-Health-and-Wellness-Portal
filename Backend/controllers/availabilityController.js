@@ -2,9 +2,18 @@ import Availability from '../models/Availability.js';
 import Appointment from '../models/Appointment.js';
 import User from '../models/User.js';
 import { getAvailabilityForProvider, matchesDateEntry } from '../services/availabilityService.js';
-import { generateSlots, normalizeDateOnly, toMinutes } from '../utils/timeSlots.js';
+import {
+  DEFAULT_PROVIDER_SLOTS,
+  generateSlots,
+  getDateRange,
+  isDateTimeInPast,
+  normalizeDateOnly,
+  toMinutes
+} from '../utils/timeSlots.js';
 import { getDoctorScopeIds } from '../utils/doctorScope.js';
 import { emitAvailabilityUpdate } from '../utils/socket.js';
+
+const ACTIVE_DOCTOR_BOOKING_STATUSES = ['Pending', 'Confirmed', 'Ready', 'In Progress'];
 
 function normalizeRecurringDays(recurringDays = []) {
   return recurringDays
@@ -102,6 +111,164 @@ function broadcastAvailabilityMutation({ action, entry, providerId, role }) {
     isUnavailable: entry?.isUnavailable || false
   });
 }
+
+function sortSlots(slots = []) {
+  return [...new Set(slots)].sort((left, right) => {
+    const leftMinutes = toMinutes(left);
+    const rightMinutes = toMinutes(right);
+    return (leftMinutes ?? 0) - (rightMinutes ?? 0);
+  });
+}
+
+function normalize24HourFormat(timeSlots = []) {
+  return timeSlots.map((slot) => {
+    const minutes = toMinutes(slot);
+    if (minutes === null) return slot;
+
+    const hours = Math.floor(minutes / 60);
+    const nextMinutes = minutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(nextMinutes).padStart(2, '0')}`;
+  });
+}
+
+function slotMatchesAny(slot, comparisonSlots = []) {
+  const slotMinutes = toMinutes(slot);
+  if (slotMinutes === null) return false;
+
+  return comparisonSlots.some((comparisonSlot) => toMinutes(comparisonSlot) === slotMinutes);
+}
+
+function groupById(entries = [], key) {
+  return entries.reduce((map, entry) => {
+    const id = entry?.[key]?.toString?.() || `${entry?.[key] || ''}`;
+    if (!id) return map;
+    const group = map.get(id) || [];
+    group.push(entry);
+    map.set(id, group);
+    return map;
+  }, new Map());
+}
+
+function buildDoctorAvailabilitySummary({ provider, entries = [], bookedAppointments = [], targetDate }) {
+  const normalizedDate = normalizeDateOnly(targetDate);
+  const unavailableEntries = entries.filter((entry) => entry.isUnavailable);
+  const scheduleEntries = entries.filter((entry) => !entry.isUnavailable);
+
+  if (unavailableEntries.some((entry) => (
+    entry.date && normalizeDateOnly(entry.date).getTime() === normalizedDate.getTime()
+  ))) {
+    return {
+      ...provider,
+      previewDate: normalizedDate,
+      requestedDate: normalizedDate,
+      availableSlots: [],
+      bookedSlots: [],
+      configuredSlots: [],
+      availabilityEntries: scheduleEntries,
+      foundUpcomingAvailability: scheduleEntries.length > 0
+    };
+  }
+
+  const configuredSlots = scheduleEntries.length > 0
+    ? sortSlots(scheduleEntries.flatMap((entry) => generateSlots({
+      startTime: entry.startTime,
+      endTime: entry.endTime,
+      slotDuration: entry.slotDuration,
+      breaks: entry.breaks
+    })))
+    : DEFAULT_PROVIDER_SLOTS;
+
+  const bookedSlots = bookedAppointments.map((appointment) => appointment.time);
+  const availableSlots = configuredSlots.filter((slot) => (
+    !slotMatchesAny(slot, bookedSlots) && !isDateTimeInPast(normalizedDate, slot)
+  ));
+
+  return {
+    ...provider,
+    previewDate: normalizedDate,
+    requestedDate: normalizedDate,
+    availableSlots: normalize24HourFormat(availableSlots).slice(0, 4),
+    bookedSlots: normalize24HourFormat(bookedSlots),
+    configuredSlots: normalize24HourFormat(configuredSlots),
+    availabilityEntries: scheduleEntries,
+    foundUpcomingAvailability: availableSlots.length > 0 || scheduleEntries.length > 0
+  };
+}
+
+// @desc    Get live appointment availability for provider cards in one request
+// @route   GET /api/availability/live/providers
+// @access  Private
+const getLiveProviderAvailability = async (req, res) => {
+  try {
+    const role = req.query.role || 'doctor';
+    if (role !== 'doctor') {
+      return res.status(400).json({ message: 'Live appointment availability currently supports doctors only' });
+    }
+
+    const targetDate = normalizeDateOnly(req.query.date || new Date());
+    const targetDay = targetDate.getDay();
+    const { start, end } = getDateRange(targetDate);
+    const providerQuery = {
+      role: 'doctor',
+      isActive: true
+    };
+
+    const search = `${req.query.search || ''}`.trim();
+    if (search) {
+      providerQuery.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { specialty: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const providers = await User.find(providerQuery)
+      .select('name email role specialty experience bio education profileImage isVerified')
+      .sort({ name: 1 })
+      .lean();
+
+    const providerIds = providers.map((provider) => provider._id);
+    if (providerIds.length === 0) {
+      return res.json({ date: targetDate, providers: [] });
+    }
+
+    const [entries, bookedAppointments] = await Promise.all([
+      Availability.find({
+        providerId: { $in: providerIds },
+        role: 'doctor',
+        status: 'Active',
+        $or: [
+          { date: targetDate },
+          { recurringDays: targetDay }
+        ]
+      })
+        .sort({ date: 1, startTime: 1 })
+        .lean(),
+      Appointment.find({
+        doctorId: { $in: providerIds },
+        date: { $gte: start, $lt: end },
+        status: { $in: ACTIVE_DOCTOR_BOOKING_STATUSES }
+      })
+        .select('doctorId time availabilityId status')
+        .lean()
+    ]);
+
+    const entriesByProvider = groupById(entries, 'providerId');
+    const appointmentsByProvider = groupById(bookedAppointments, 'doctorId');
+    const hydratedProviders = providers.map((provider) => buildDoctorAvailabilitySummary({
+      provider,
+      entries: entriesByProvider.get(provider._id.toString()) || [],
+      bookedAppointments: appointmentsByProvider.get(provider._id.toString()) || [],
+      targetDate
+    }));
+
+    res.json({
+      date: targetDate,
+      providers: hydratedProviders
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // @desc    Get provider availability for a date
 // @route   GET /api/availability/:providerId
@@ -313,6 +480,7 @@ const deleteAvailability = async (req, res) => {
 };
 
 export default {
+  getLiveProviderAvailability,
   getAvailabilityByProvider,
   getMyAvailability,
   createAvailability,

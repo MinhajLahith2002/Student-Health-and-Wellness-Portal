@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, CalendarDays, HeartHandshake, Search, Star } from 'lucide-react';
 import DismissibleBanner from '../../components/DismissibleBanner';
-import { getCachedCounselors, getCounselors, prefetchCounselorProfile, prefetchCounselorSlots } from '../../lib/counseling';
+import {
+  getCachedCounselors,
+  getCounselors,
+  prefetchCounselorProfile,
+  prefetchCounselorSlots,
+  subscribeCounselingLiveRefresh
+} from '../../lib/counseling';
 import { cn } from '../../lib/utils';
 
 function formatSlot(slot) {
@@ -36,21 +42,50 @@ export default function CounselorDirectory() {
   useEffect(() => {
     let active = true;
 
-    (async () => {
+    const loadDirectory = async ({ silent = false } = {}) => {
       try {
         const data = await getCounselors();
         if (!active) return;
         setProviders(Array.isArray(data?.providers) ? data.providers : []);
+        if (!silent) {
+          setError('');
+        }
       } catch (err) {
         if (!active) return;
-        setError(err.message || 'Failed to load counselors');
+        if (!silent) {
+          setError(err.message || 'Failed to load counselors');
+        }
       } finally {
-        if (active) setLoading(false);
+        if (active && !silent) setLoading(false);
       }
-    })();
+    };
+
+    loadDirectory();
+
+    const refreshDirectory = () => {
+      loadDirectory({ silent: true });
+    };
+
+    const unsubscribeLiveRefresh = subscribeCounselingLiveRefresh(refreshDirectory);
+
+    const handleWindowFocus = () => {
+      refreshDirectory();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshDirectory();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       active = false;
+      unsubscribeLiveRefresh();
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -81,20 +116,20 @@ export default function CounselorDirectory() {
   return (
     <div className="pharmacy-shell pt-36 pb-16 px-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div>
-          <Link to="/mental-health" className="pharmacy-secondary w-full justify-center sm:w-auto">
-            <ArrowLeft className="w-4 h-4" />
-            Back to mental health
-          </Link>
-        </div>
-
         <section className="pharmacy-hero">
-          <div className="max-w-3xl">
-            <span className="pharmacy-pill bg-emerald-50 text-emerald-700">Counselor Directory</span>
-            <h1 className="mt-5 text-5xl font-semibold tracking-tight text-primary-text">Book from counselor-created open slots.</h1>
-            <p className="mt-4 text-lg text-secondary-text">
-              Browse licensed campus counselors, compare specialties and recent feedback, then reserve one of the open slots they have already published.
-            </p>
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <span className="pharmacy-pill bg-emerald-50 text-emerald-700">Counselor Directory</span>
+              <h1 className="mt-5 text-5xl font-semibold tracking-tight text-primary-text">Book from counselor-created open slots.</h1>
+              <p className="mt-4 text-lg text-secondary-text">
+                Browse licensed campus counselors, compare specialties and recent feedback, then reserve one of the open slots they have already published.
+              </p>
+            </div>
+
+            <Link to="/mental-health" className="pharmacy-secondary w-full justify-center lg:w-auto lg:shrink-0">
+              <ArrowLeft className="w-4 h-4" />
+              Back to mental health
+            </Link>
           </div>
 
           <div className="mt-8 rounded-[2rem] bg-white/80 p-5 shadow-[0_18px_40px_rgba(15,41,66,0.06)] sm:p-6">
@@ -233,12 +268,12 @@ export default function CounselorDirectory() {
                       </div>
                     </div>
 
-                    <div className="mt-auto pt-6 flex flex-wrap gap-3">
+                    <div className="mt-auto grid grid-cols-2 gap-3 pt-6">
                       <Link
                         to={`/mental-health/counselors/${provider._id}`}
                         onMouseEnter={() => handlePrefetchCounselor(provider._id)}
                         onFocus={() => handlePrefetchCounselor(provider._id)}
-                        className="pharmacy-secondary"
+                        className="pharmacy-secondary w-full px-3 text-center"
                       >
                         View Profile
                       </Link>
@@ -246,7 +281,7 @@ export default function CounselorDirectory() {
                         to={`/mental-health/book/${provider._id}`}
                         onMouseEnter={() => handlePrefetchCounselor(provider._id)}
                         onFocus={() => handlePrefetchCounselor(provider._id)}
-                        className="pharmacy-primary"
+                        className="pharmacy-primary w-full px-3 text-center"
                       >
                         <HeartHandshake className="w-4 h-4" />
                         Book Slot
@@ -271,20 +306,6 @@ export default function CounselorDirectory() {
           autoHideMs={0}
         />
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <div className="pharmacy-soft-card p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">How booking works</p>
-            <p className="mt-3 text-sm leading-6 text-secondary-text">Counselors publish open slots first. You choose one of those slots, and that booking becomes your counseling session.</p>
-          </div>
-          <div className="pharmacy-soft-card p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Remote video sessions</p>
-            <p className="mt-3 text-sm leading-6 text-secondary-text">Video sessions open the same Jitsi room for both you and your counselor, with an embedded join option in the session page.</p>
-          </div>
-          <div className="pharmacy-soft-card p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">After the session</p>
-            <p className="mt-3 text-sm leading-6 text-secondary-text">Completed sessions show follow-up summaries, action plans, assigned resources, and feedback once your counselor marks the session complete.</p>
-          </div>
-        </section>
       </div>
     </div>
   );

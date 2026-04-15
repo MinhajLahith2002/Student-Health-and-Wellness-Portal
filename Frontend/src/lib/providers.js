@@ -25,6 +25,10 @@ export function getProviderAvailability(providerId, date) {
   return apiFetch(`/availability/${providerId}${buildQuery({ date })}`);
 }
 
+export function getLiveProviderAvailability(params = {}) {
+  return apiFetch(`/availability/live/providers${buildQuery(params)}`);
+}
+
 export function getMyAvailability() {
   return apiFetch('/availability/me');
 }

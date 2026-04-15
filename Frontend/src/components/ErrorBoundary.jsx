@@ -61,6 +61,12 @@ export default class ErrorBoundary extends React.Component {
     // Sentry.captureException(error, { contexts: { react: errorInfo } });
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
   /**
    * Render either the error UI or children
    */

@@ -263,24 +263,26 @@ export default function ResourceLibrary() {
   return (
     <div className="pt-36 pb-12 px-6 max-w-7xl mx-auto student-shell">
       <header className="mb-12">
-        <div className="mb-6 flex flex-wrap items-center gap-3">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h1 className="text-5xl font-semibold tracking-tight text-primary-text">
+              {isCounselorSavedView ? 'Saved self-help library' : 'Self-help library'}
+            </h1>
+            <p className="text-lg text-secondary-text mt-4 max-w-3xl">
+              {isCounselorSavedView
+                ? 'Review the mental-health resources you saved, without losing your counselor workflow.'
+                : 'Explore counselor-approved articles, videos, guides, and exercises for everyday support.'}
+            </p>
+          </div>
+
           <Link
             to="/mental-health"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-primary-text shadow-[0_10px_22px_rgba(15,41,66,0.05)] transition hover:-translate-y-0.5 hover:bg-slate-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-primary-text shadow-[0_10px_22px_rgba(15,41,66,0.05)] transition hover:-translate-y-0.5 hover:bg-slate-50 lg:w-auto lg:shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to mental health
           </Link>
         </div>
-
-        <h1 className="text-5xl font-semibold tracking-tight text-primary-text">
-          {isCounselorSavedView ? 'Saved self-help library' : 'Self-help library'}
-        </h1>
-        <p className="text-lg text-secondary-text mt-4 max-w-3xl">
-          {isCounselorSavedView
-            ? 'Review the mental-health resources you saved, without losing your counselor workflow.'
-            : 'Explore counselor-approved articles, videos, guides, and exercises for everyday support.'}
-        </p>
 
         {counselorBackLink && (
           <div className="mt-6 flex flex-col gap-4 rounded-[1.75rem] border border-white/80 bg-white/70 p-5 backdrop-blur-sm md:flex-row md:items-center md:justify-between">

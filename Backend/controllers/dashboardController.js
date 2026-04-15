@@ -7,6 +7,11 @@ import Order from '../models/Order.js';
 import Prescription from '../models/Prescription.js';
 import User from '../models/User.js';
 import { isDateTimeInPast } from '../utils/timeSlots.js';
+import {
+  COUNSELING_ACTIVE_SLOT_STATUSES,
+  COUNSELING_UPCOMING_SESSION_STATUSES,
+  syncCounselingNoShows
+} from '../utils/counselingSessions.js';
 
 const COUNSELING_PENDING_STATUSES = ['Pending', 'Confirmed', 'Ready', 'In Progress'];
 const COUNSELING_COMPLETED_STATUSES = ['Completed'];
@@ -193,6 +198,8 @@ function getTrendPointStatusBucket(status) {
 
 const getStudentDashboard = async (req, res) => {
   try {
+    await syncCounselingNoShows({ studentId: req.user.id });
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -217,7 +224,7 @@ const getStudentDashboard = async (req, res) => {
       CounselingSession.find({
         studentId: req.user.id,
         date: { $gte: today },
-        status: { $in: ['Confirmed', 'Ready', 'In Progress'] }
+        status: { $in: COUNSELING_UPCOMING_SESSION_STATUSES }
       })
         .sort({ date: 1, time: 1 })
         .limit(parsedLimit),
@@ -320,6 +327,8 @@ const getDoctorDashboard = async (req, res) => {
 
 const getCounselorDashboard = async (req, res) => {
   try {
+    await syncCounselingNoShows({ counselorId: req.user.id });
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -338,7 +347,7 @@ const getCounselorDashboard = async (req, res) => {
     const bookedSlotIds = futureCounselorEntries.length > 0
       ? await CounselingSession.distinct('availabilityEntryId', {
         availabilityEntryId: { $in: futureCounselorEntries.map((entry) => entry._id) },
-        status: { $in: ['Confirmed', 'Ready', 'In Progress', 'Completed'] }
+        status: { $in: COUNSELING_ACTIVE_SLOT_STATUSES }
       })
       : [];
 
@@ -348,13 +357,14 @@ const getCounselorDashboard = async (req, res) => {
       upcomingSessions,
       activeStudents,
       pendingNotes,
+      noShows,
       assignedResources,
       pendingFollowUps
     ] = await Promise.all([
       CounselingSession.find({
         counselorId: req.user.id,
         date: { $gte: today },
-        status: { $in: ['Confirmed', 'Ready', 'In Progress'] }
+        status: { $in: COUNSELING_UPCOMING_SESSION_STATUSES }
       })
         .select('studentName date time type status')
         .sort({ date: 1, time: 1 })
@@ -372,6 +382,11 @@ const getCounselorDashboard = async (req, res) => {
         ]
       }),
 
+      CounselingSession.countDocuments({
+        counselorId: req.user.id,
+        status: 'No Show'
+      }),
+
       CounselingSession.aggregate([
         { $match: { counselorId: req.user._id } },
         { $project: { resourceCount: { $size: '$assignedResources' } } },
@@ -381,7 +396,7 @@ const getCounselorDashboard = async (req, res) => {
       CounselingSession.countDocuments({
         counselorId: req.user.id,
         followUpRecommended: true,
-        status: { $ne: 'Cancelled' }
+        status: { $nin: ['Cancelled', 'No Show'] }
       })
     ]);
 
@@ -390,6 +405,7 @@ const getCounselorDashboard = async (req, res) => {
       stats: {
         activeStudents,
         pendingNotes,
+        noShows,
         assignedResources,
         pendingFollowUps,
         openSlots
@@ -402,6 +418,8 @@ const getCounselorDashboard = async (req, res) => {
 
 const getCounselorSessionTrends = async (req, res) => {
   try {
+    await syncCounselingNoShows({ counselorId: req.user.id });
+
     const range = ['14d', '8w', '12m'].includes(req.query.range) ? req.query.range : '8w';
     const defaults = getTrendRangeDefaults(range);
     const groupBy = ['day', 'week', 'month'].includes(req.query.groupBy)
@@ -439,7 +457,7 @@ const getCounselorSessionTrends = async (req, res) => {
     const sessions = await CounselingSession.find({
       counselorId: req.user.id,
       date: { $gte: overallStart, $lt: overallEnd },
-      status: { $ne: 'Cancelled' }
+      status: { $nin: ['Cancelled', 'No Show'] }
     })
       .select('date status')
       .lean();

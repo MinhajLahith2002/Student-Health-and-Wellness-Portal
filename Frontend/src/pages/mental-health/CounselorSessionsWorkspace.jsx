@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CalendarDays, NotebookPen, Pencil, Plus, Search, Trash2, Video } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { CalendarDays, Lock, NotebookPen, Pencil, Plus, Search, Trash2, Video } from 'lucide-react';
 import DismissibleBanner from '../../components/DismissibleBanner';
 import {
   createCounselorSlot,
   deleteCounselorSlot,
   deleteCounselingSession,
   getCachedCounselorWorkspace,
+  getCancellationActorLabel,
   getCounselorWorkspace,
   subscribeCounselorDashboardRefresh,
+  subscribeCounselingLiveRefresh,
   updateCounselorSlot
 } from '../../lib/counseling';
 import { cn } from '../../lib/utils';
@@ -16,7 +18,15 @@ import { cn } from '../../lib/utils';
 function getDefaultDate() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
-  return date.toISOString().slice(0, 10);
+  return getDateInputValue(date);
+}
+
+function getDateInputValue(date = new Date()) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-');
 }
 
 const DEFAULT_SLOT_TIMES = [
@@ -32,6 +42,9 @@ const DEFAULT_SLOT_TIMES = [
 
 const ALLOWED_SLOT_MODES = ['video', 'chat', 'in_person'];
 const ALLOWED_FILTER_MODES = ['all', ...ALLOWED_SLOT_MODES];
+const ALLOWED_OUTCOME_FILTERS = ['all', 'no-show'];
+const ACTIVE_SESSION_STATUSES = ['Pending', 'Confirmed', 'Ready', 'In Progress'];
+const OUTCOME_SESSION_STATUSES = ['Completed', 'Cancelled', 'No Show'];
 
 function normalizeSlotDate(value) {
   if (!value) return '';
@@ -143,7 +156,7 @@ function getSuggestedSlotForm(openSlots = []) {
   for (let dayOffset = 1; dayOffset <= 30; dayOffset += 1) {
     const nextDate = new Date(today);
     nextDate.setDate(today.getDate() + dayOffset);
-    const date = nextDate.toISOString().slice(0, 10);
+    const date = getDateInputValue(nextDate);
     const nextTime = DEFAULT_SLOT_TIMES.find((time) => !slotExists(openSlots, date, time));
 
     if (nextTime) {
@@ -172,6 +185,66 @@ function sortSlots(slots = []) {
     const rightStamp = new Date(`${normalizeSlotDate(right.date)}T${toTimeInputValue(right.startTime || right.time)}:00`).getTime();
     return leftStamp - rightStamp;
   });
+}
+
+function getSessionDateTimeStamp(session) {
+  const normalizedDate = normalizeSlotDate(session?.date);
+  const timeValue = toTimeInputValue(session?.time);
+  if (!normalizedDate || !timeValue) return 0;
+  return new Date(`${normalizedDate}T${timeValue}:00`).getTime();
+}
+
+function getSessionEndTimeStamp(session) {
+  const startStamp = getSessionDateTimeStamp(session);
+  if (!startStamp) return 0;
+
+  const durationMinutes = Math.max(15, Number(session?.duration) || 50);
+  return startStamp + (durationMinutes * 60 * 1000);
+}
+
+function getValidTimeStamp(value) {
+  if (!value) return 0;
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function getSessionOutcomeTimeStamp(session) {
+  return getValidTimeStamp(session?.outcomeAt)
+    || (session?.status === 'Cancelled' ? getValidTimeStamp(session?.cancelledAt) : 0)
+    || getValidTimeStamp(session?.updatedAt)
+    || getValidTimeStamp(session?.createdAt)
+    || getSessionDateTimeStamp(session);
+}
+
+function isLiveSessionLocked(session) {
+  const startDate = session?.startsAt ? new Date(session.startsAt) : null;
+  const hasStarted = Boolean(startDate && !Number.isNaN(startDate.getTime()) && startDate.getTime() <= Date.now());
+
+  return ['video', 'chat'].includes(session?.mode)
+    && ['Confirmed', 'Ready'].includes(session?.status)
+    && !hasStarted;
+}
+
+function formatSessionStart(session) {
+  const startDate = session?.startsAt ? new Date(session.startsAt) : null;
+  if (!startDate || Number.isNaN(startDate.getTime())) {
+    return session?.time || 'the scheduled time';
+  }
+
+  return startDate.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function getSessionStatusTone(status) {
+  if (status === 'Completed') return 'bg-emerald-50 text-emerald-700';
+  if (status === 'Cancelled') return 'bg-rose-50 text-rose-700';
+  if (status === 'No Show') return 'bg-amber-50 text-amber-700';
+  return 'bg-sky-50 text-sky-700';
 }
 
 function validateSlotField(field, form, openSlots, editingSlotId) {
@@ -246,10 +319,15 @@ function validateFilterField(field, filters) {
 const initialSlotForm = getSuggestedSlotForm();
 
 export default function CounselorSessionsWorkspace() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialWorkspaceCacheRef = useRef(getCachedCounselorWorkspace());
   const [workspace, setWorkspace] = useState(initialWorkspaceCacheRef.current);
   const [loading, setLoading] = useState(
-    !(initialWorkspaceCacheRef.current.openSlots.length || initialWorkspaceCacheRef.current.bookedSessions.length)
+    !(
+      initialWorkspaceCacheRef.current.openSlots.length
+      || initialWorkspaceCacheRef.current.bookedSessions.length
+      || initialWorkspaceCacheRef.current.recentOutcomes.length
+    )
   );
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
@@ -308,7 +386,8 @@ export default function CounselorSessionsWorkspace() {
     };
 
     const hasCachedWorkspace = initialWorkspaceCacheRef.current.openSlots.length > 0
-      || initialWorkspaceCacheRef.current.bookedSessions.length > 0;
+      || initialWorkspaceCacheRef.current.bookedSessions.length > 0
+      || initialWorkspaceCacheRef.current.recentOutcomes.length > 0;
 
     window.setTimeout(() => {
       if (active) {
@@ -321,6 +400,10 @@ export default function CounselorSessionsWorkspace() {
     }, 15000);
 
     const unsubscribeDashboardRefresh = subscribeCounselorDashboardRefresh(() => {
+      refreshWorkspace({ suppressError: true, suppressLoading: true });
+    });
+
+    const unsubscribeLiveRefresh = subscribeCounselingLiveRefresh(() => {
       refreshWorkspace({ suppressError: true, suppressLoading: true });
     });
 
@@ -341,20 +424,60 @@ export default function CounselorSessionsWorkspace() {
       active = false;
       window.clearInterval(intervalId);
       unsubscribeDashboardRefresh();
+      unsubscribeLiveRefresh();
       window.removeEventListener('focus', handleWindowFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
-  const upcomingSessions = useMemo(
-    () => workspace.bookedSessions.filter((session) => ['Confirmed', 'Ready', 'In Progress'].includes(session.status)),
+  const activeBookedSlotIds = useMemo(
+    () => new Set(
+      workspace.bookedSessions
+        .filter((session) => ACTIVE_SESSION_STATUSES.includes(session.status) && getSessionEndTimeStamp(session) > Date.now())
+        .map((session) => session.availabilityEntryId)
+        .filter(Boolean)
+    ),
     [workspace.bookedSessions]
+  );
+  const futureOpenSlots = useMemo(
+    () => sortSlots(
+      workspace.openSlots.filter((slot) => (
+        isFutureDateTime(normalizeSlotDate(slot.date), slot.startTime || slot.time)
+        && !activeBookedSlotIds.has(slot.availabilityEntryId)
+      ))
+    ),
+    [activeBookedSlotIds, workspace.openSlots]
+  );
+  const upcomingSessions = useMemo(
+    () => workspace.bookedSessions
+      .filter((session) => ACTIVE_SESSION_STATUSES.includes(session.status) && getSessionEndTimeStamp(session) > Date.now())
+      .sort((left, right) => getSessionDateTimeStamp(left) - getSessionDateTimeStamp(right)),
+    [workspace.bookedSessions]
+  );
+  const recentOutcomeSessions = useMemo(
+    () => (workspace.recentOutcomes?.length ? workspace.recentOutcomes : workspace.bookedSessions)
+      .filter((session) => OUTCOME_SESSION_STATUSES.includes(session.status))
+      .sort((left, right) => {
+        const outcomeDifference = getSessionOutcomeTimeStamp(right) - getSessionOutcomeTimeStamp(left);
+        return outcomeDifference || getSessionDateTimeStamp(right) - getSessionDateTimeStamp(left);
+      })
+      .slice(0, 8),
+    [workspace.bookedSessions, workspace.recentOutcomes]
+  );
+  const outcomeFilter = ALLOWED_OUTCOME_FILTERS.includes(searchParams.get('outcome'))
+    ? searchParams.get('outcome')
+    : 'all';
+  const filteredRecentOutcomeSessions = useMemo(
+    () => recentOutcomeSessions.filter((session) => (
+      outcomeFilter === 'no-show' ? session.status === 'No Show' : true
+    )),
+    [outcomeFilter, recentOutcomeSessions]
   );
 
   const filteredOpenSlots = useMemo(() => {
     const normalizedQuery = slotFilters.query.trim().toLowerCase();
 
-    return workspace.openSlots.filter((slot) => {
+    return futureOpenSlots.filter((slot) => {
       const matchesDate = !slotFilters.date || normalizeSlotDate(slot.date) === slotFilters.date;
       const matchesMode = slotFilters.mode === 'all' || slot.mode === slotFilters.mode;
       const matchesQuery = !normalizedQuery
@@ -362,11 +485,11 @@ export default function CounselorSessionsWorkspace() {
 
       return matchesDate && matchesMode && matchesQuery;
     });
-  }, [workspace.openSlots, slotFilters]);
+  }, [futureOpenSlots, slotFilters]);
 
   async function handleSubmitSlot(event) {
     event.preventDefault();
-    const nextErrors = validateSlotForm(slotForm, workspace.openSlots, editingSlotId);
+    const nextErrors = validateSlotForm(slotForm, futureOpenSlots, editingSlotId);
     setSlotErrors(nextErrors);
     if (Object.values(nextErrors).some(Boolean)) {
       setError('Please fix the slot form before saving.');
@@ -401,7 +524,7 @@ export default function CounselorSessionsWorkspace() {
       const refreshedWorkspace = await loadWorkspace();
       setEditingSlotId('');
       setSlotErrors({});
-      setSlotForm(getSuggestedSlotForm(refreshedWorkspace?.openSlots || []));
+      setSlotForm(getSuggestedSlotForm(refreshedWorkspace?.openSlots || futureOpenSlots));
     } catch (err) {
       const message = err.message || 'Failed to save counselor slot';
       if (/already exists/i.test(message)) {
@@ -421,11 +544,11 @@ export default function CounselorSessionsWorkspace() {
     setSlotForm(nextForm);
     setSlotErrors((current) => ({
       ...current,
-      [field]: validateSlotField(field, nextForm, workspace.openSlots, editingSlotId),
+      [field]: validateSlotField(field, nextForm, futureOpenSlots, editingSlotId),
       ...(field === 'date' || field === 'startTime'
         ? {
-            date: validateSlotField('date', nextForm, workspace.openSlots, editingSlotId),
-            startTime: validateSlotField('startTime', nextForm, workspace.openSlots, editingSlotId)
+            date: validateSlotField('date', nextForm, futureOpenSlots, editingSlotId),
+            startTime: validateSlotField('startTime', nextForm, futureOpenSlots, editingSlotId)
           }
         : {})
     }));
@@ -435,7 +558,7 @@ export default function CounselorSessionsWorkspace() {
   function startEditing(slot) {
     setEditingSlotId(slot.availabilityEntryId);
     setSlotForm({
-      date: new Date(slot.date).toISOString().slice(0, 10),
+      date: getDateInputValue(new Date(slot.date)),
       startTime: slot.startTime,
       duration: slot.duration,
       mode: slot.mode,
@@ -526,15 +649,15 @@ export default function CounselorSessionsWorkspace() {
                 <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
                   <div className="rounded-2xl border border-white/75 bg-white/78 px-4 py-3 shadow-sm backdrop-blur">
                     <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Open slots</p>
-                    <p className="mt-1 text-2xl font-semibold text-primary-text">{workspace.openSlots.length}</p>
+                    <p className="mt-1 text-2xl font-semibold text-primary-text">{futureOpenSlots.length}</p>
                   </div>
                   <div className="rounded-2xl border border-white/75 bg-white/78 px-4 py-3 shadow-sm backdrop-blur">
                     <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Active bookings</p>
                     <p className="mt-1 text-2xl font-semibold text-primary-text">{upcomingSessions.length}</p>
                   </div>
                   <div className="rounded-2xl border border-white/75 bg-white/78 px-4 py-3 shadow-sm backdrop-blur">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Total sessions</p>
-                    <p className="mt-1 text-2xl font-semibold text-primary-text">{workspace.bookedSessions.length}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Recent outcomes</p>
+                    <p className="mt-1 text-2xl font-semibold text-primary-text">{recentOutcomeSessions.length}</p>
                   </div>
                 </div>
               </div>
@@ -569,7 +692,7 @@ export default function CounselorSessionsWorkspace() {
                 <input
                   type="date"
                   value={slotForm.date}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={getDateInputValue()}
                   onChange={(event) => updateSlotField('date', event.target.value)}
                   className={cn('student-field', slotErrors.date && 'ring-2 ring-red-300')}
                 />
@@ -641,7 +764,7 @@ export default function CounselorSessionsWorkspace() {
                   onClick={() => {
                     setEditingSlotId('');
                     setSlotErrors({});
-                    setSlotForm(getSuggestedSlotForm(workspace.openSlots));
+                    setSlotForm(getSuggestedSlotForm(futureOpenSlots));
                   }}
                   className="pharmacy-secondary"
                 >
@@ -657,7 +780,7 @@ export default function CounselorSessionsWorkspace() {
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Open slot inventory</p>
                   <h2 className="mt-2 text-2xl font-semibold text-primary-text">{filteredOpenSlots.length} future slots ready for booking</h2>
-                  <p className="mt-2 text-sm text-secondary-text">Showing {filteredOpenSlots.length} of {workspace.openSlots.length} open slots.</p>
+                  <p className="mt-2 text-sm text-secondary-text">Showing {filteredOpenSlots.length} of {futureOpenSlots.length} open slots.</p>
                 </div>
               </div>
 
@@ -748,10 +871,10 @@ export default function CounselorSessionsWorkspace() {
                     </div>
                   )}
 
-                  {!workspace.openSlots.length && (
+                  {!futureOpenSlots.length && (
                     <p className="text-sm text-secondary-text">Create a slot to start publishing counselor availability.</p>
                   )}
-                  {workspace.openSlots.length > 0 && !filteredOpenSlots.length && (
+                  {futureOpenSlots.length > 0 && !filteredOpenSlots.length && (
                     <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-5 py-6 text-sm text-secondary-text">
                       No open slots match the current filters.
                     </div>
@@ -780,13 +903,36 @@ export default function CounselorSessionsWorkspace() {
                           index !== upcomingSessions.length - 1 && 'border-b border-white/70'
                         )}
                       >
+                        {(() => {
+                          const liveSessionLocked = isLiveSessionLocked(session);
+                          const sessionStartLabel = formatSessionStart(session);
+
+                          return (
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                           <div>
                             <Link to={`/counselor/sessions/${session._id}`} className="font-semibold text-primary-text">{session.studentName}</Link>
                             <p className="mt-1 text-sm text-secondary-text">{formatSlotDate(session.date)} • {session.time} • {session.typeLabel}</p>
+                            {liveSessionLocked && (
+                              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                <Lock className="h-3.5 w-3.5" />
+                                Opens at {sessionStartLabel}
+                              </div>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-3">
-                            <Link to={`/counselor/sessions/${session._id}`} className="pharmacy-secondary">Open Session</Link>
+                            {liveSessionLocked ? (
+                              <button
+                                type="button"
+                                disabled
+                                title={`This session opens at ${sessionStartLabel}`}
+                                className="pharmacy-secondary cursor-not-allowed opacity-60"
+                              >
+                                <Lock className="w-4 h-4" />
+                                Open Session
+                              </button>
+                            ) : (
+                              <Link to={`/counselor/sessions/${session._id}`} className="pharmacy-secondary">Open Session</Link>
+                            )}
                             <button
                               type="button"
                               onClick={() => handleCancelSession(session._id)}
@@ -797,11 +943,83 @@ export default function CounselorSessionsWorkspace() {
                             </button>
                           </div>
                         </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
                 ) : (
                   <p className="text-sm text-secondary-text">Booked sessions will move here once students reserve your open slots.</p>
+                )}
+              </div>
+            </section>
+
+            <section id="recent-outcomes" className="pharmacy-panel p-7">
+              <div className="flex items-center gap-3">
+                <NotebookPen className="w-5 h-5 text-accent-primary" />
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Recent outcomes</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-primary-text">Completed, cancelled, and no-show history</h2>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                {recentOutcomeSessions.length > 0 && (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border border-[#d7e4ea] bg-white/80 px-4 py-3">
+                    <p className="text-sm text-secondary-text">
+                      {outcomeFilter === 'no-show'
+                        ? `Showing ${filteredRecentOutcomeSessions.length} no-show session${filteredRecentOutcomeSessions.length === 1 ? '' : 's'}`
+                        : `Showing ${recentOutcomeSessions.length} recent outcome${recentOutcomeSessions.length === 1 ? '' : 's'}`}
+                    </p>
+                    {outcomeFilter === 'no-show' ? (
+                      <button
+                        type="button"
+                        onClick={() => setSearchParams({}, { replace: true })}
+                        className="pharmacy-secondary"
+                      >
+                        Clear filter
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+
+                {recentOutcomeSessions.length > 0 ? (
+                  <div className="max-h-[420px] overflow-y-auto rounded-[1.75rem] bg-secondary-bg/70">
+                    {filteredRecentOutcomeSessions.length > 0 ? filteredRecentOutcomeSessions.map((session, index) => (
+                      <div
+                        key={session._id}
+                        className={cn(
+                          'px-5 py-4',
+                          index !== filteredRecentOutcomeSessions.length - 1 && 'border-b border-white/70'
+                        )}
+                      >
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <Link to={`/counselor/sessions/${session._id}`} className="font-semibold text-primary-text">{session.studentName}</Link>
+                            <p className="mt-1 text-sm text-secondary-text">{formatSlotDate(session.date)} • {session.time} • {session.typeLabel}</p>
+                            {session.status === 'Cancelled' && (
+                              <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-rose-700">
+                                {getCancellationActorLabel(session)}
+                              </p>
+                            )}
+                            {session.status === 'Cancelled' && session.cancellationReason && (
+                              <p className="mt-1 text-sm text-secondary-text">Reason: {session.cancellationReason}</p>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className={cn('pharmacy-pill', getSessionStatusTone(session.status))}>{session.status}</span>
+                            <Link to={`/counselor/sessions/${session._id}`} className="pharmacy-secondary">Review Session</Link>
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="px-5 py-6 text-sm text-secondary-text">
+                        No recent outcome sessions match the current filter.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-secondary-text">Completed, cancelled, and no-show sessions will appear here for quick follow-through.</p>
                 )}
               </div>
             </section>

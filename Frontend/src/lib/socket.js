@@ -122,6 +122,12 @@ export function onAvailabilityUpdated(callback) {
   return () => socketInstance?.off('availability:updated', callback);
 }
 
+export function onCounselingSessionUpdated(callback) {
+  if (!socketInstance) return undefined;
+  socketInstance.on('counseling:session-updated', callback);
+  return () => socketInstance?.off('counseling:session-updated', callback);
+}
+
 export function onQueuePositionUpdate(appointmentId, callback) {
   if (!socketInstance || !appointmentId) return undefined;
   socketInstance.on(`queue:${appointmentId}:position`, callback);
@@ -171,6 +177,7 @@ export default {
   onPrescriptionCreated,
   onNotification,
   onAvailabilityUpdated,
+  onCounselingSessionUpdated,
   onQueuePositionUpdate,
   emitCheckIn,
   emitDoctorReady,

@@ -5,7 +5,7 @@ import Feedback from '../models/Feedback.js';
 import Notification from '../models/Notification.js';
 import Resource from '../models/Resource.js';
 import User from '../models/User.js';
-import { emitToConversation, emitToUser } from '../utils/socket.js';
+import { emitAvailabilityUpdate, emitToConversation, emitToUser } from '../utils/socket.js';
 import {
   buildJitsiEmbedLink,
   buildJitsiMeetingLink,
@@ -19,10 +19,25 @@ import {
   toDisplayTime,
   toMinutes
 } from '../utils/timeSlots.js';
+import {
+  clearCounselingSessionForNoShow,
+  compareCounselingSessionDateTimeAsc,
+  compareCounselingSessionDateTimeDesc,
+  compareCounselingSessionOutcomeDesc,
+  COUNSELING_ACTIVE_SLOT_STATUSES,
+  COUNSELING_BOOKING_CONFLICT_STATUSES,
+  COUNSELING_MANAGEABLE_SESSION_STATUSES,
+  COUNSELING_TERMINAL_STATUSES,
+  getCounselingSessionDateTime,
+  getCounselingSessionEndDateTime,
+  getCounselingSessionOutcomeDateTime,
+  isHistoryCounselingSession,
+  isCounselingSessionStarted,
+  isUpcomingCounselingSession,
+  syncCounselingNoShows,
+  syncCounselingSessionNoShow
+} from '../utils/counselingSessions.js';
 
-const ACTIVE_SLOT_STATUSES = ['Confirmed', 'Ready', 'In Progress', 'Completed'];
-const WORKSPACE_SESSION_STATUSES = ['Confirmed', 'Ready', 'In Progress', 'Completed'];
-const MANAGEABLE_SESSION_STATUSES = ['Confirmed', 'Ready', 'In Progress'];
 const SESSION_LIST_FIELDS = [
   'availabilityEntryId',
   'studentId',
@@ -69,9 +84,32 @@ function buildMeetingFields(mode, sessionId) {
   };
 }
 
+function canAccessLiveSession(session, viewerRole) {
+  if (COUNSELING_TERMINAL_STATUSES.includes(session?.status)) {
+    return false;
+  }
+
+  return isCounselingSessionStarted(session);
+}
+
+function buildSessionNotStartedMessage(session) {
+  const dateLabel = session?.date ? new Date(session.date).toLocaleDateString() : 'the scheduled date';
+  return `This counseling session opens on ${dateLabel} at ${session?.time || 'the scheduled time'}.`;
+}
+
+function getCancelledByLabel(cancelledBy) {
+  if (cancelledBy === 'student') return 'Student';
+  if (cancelledBy === 'counselor') return 'Counselor';
+  if (cancelledBy === 'system') return 'System';
+  return '';
+}
+
 function getAllowedActions(session, viewerRole) {
+  const isUpcoming = isUpcomingCounselingSession(session);
+  const hasStarted = isCounselingSessionStarted(session);
+
   const actions = {
-    canJoin: !['Cancelled', 'Completed'].includes(session.status),
+    canJoin: canAccessLiveSession(session, viewerRole),
     canCheckIn: false,
     canReschedule: false,
     canCancel: false,
@@ -80,15 +118,15 @@ function getAllowedActions(session, viewerRole) {
   };
 
   if (viewerRole === 'student') {
-    actions.canCheckIn = session.status === 'Confirmed';
-    actions.canReschedule = ['Confirmed', 'Ready'].includes(session.status);
-    actions.canCancel = ['Confirmed', 'Ready'].includes(session.status);
+    actions.canCheckIn = session.status === 'Confirmed' && hasStarted && isUpcoming;
+    actions.canReschedule = ['Confirmed', 'Ready'].includes(session.status) && isUpcoming;
+    actions.canCancel = ['Confirmed', 'Ready'].includes(session.status) && isUpcoming;
     actions.canLeaveFeedback = session.status === 'Completed' && !session.feedbackSubmitted;
   }
 
   if (viewerRole === 'counselor') {
-    actions.canReschedule = MANAGEABLE_SESSION_STATUSES.includes(session.status);
-    actions.canCancel = MANAGEABLE_SESSION_STATUSES.includes(session.status);
+    actions.canReschedule = ['Confirmed', 'Ready'].includes(session.status) && isUpcoming;
+    actions.canCancel = COUNSELING_MANAGEABLE_SESSION_STATUSES.includes(session.status) && isUpcoming;
     actions.canManageNotes = true;
   }
 
@@ -99,12 +137,19 @@ function serializeSession(session, viewerRole) {
   const data = session.toObject ? session.toObject() : { ...session };
   const mode = getSessionMode(data);
   const meeting = buildMeetingFields(mode, data._id);
+  const allowedActions = getAllowedActions(data, viewerRole);
 
   data.mode = mode;
   data.typeLabel = getCounselingModeLabel(mode);
-  data.meetingLink = meeting.meetingLink;
-  data.meetingEmbedUrl = meeting.meetingEmbedUrl;
-  data.allowedActions = getAllowedActions(data, viewerRole);
+  data.cancelledByLabel = getCancelledByLabel(data.cancelledBy);
+  data.startsAt = getCounselingSessionDateTime(data).toISOString();
+  data.endsAt = getCounselingSessionEndDateTime(data).toISOString();
+  data.outcomeAt = COUNSELING_TERMINAL_STATUSES.includes(data.status)
+    ? getCounselingSessionOutcomeDateTime(data).toISOString()
+    : null;
+  data.meetingLink = allowedActions.canJoin ? meeting.meetingLink : null;
+  data.meetingEmbedUrl = allowedActions.canJoin ? meeting.meetingEmbedUrl : null;
+  data.allowedActions = allowedActions;
 
   if (viewerRole !== 'counselor') {
     delete data.confidentialNotes;
@@ -136,6 +181,15 @@ function getSlotEndTime(startTime, duration) {
 
 function isFutureSlot(entry) {
   return !isDateTimeInPast(entry.date, entry.startTime);
+}
+
+function isCounselorWorkspaceActiveSession(session) {
+  return COUNSELING_MANAGEABLE_SESSION_STATUSES.includes(session?.status)
+    && getCounselingSessionEndDateTime(session).getTime() > Date.now();
+}
+
+function isCounselorWorkspaceOutcomeSession(session) {
+  return COUNSELING_TERMINAL_STATUSES.includes(session?.status);
 }
 
 function formatSlot(entry, linkedSession = null) {
@@ -176,12 +230,53 @@ async function sendCounselingNotification({ createdBy, recipients, title, messag
   });
 }
 
+function buildCounselingLivePayload(action, { session = null, slot = null, counselorId = null, availabilityEntryId = null } = {}) {
+  const resolvedCounselorId = counselorId || session?.counselorId || slot?.providerId || null;
+  const resolvedAvailabilityEntryId = availabilityEntryId || session?.availabilityEntryId || slot?._id || null;
+
+  return {
+    module: 'counseling',
+    role: 'counselor',
+    action,
+    sessionId: session?._id?.toString?.() || null,
+    counselorId: resolvedCounselorId?.toString?.() || null,
+    providerId: resolvedCounselorId?.toString?.() || null,
+    studentId: session?.studentId?.toString?.() || null,
+    availabilityId: resolvedAvailabilityEntryId?.toString?.() || null,
+    availabilityEntryId: resolvedAvailabilityEntryId?.toString?.() || null,
+    date: slot?.date || session?.date || null,
+    time: slot?.startTime || session?.time || null,
+    status: session?.status || slot?.status || null
+  };
+}
+
+function emitCounselingLiveRefresh(action, context = {}) {
+  const payload = buildCounselingLivePayload(action, context);
+
+  emitAvailabilityUpdate(payload);
+
+  if (context.session?.studentId) {
+    emitToUser(context.session.studentId, 'counseling:session-updated', payload);
+  }
+
+  if (context.session?.counselorId) {
+    emitToUser(context.session.counselorId, 'counseling:session-updated', payload);
+  } else if (context.counselorId || context.slot?.providerId) {
+    emitToUser(context.counselorId || context.slot.providerId, 'counseling:session-updated', payload);
+  }
+}
+
 function isChatSession(session) {
   return normalizeCounselingMode(session?.type || session?.mode) === 'chat';
 }
 
 function canUseChat(session) {
-  return !['Cancelled', 'Completed'].includes(session?.status);
+  return !COUNSELING_TERMINAL_STATUSES.includes(session?.status);
+}
+
+function canViewChat(session, viewerRole) {
+  return COUNSELING_TERMINAL_STATUSES.includes(session?.status)
+    || isCounselingSessionStarted(session);
 }
 
 async function getOrCreateCounselingConversation(session) {
@@ -266,6 +361,8 @@ async function findAuthorizedSession(req, populateResources = false) {
     return { error: { status: 403, message: 'Unauthorized' } };
   }
 
+  await syncCounselingSessionNoShow(session);
+
   return { session };
 }
 
@@ -283,7 +380,7 @@ async function findCounselorSlot(slotId, counselorId) {
 async function isSlotBooked(slotId, excludeSessionId = null) {
   const query = {
     availabilityEntryId: slotId,
-    status: { $in: ACTIVE_SLOT_STATUSES }
+    status: { $in: COUNSELING_ACTIVE_SLOT_STATUSES }
   };
 
   if (excludeSessionId) {
@@ -291,6 +388,36 @@ async function isSlotBooked(slotId, excludeSessionId = null) {
   }
 
   return Boolean(await CounselingSession.findOne(query).select('_id'));
+}
+
+async function findStudentBookingConflict({ studentId, date, time, excludeSessionId = null }) {
+  if (!studentId || !date || !time) {
+    return null;
+  }
+
+  const query = {
+    studentId,
+    date: normalizeDateOnly(date),
+    time,
+    status: { $in: COUNSELING_BOOKING_CONFLICT_STATUSES }
+  };
+
+  if (excludeSessionId) {
+    query._id = { $ne: excludeSessionId };
+  }
+
+  return CounselingSession.findOne(query).select('counselorName date time type status');
+}
+
+function buildStudentBookingConflictMessage(conflictSession) {
+  if (!conflictSession) {
+    return 'You already have another counseling session booked at this date and time.';
+  }
+
+  const dateLabel = new Date(conflictSession.date).toLocaleDateString();
+  const counselorLabel = conflictSession.counselorName ? ` with ${conflictSession.counselorName}` : '';
+
+  return `You already have a counseling session${counselorLabel} on ${dateLabel} at ${conflictSession.time}. Choose a different time.`;
 }
 
 function validateSlotPayload({ date, startTime, duration, mode }) {
@@ -479,7 +606,7 @@ async function getOpenCounselorSlots(counselorId, date) {
 
   const activeSessions = await CounselingSession.find({
     availabilityEntryId: { $in: futureEntries.map((entry) => entry._id) },
-    status: { $in: ACTIVE_SLOT_STATUSES }
+    status: { $in: COUNSELING_ACTIVE_SLOT_STATUSES }
   })
     .select('availabilityEntryId')
     .lean();
@@ -524,7 +651,7 @@ async function getOpenCounselorSlotsBatch(counselorIds = [], date = null) {
 
   const activeSessions = await CounselingSession.find({
     availabilityEntryId: { $in: futureEntries.map((entry) => entry._id) },
-    status: { $in: ACTIVE_SLOT_STATUSES }
+    status: { $in: COUNSELING_ACTIVE_SLOT_STATUSES }
   })
     .select('availabilityEntryId _id status')
     .lean();
@@ -678,6 +805,30 @@ const getCounselingSessions = async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
     const query = createListQuery(req);
+    const scope = `${req.query.scope || ''}`.trim().toLowerCase();
+
+    await syncCounselingNoShows(query);
+
+    if (scope === 'upcoming' || scope === 'history') {
+      const scopedSessions = await CounselingSession.find(query)
+        .select(SESSION_LIST_FIELDS)
+        .lean();
+
+      const filteredSessions = scopedSessions
+        .filter((session) => (scope === 'upcoming' ? isUpcomingCounselingSession(session) : isHistoryCounselingSession(session)))
+        .sort(scope === 'upcoming' ? compareCounselingSessionDateTimeAsc : compareCounselingSessionDateTimeDesc);
+
+      const total = filteredSessions.length;
+      const pageSessions = filteredSessions.slice((page - 1) * limit, page * limit);
+
+      return res.json({
+        sessions: pageSessions.map((session) => serializeSession(session, req.user.role)),
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        total
+      });
+    }
+
     const [sessions, total] = await Promise.all([
       CounselingSession.find(query)
         .select(SESSION_LIST_FIELDS)
@@ -701,6 +852,9 @@ const getCounselingSessions = async (req, res) => {
 
 const getCounselorWorkspace = async (req, res) => {
   try {
+    await syncCounselingNoShows({ counselorId: req.user.id });
+    const today = normalizeDateOnly(new Date());
+
     const slotEntries = await Availability.find({
       providerId: req.user.id,
       role: 'counselor',
@@ -712,7 +866,7 @@ const getCounselorWorkspace = async (req, res) => {
     const futureSlots = slotEntries.filter(isFutureSlot);
     const linkedSessions = await CounselingSession.find({
       availabilityEntryId: { $in: futureSlots.map((entry) => entry._id) },
-      status: { $in: ACTIVE_SLOT_STATUSES }
+      status: { $in: COUNSELING_ACTIVE_SLOT_STATUSES }
     }).select('availabilityEntryId _id status');
 
     const sessionBySlotId = new Map(
@@ -723,17 +877,36 @@ const getCounselorWorkspace = async (req, res) => {
       .filter((entry) => !sessionBySlotId.has(entry._id.toString()))
       .map((entry) => formatSlot(entry));
 
-    const bookedSessions = await CounselingSession.find({
-      counselorId: req.user.id,
-      status: { $in: WORKSPACE_SESSION_STATUSES }
-    })
-      .sort({ date: 1, time: 1 })
-      .limit(50)
-      .populate('assignedResources', 'title type category coverImage');
+    const [activeSessionCandidates, outcomeSessionCandidates] = await Promise.all([
+      CounselingSession.find({
+        counselorId: req.user.id,
+        status: { $in: COUNSELING_MANAGEABLE_SESSION_STATUSES },
+        date: { $gte: today }
+      })
+        .sort({ date: 1, time: 1 })
+        .limit(80)
+        .populate('assignedResources', 'title type category coverImage'),
+      CounselingSession.find({
+        counselorId: req.user.id,
+        status: { $in: COUNSELING_TERMINAL_STATUSES }
+      })
+        .sort({ updatedAt: -1, date: -1, time: -1 })
+        .limit(200)
+        .populate('assignedResources', 'title type category coverImage')
+    ]);
+
+    const bookedSessions = activeSessionCandidates
+      .filter(isCounselorWorkspaceActiveSession)
+      .sort(compareCounselingSessionDateTimeAsc);
+    const recentOutcomes = outcomeSessionCandidates
+      .filter(isCounselorWorkspaceOutcomeSession)
+      .sort(compareCounselingSessionOutcomeDesc)
+      .slice(0, 8);
 
     res.json({
       openSlots,
-      bookedSessions: bookedSessions.map((session) => serializeSession(session, 'counselor'))
+      bookedSessions: bookedSessions.map((session) => serializeSession(session, 'counselor')),
+      recentOutcomes: recentOutcomes.map((session) => serializeSession(session, 'counselor'))
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -765,6 +938,10 @@ const getCounselingSessionChat = async (req, res) => {
       return res.status(409).json({ message: 'Live chat is available only for chat counseling sessions' });
     }
 
+    if (!canViewChat(session, req.user.role)) {
+      return res.status(409).json({ message: buildSessionNotStartedMessage(session) });
+    }
+
     const conversation = await getOrCreateCounselingConversation(session);
     const populatedConversation = await populateConversation(conversation._id);
 
@@ -781,7 +958,7 @@ const getCounselingSessionChat = async (req, res) => {
     res.json({
       conversationId: refreshedConversation._id,
       sessionId: session._id,
-      canSend: canUseChat(session),
+      canSend: canUseChat(session) && canAccessLiveSession(session, req.user.role),
       messages: refreshedConversation.messages.map(serializeConversationMessage)
     });
   } catch (error) {
@@ -800,6 +977,11 @@ const sendCounselingSessionChatMessage = async (req, res) => {
     if (!isChatSession(session)) {
       return res.status(409).json({ message: 'Live chat is available only for chat counseling sessions' });
     }
+
+    if (!canAccessLiveSession(session, req.user.role)) {
+      return res.status(409).json({ message: buildSessionNotStartedMessage(session) });
+    }
+
     if (!canUseChat(session)) {
       return res.status(409).json({ message: `This chat session is no longer active because it is ${session.status.toLowerCase()}` });
     }
@@ -868,6 +1050,10 @@ const markCounselingSessionChatRead = async (req, res) => {
     const session = result.session;
     if (!isChatSession(session)) {
       return res.status(409).json({ message: 'Live chat is available only for chat counseling sessions' });
+    }
+
+    if (!canViewChat(session, req.user.role)) {
+      return res.status(409).json({ message: buildSessionNotStartedMessage(session) });
     }
 
     const conversation = await getOrCreateCounselingConversation(session);
@@ -947,6 +1133,7 @@ const createCounselorSlot = async (req, res) => {
       status: 'Active'
     });
 
+    emitCounselingLiveRefresh('slot-created', { slot: entry, counselorId: req.user.id });
     res.status(201).json(formatSlot(entry));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -1010,6 +1197,7 @@ const updateCounselorSlot = async (req, res) => {
     entry.notes = req.body.notes ?? entry.notes;
     await entry.save();
 
+    emitCounselingLiveRefresh('slot-updated', { slot: entry, counselorId: req.user.id });
     res.json(formatSlot(entry));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -1027,7 +1215,9 @@ const deleteCounselorSlot = async (req, res) => {
       return res.status(409).json({ message: 'Booked slots cannot be removed' });
     }
 
+    const deletedSlotSnapshot = entry.toObject();
     await entry.deleteOne();
+    emitCounselingLiveRefresh('slot-deleted', { slot: deletedSlotSnapshot, counselorId: req.user.id });
     res.json({ message: 'Slot deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -1059,6 +1249,16 @@ const createCounselingSession = async (req, res) => {
 
     if (await isSlotBooked(slot._id)) {
       return res.status(409).json({ message: 'This slot has already been booked' });
+    }
+
+    const bookingConflict = await findStudentBookingConflict({
+      studentId: req.user.id,
+      date: slot.date,
+      time: slot.startTime
+    });
+
+    if (bookingConflict) {
+      return res.status(409).json({ message: buildStudentBookingConflictMessage(bookingConflict) });
     }
 
     const counselor = await User.findById(slot.providerId).select('name specialty profileImage role');
@@ -1101,6 +1301,7 @@ const createCounselingSession = async (req, res) => {
       link: `/mental-health/sessions/${session._id}`
     });
 
+    emitCounselingLiveRefresh('session-created', { session });
     res.status(201).json(serializeSession(session, req.user.role));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -1115,8 +1316,12 @@ const rescheduleCounselingSession = async (req, res) => {
     }
 
     const session = result.session;
-    if (!MANAGEABLE_SESSION_STATUSES.includes(session.status)) {
+    if (!['Confirmed', 'Ready'].includes(session.status)) {
       return res.status(409).json({ message: 'This session can no longer be rescheduled' });
+    }
+
+    if (!isUpcomingCounselingSession(session)) {
+      return res.status(409).json({ message: 'This session has already ended and can no longer be rescheduled' });
     }
 
     const { availabilityEntryId } = req.body;
@@ -1144,6 +1349,17 @@ const rescheduleCounselingSession = async (req, res) => {
       return res.status(409).json({ message: 'Replacement slot is already booked' });
     }
 
+    const bookingConflict = await findStudentBookingConflict({
+      studentId: session.studentId,
+      date: nextSlot.date,
+      time: nextSlot.startTime,
+      excludeSessionId: session._id
+    });
+
+    if (bookingConflict) {
+      return res.status(409).json({ message: buildStudentBookingConflictMessage(bookingConflict) });
+    }
+
     session.availabilityEntryId = nextSlot._id;
     session.date = nextSlot.date;
     session.time = nextSlot.startTime;
@@ -1162,6 +1378,7 @@ const rescheduleCounselingSession = async (req, res) => {
       link: req.user.role === 'counselor' ? `/counselor/sessions/${session._id}` : `/mental-health/sessions/${session._id}`
     });
 
+    emitCounselingLiveRefresh('session-rescheduled', { session });
     res.json(serializeSession(session, req.user.role));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -1176,8 +1393,16 @@ const deleteCounselingSession = async (req, res) => {
     }
 
     const session = result.session;
-    if (!MANAGEABLE_SESSION_STATUSES.includes(session.status)) {
+    const canCancelSession = req.user.role === 'student'
+      ? ['Confirmed', 'Ready'].includes(session.status)
+      : COUNSELING_MANAGEABLE_SESSION_STATUSES.includes(session.status);
+
+    if (!canCancelSession) {
       return res.status(409).json({ message: 'This session can no longer be deleted' });
+    }
+
+    if (!isUpcomingCounselingSession(session)) {
+      return res.status(409).json({ message: 'This session has already ended and can no longer be cancelled' });
     }
 
     await clearSessionForCancellation(session, req.user.role, req.body?.cancellationReason || 'Booking removed');
@@ -1190,6 +1415,7 @@ const deleteCounselingSession = async (req, res) => {
       link: req.user.role === 'counselor' ? '/counselor/sessions' : '/mental-health/sessions'
     });
 
+    emitCounselingLiveRefresh('session-cancelled', { session });
     res.json({
       message: 'Booking cancelled and slot reopened',
       session: serializeSession(session, req.user.role)
@@ -1210,7 +1436,7 @@ const updateCounselingSessionStatus = async (req, res) => {
 
     const session = result.session;
     const studentStatuses = ['Ready', 'Cancelled'];
-    const counselorStatuses = ['Confirmed', 'In Progress', 'Completed', 'Cancelled'];
+    const counselorStatuses = ['Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show'];
 
     if (req.user.role === 'student' && !studentStatuses.includes(status)) {
       return res.status(403).json({ message: 'Students can only check in or cancel sessions' });
@@ -1220,10 +1446,39 @@ const updateCounselingSessionStatus = async (req, res) => {
       return res.status(403).json({ message: 'Invalid status transition for counselor' });
     }
 
+    if (session.status === status) {
+      return res.json(serializeSession(session, req.user.role));
+    }
+
+    if (COUNSELING_TERMINAL_STATUSES.includes(session.status)) {
+      return res.status(409).json({ message: `This session is already ${session.status.toLowerCase()} and can no longer change status` });
+    }
+
     if (req.user.role === 'student' && status === 'Ready') {
-      const today = normalizeDateOnly(new Date());
-      if (normalizeDateOnly(session.date).getTime() !== today.getTime()) {
-        return res.status(409).json({ message: 'Sessions can only be checked in on the scheduled date' });
+      if (getCounselingSessionEndDateTime(session).getTime() <= Date.now()) {
+        return res.status(409).json({ message: 'This session has already ended and can no longer be checked in' });
+      }
+
+      if (!isCounselingSessionStarted(session)) {
+        return res.status(409).json({ message: buildSessionNotStartedMessage(session) });
+      }
+    }
+
+    if (req.user.role === 'student' && status === 'Cancelled' && !isUpcomingCounselingSession(session)) {
+      return res.status(409).json({ message: 'This session has already ended and can no longer be cancelled' });
+    }
+
+    if (req.user.role === 'counselor' && ['In Progress', 'Completed'].includes(status) && !isCounselingSessionStarted(session)) {
+      return res.status(409).json({ message: buildSessionNotStartedMessage(session) });
+    }
+
+    if (req.user.role === 'counselor' && status === 'No Show') {
+      if (!['Confirmed', 'Ready'].includes(session.status)) {
+        return res.status(409).json({ message: 'Only confirmed or ready sessions can be marked as No Show' });
+      }
+
+      if (!isDateTimeInPast(session.date, session.time)) {
+        return res.status(400).json({ message: 'No Show can only be marked after the scheduled time has passed' });
       }
     }
 
@@ -1273,6 +1528,9 @@ const updateCounselingSessionStatus = async (req, res) => {
 
     if (status === 'Cancelled') {
       await clearSessionForCancellation(session, req.user.role, cancellationReason || 'Session cancelled');
+    } else if (status === 'No Show') {
+      clearCounselingSessionForNoShow(session);
+      await session.save();
     } else {
       session.status = status;
       if (status === 'Ready') {
@@ -1282,6 +1540,7 @@ const updateCounselingSessionStatus = async (req, res) => {
     }
 
     const serializedSession = serializeSession(session, req.user.role);
+    emitCounselingLiveRefresh('session-status-updated', { session });
     res.json(serializedSession);
 
     void sendCounselingNotification({
@@ -1402,6 +1661,7 @@ const updateCounselingSessionNotes = async (req, res) => {
     await session.save();
     await session.populate('assignedResources', 'title type category coverImage');
 
+    emitCounselingLiveRefresh('session-notes-updated', { session });
     res.json(serializeSession(session, req.user.role));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -1490,6 +1750,7 @@ const submitCounselingFeedback = async (req, res) => {
     session.feedbackSubmitted = true;
     await session.save();
 
+    emitCounselingLiveRefresh('session-feedback-submitted', { session });
     res.status(201).json({
       feedbackSubmitted: true,
       feedback

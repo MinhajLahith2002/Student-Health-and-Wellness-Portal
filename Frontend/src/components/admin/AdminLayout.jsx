@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
-import { motion, AnimatePresence } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -22,16 +21,17 @@ const AdminLayout = ({ children }) => {
   const footerLabel = user?.role === 'admin' ? 'Admin Portal' : breadcrumbRoot;
 
   useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    const handleResize = () => {
+      const nextIsDesktop = window.innerWidth >= 1024;
+      setIsDesktop(nextIsDesktop);
+      if (nextIsDesktop) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  useEffect(() => {
-    if (isDesktop) {
-      setIsMobileSidebarOpen(false);
-    }
-  }, [isDesktop]);
 
   return (
     <div className="min-h-screen bg-[#FCFCFC] flex">
@@ -65,17 +65,9 @@ const AdminLayout = ({ children }) => {
             ))}
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <div className="min-w-0">
+            {children}
+          </div>
         </div>
 
         {/* Footer */}

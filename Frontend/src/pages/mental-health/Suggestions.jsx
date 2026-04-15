@@ -165,28 +165,29 @@ export default function Suggestions() {
       <div className="px-4 sm:px-6 max-w-7xl mx-auto">
         <header className="student-hero px-5 sm:px-8 md:px-10 py-8 sm:py-10 md:py-12">
           <div className="flex flex-col gap-6">
-            <div className="max-w-3xl">
-              <div className="flex flex-col items-start gap-4">
-                <Link
-                  to="/mental-health"
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-semibold text-primary-text shadow-[0_12px_24px_rgba(15,41,66,0.06)]"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to mental health
-                </Link>
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-3xl">
                 <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-700">
                   <Sparkles className="h-3 w-3" />
                   Personalized suggestions
                 </div>
+                <h1 className="mt-6 text-4xl font-semibold tracking-tight text-primary-text sm:text-5xl">
+                  Recommended support
+                </h1>
+                <p className="mt-4 max-w-3xl text-lg leading-8 text-secondary-text">
+                  {context.isFallback
+                    ? 'Helpful support picks are ready while your mood history is still growing.'
+                    : 'These recommendations are shaped by your latest mood, your recent pattern, and the wellness topics showing up in your check-ins.'}
+                </p>
               </div>
-              <h1 className="mt-6 text-4xl font-semibold tracking-tight text-primary-text sm:text-5xl">
-                Recommended support
-              </h1>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-secondary-text">
-                {context.isFallback
-                  ? 'Helpful support picks are ready while your mood history is still growing.'
-                  : 'These recommendations are shaped by your latest mood, your recent pattern, and the wellness topics showing up in your check-ins.'}
-              </p>
+
+              <Link
+                to="/mental-health"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-semibold text-primary-text shadow-[0_12px_24px_rgba(15,41,66,0.06)] lg:w-auto lg:shrink-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to mental health
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

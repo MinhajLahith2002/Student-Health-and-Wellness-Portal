@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, FileText, MapPin, Save, Video } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, Lock, MapPin, MessageSquareText, Save, Video } from 'lucide-react';
 import {
   getCachedCounselingSessionById,
+  getCancellationActorLabel,
   getCounselingSessionById,
+  parseCounselingDateTime,
+  subscribeCounselingLiveRefresh,
   updateCounselingSessionNotes,
   updateCounselingSessionStatus
 } from '../../lib/counseling';
@@ -144,6 +147,87 @@ function hasPendingCounselorNoteChanges(session, values) {
   );
 }
 
+function getSessionStatusTone(status) {
+  if (status === 'Completed') return 'bg-emerald-50 text-emerald-700';
+  if (status === 'Cancelled') return 'bg-rose-50 text-rose-700';
+  if (status === 'No Show') return 'bg-amber-50 text-amber-700';
+  return 'bg-sky-50 text-sky-700';
+}
+
+function getSessionStartDate(session) {
+  const serverStart = session?.startsAt ? new Date(session.startsAt) : null;
+  if (serverStart && !Number.isNaN(serverStart.getTime())) {
+    return serverStart;
+  }
+
+  return parseCounselingDateTime(session?.date, session?.time);
+}
+
+function formatSessionStart(session) {
+  const startDate = getSessionStartDate(session);
+  if (!startDate) {
+    return session?.time || 'the scheduled time';
+  }
+
+  return startDate.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function hasSessionStarted(session) {
+  const startDate = getSessionStartDate(session);
+  return Boolean(startDate && startDate.getTime() <= Date.now());
+}
+
+function LockedLiveSessionPanel({ mode, startLabel }) {
+  const isVideo = mode === 'video';
+  const Icon = isVideo ? Video : MessageSquareText;
+
+  return (
+    <div className="mt-8 overflow-hidden rounded-[1.75rem] border border-[#d7e4ea] bg-white/85">
+      <div className="flex flex-col gap-4 border-b border-[#d7e4ea] bg-secondary-bg/60 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+            <Lock className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">
+              {isVideo ? 'Video room locked' : 'Chat locked'}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-secondary-text">
+              This {isVideo ? 'video room' : 'chat'} opens at {startLabel}. It is visible now, but cannot be used before the scheduled start time.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled
+          className="pharmacy-secondary cursor-not-allowed opacity-60"
+        >
+          <Lock className="h-4 w-4" />
+          Opens at scheduled time
+        </button>
+      </div>
+
+      <div className="relative min-h-[280px] bg-white/70 p-6">
+        <div className="pointer-events-none grid h-full min-h-[220px] place-items-center rounded-[1.5rem] border border-dashed border-[#c9dde6] bg-secondary-bg/70 opacity-55">
+          <div className="text-center">
+            <Icon className="mx-auto h-10 w-10 text-secondary-text" />
+            <p className="mt-3 text-sm font-semibold text-primary-text">
+              {isVideo ? 'Counseling video session' : 'Live counseling chat'}
+            </p>
+            <p className="mt-1 text-sm text-secondary-text">Locked until {startLabel}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CounselingSessionPage() {
   const { sessionId } = useParams();
   const { user, token } = useAuth();
@@ -170,11 +254,17 @@ export default function CounselingSessionPage() {
 
   const isCounselor = user?.role === 'counselor';
   const canManageCounselorDocumentation = isCounselor && ['In Progress', 'Completed'].includes(session?.status);
+  const sessionHasStarted = useMemo(() => hasSessionStarted(session), [session]);
+  const canUseLiveSession = Boolean(session?.allowedActions?.canJoin && sessionHasStarted);
+  const isPreStartLiveSessionLocked = ['video', 'chat'].includes(session?.mode)
+    && ['Confirmed', 'Ready'].includes(session?.status)
+    && !sessionHasStarted;
+  const sessionStartLabel = useMemo(() => formatSessionStart(session), [session]);
 
   useEffect(() => {
     let active = true;
 
-    (async () => {
+    const loadSessionDetails = async ({ silent = false } = {}) => {
       try {
         const sessionPromise = getCounselingSessionById(sessionId);
         const resourcePromise = user?.role === 'counselor'
@@ -195,14 +285,30 @@ export default function CounselingSessionPage() {
         setFollowUpDate(sessionData.followUpDate ? getLocalDateValue(new Date(sessionData.followUpDate)) : '');
         setSelectedResources(Array.isArray(sessionData.assignedResources) ? sessionData.assignedResources.map((entry) => entry._id || entry) : []);
         setNoteErrors({});
+        if (!silent) {
+          setError('');
+        }
       } catch (err) {
         if (!active) return;
-        setError(err.message || 'Failed to load counseling session');
+        if (!silent) {
+          setError(err.message || 'Failed to load counseling session');
+        }
       }
-    })();
+    };
+
+    loadSessionDetails();
+
+    const unsubscribeLiveRefresh = subscribeCounselingLiveRefresh((payload) => {
+      if (payload?.sessionId && payload.sessionId !== sessionId) {
+        return;
+      }
+
+      loadSessionDetails({ silent: true });
+    });
 
     return () => {
       active = false;
+      unsubscribeLiveRefresh();
     };
   }, [sessionId, user?.role]);
 
@@ -302,6 +408,22 @@ export default function CounselingSessionPage() {
     }
   }
 
+  function canSelectCounselorStatus(status) {
+    if (!isCounselor || !session || updatingStatus || session.status === status) {
+      return false;
+    }
+
+    if (['Completed', 'Cancelled', 'No Show'].includes(session.status)) {
+      return false;
+    }
+
+    if (['In Progress', 'Completed', 'No Show'].includes(status) && !sessionHasStarted) {
+      return false;
+    }
+
+    return true;
+  }
+
   if (!session) {
     return <div className="pharmacy-shell pt-36 px-6"><div className="max-w-6xl mx-auto pharmacy-panel p-8 text-secondary-text">{error || 'Loading counseling session...'}</div></div>;
   }
@@ -312,7 +434,7 @@ export default function CounselingSessionPage() {
         <div className="grid gap-8 xl:grid-cols-[1.15fr,0.85fr]">
         <section className="pharmacy-panel p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <span className="pharmacy-pill bg-sky-50 text-sky-700">{session.status}</span>
+            <span className={cn('pharmacy-pill', getSessionStatusTone(session.status))}>{session.status}</span>
             {isCounselor ? (
               <button
                 type="button"
@@ -351,6 +473,9 @@ export default function CounselingSessionPage() {
               <p className="mt-3 text-sm leading-6 text-secondary-text">
                 This counseling session is marked as cancelled and is no longer active.
               </p>
+              <p className="mt-3 text-sm font-semibold leading-6 text-rose-700">
+                {getCancellationActorLabel(session)}.
+              </p>
               {session.cancellationReason && (
                 <p className="mt-3 text-sm leading-6 text-secondary-text">
                   Reason: {session.cancellationReason}
@@ -359,7 +484,16 @@ export default function CounselingSessionPage() {
             </div>
           )}
 
-          {session.mode === 'video' && session.meetingLink && session.allowedActions?.canJoin && (
+          {session.status === 'No Show' && (
+            <div className="mt-6 rounded-[1.5rem] border border-amber-100 bg-amber-50/90 p-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-700">Session marked as No Show</p>
+              <p className="mt-3 text-sm leading-6 text-secondary-text">
+                The scheduled time passed without the counseling session being attended, so this booking is now recorded as a no-show.
+              </p>
+            </div>
+          )}
+
+          {session.mode === 'video' && canUseLiveSession && session.meetingLink && (
             <div className="mt-8 space-y-4">
               <div className="flex flex-wrap gap-3">
                 <a href={session.meetingLink} target="_blank" rel="noreferrer" className="pharmacy-primary">
@@ -383,7 +517,11 @@ export default function CounselingSessionPage() {
             </div>
           )}
 
-          {session.mode === 'video' && session.meetingLink && !session.allowedActions?.canJoin && (
+          {session.mode === 'video' && isPreStartLiveSessionLocked && (
+            <LockedLiveSessionPanel mode="video" startLabel={sessionStartLabel} />
+          )}
+
+          {session.mode === 'video' && !canUseLiveSession && !isPreStartLiveSessionLocked && (
             <div className="mt-8 rounded-[1.5rem] border border-slate-200 bg-white/80 px-5 py-4 text-sm text-secondary-text">
               This Jitsi room is no longer active because the session is {session.status.toLowerCase()}.
             </div>
@@ -391,13 +529,17 @@ export default function CounselingSessionPage() {
 
           {session.mode === 'chat' && (
             <div className="mt-8">
-              <CounselingSessionChatPanel
-                sessionId={session._id}
-                currentUser={user}
-                token={token}
-                sessionStatus={session.status}
-                canJoin={session.allowedActions?.canJoin}
-              />
+              {isPreStartLiveSessionLocked ? (
+                <LockedLiveSessionPanel mode="chat" startLabel={sessionStartLabel} />
+              ) : (
+                <CounselingSessionChatPanel
+                  sessionId={session._id}
+                  currentUser={user}
+                  token={token}
+                  sessionStatus={session.status}
+                  canJoin={canUseLiveSession}
+                />
+              )}
             </div>
           )}
 
@@ -418,6 +560,7 @@ export default function CounselingSessionPage() {
                 {session.status === 'In Progress' && 'The counselor and student are currently meeting in person on campus. Use the status controls to keep the session state updated.'}
                 {session.status === 'Completed' && 'This in-person counseling meeting has been completed. Review the saved notes, follow-up plan, and assigned resources below.'}
                 {session.status === 'Cancelled' && 'This in-person counseling meeting was cancelled. The campus meeting location is no longer active for this session.'}
+                {session.status === 'No Show' && 'This in-person counseling meeting is recorded as a no-show because the scheduled time passed without the session being attended.'}
               </p>
             </div>
           )}
@@ -465,12 +608,12 @@ export default function CounselingSessionPage() {
           {isCounselor && (
             <div className="mt-8 space-y-5">
               <div className="grid gap-3 sm:grid-cols-4">
-                {['Confirmed', 'In Progress', 'Completed', 'Cancelled'].map((status) => (
+                {['Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show'].map((status) => (
                   <button
                     key={status}
                     type="button"
                     onClick={() => handleStatusUpdate(status)}
-                    disabled={updatingStatus || session.status === status}
+                    disabled={!canSelectCounselorStatus(status)}
                     className={session.status === status ? 'pharmacy-primary disabled:opacity-100' : 'pharmacy-secondary disabled:opacity-50'}
                   >
                     {pendingStatus === status ? `Updating ${status}...` : status}
