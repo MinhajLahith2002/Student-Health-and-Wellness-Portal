@@ -85,7 +85,6 @@ export default function MentalHealthHub() {
   const initialResources = Array.isArray(cachedResources) ? cachedResources : [];
   const initialSessions = Array.isArray(cachedSessionSummary?.sessions) ? cachedSessionSummary.sessions : [];
   const [stats, setStats] = useState(cachedStats);
-  const [resources, setResources] = useState(initialResources);
   const [resourceTotal, setResourceTotal] = useState(0);
   const [suggestions, setSuggestions] = useState(() => buildMoodSuggestions({
     stats: cachedStats,
@@ -118,10 +117,6 @@ export default function MentalHealthHub() {
 
       if (moodStatsResult.status === 'fulfilled') {
         setStats(nextStats);
-      }
-
-      if (resourceListResult.status === 'fulfilled') {
-        setResources(nextResources);
       }
 
       setSuggestions(buildMoodSuggestions({
