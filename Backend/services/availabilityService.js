@@ -20,6 +20,13 @@ function sortSlots(slots = []) {
   });
 }
 
+function slotMatchesAny(slot, comparisonSlots = []) {
+  const slotMinutes = toMinutes(slot);
+  if (slotMinutes === null) return false;
+
+  return comparisonSlots.some((comparisonSlot) => toMinutes(comparisonSlot) === slotMinutes);
+}
+
 /**
  * Convert 12-hour time format (e.g., "10:00 AM") to 24-hour format (e.g., "10:00")
  * This ensures API consistency regardless of input format
@@ -121,7 +128,7 @@ async function getAvailabilityForProvider({ providerId, role, date, excludeId = 
 
   // Filter available slots and normalize time format to 24-hour format for API consistency
   const filteredSlots = configuredSlots.filter((slot) => (
-    !bookedSlots.includes(slot) && !isDateTimeInPast(normalizedDate, slot)
+    !slotMatchesAny(slot, bookedSlots) && !isDateTimeInPast(normalizedDate, slot)
   ));
 
   const availableSlots = normalize24HourFormat(filteredSlots);
