@@ -1,8 +1,10 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Filter, Search, Shield, Star } from 'lucide-react';
+import { Calendar, Filter, Search, Shield, Star, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 import { getProviders } from '../../../lib/providers';
+import ErrorBoundary from '../../../components/ErrorBoundary';
+import { LoadingState } from '../../../components/LoadingState';
 
 export default function FindDoctor() {
   const [providers, setProviders] = useState([]);
@@ -11,27 +13,31 @@ export default function FindDoctor() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  // PHASE 3: Refetch function for error recovery
+  const fetchDoctors = useCallback(async () => {
     let active = true;
-
-    (async () => {
-      try {
-        setLoading(true);
-        const data = await getProviders({ role: 'doctor' });
-        if (!active) return;
-        setProviders(Array.isArray(data?.providers) ? data.providers : []);
-      } catch (err) {
-        if (!active) return;
-        setError(err.message || 'Failed to load doctors');
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-
+    try {
+      setLoading(true);
+      setError('');
+      const data = await getProviders({ role: 'doctor' });
+      if (!active) return;
+      setProviders(Array.isArray(data?.providers) ? data.providers : []);
+    } catch (err) {
+      if (!active) return;
+      setError(err.message || 'Failed to load doctors');
+      console.error('FindDoctor fetch error:', err);
+    } finally {
+      if (active) setLoading(false);
+    }
     return () => {
       active = false;
     };
   }, []);
+
+  // PHASE 3: Auto-fetch on mount
+  useEffect(() => {
+    fetchDoctors();
+  }, [fetchDoctors]);
 
   const specialties = useMemo(() => {
     const list = providers.map((provider) => provider.specialty).filter(Boolean);
@@ -46,7 +52,8 @@ export default function FindDoctor() {
   }), [providers, searchQuery, selectedSpecialty]);
 
   return (
-    <div className="student-shell pb-20">
+    <ErrorBoundary>
+      <div className="student-shell pb-20">
       <div className="student-hero pt-32 pb-12 px-6">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-4xl font-bold text-primary-text tracking-tight">Find a Doctor</h1>
@@ -151,8 +158,22 @@ export default function FindDoctor() {
           ))}
         </div>
 
-        {loading && <p className="mt-10 text-secondary-text">Loading doctors...</p>}
-        {error && <p className="mt-10 text-red-600">{error}</p>}
+        {loading && <LoadingState message="Loading doctors..." />}
+
+        {error && (
+          <div className="mt-10 max-w-md mx-auto rounded-2xl bg-red-50 border border-red-200 p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+            <p className="text-red-800 font-semibold mb-4">{error}</p>
+            <button
+              onClick={() => fetchDoctors()}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </button>
+          </div>
+        )}
+
         {!loading && !error && filteredDoctors.length === 0 && (
           <div className="py-20 text-center">
             <div className="w-20 h-20 bg-[#edf5f8] rounded-full flex items-center justify-center mx-auto mb-6">
@@ -163,9 +184,9 @@ export default function FindDoctor() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
-
 
 

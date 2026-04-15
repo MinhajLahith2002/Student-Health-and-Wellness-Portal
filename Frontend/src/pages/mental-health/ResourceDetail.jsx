@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck, BookOpenText, Clock3, Headphones, Newspaper, Sparkles, Tags, UserRound, Video } from 'lucide-react';
 import {
   getCachedResourceById,
@@ -20,11 +20,39 @@ function createFallbackVideoUrl(title = '') {
   return `https://www.youtube.com/results?search_query=${query}`;
 }
 
-function ResourceMetaItem({ icon: Icon, label, value, accentClass = 'bg-sky-100 text-sky-700' }) {
+const STUDENT_BACK_TARGETS = new Set([
+  '/mental-health',
+  '/mental-health/resources',
+  '/mental-health/suggestions'
+]);
+
+const COUNSELOR_BACK_TARGETS = new Set([
+  '/counselor/resources',
+  '/counselor/resources/saved'
+]);
+
+function isSafeResourceBackTarget(pathname, isCounselorDetailView) {
+  if (typeof pathname !== 'string' || !pathname.startsWith('/')) return false;
+  if (pathname.startsWith('//') || pathname.includes('\\')) return false;
+
+  const allowedStaticTargets = isCounselorDetailView
+    ? COUNSELOR_BACK_TARGETS
+    : STUDENT_BACK_TARGETS;
+
+  if (isCounselorDetailView) {
+    return allowedStaticTargets.has(pathname) || /^\/counselor\/resources\/[^/?#]+$/.test(pathname);
+  }
+
+  return allowedStaticTargets.has(pathname) || /^\/mental-health\/resources\/[^/?#]+$/.test(pathname);
+}
+
+function ResourceMetaItem({ icon, label, value, accentClass = 'bg-sky-100 text-sky-700' }) {
+  const MetaIcon = icon;
+
   return (
     <div className="flex items-start gap-3 rounded-[1.25rem] border border-white/80 bg-white/75 p-4">
       <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${accentClass}`}>
-        <Icon className="h-4 w-4" />
+        <MetaIcon className="h-4 w-4" />
       </span>
       <div className="min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">{label}</p>
@@ -106,6 +134,7 @@ function RecommendationCard({
 export default function ResourceDetail() {
   const { resourceId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const isCounselorDetailView = location.pathname.startsWith('/counselor/resources/');
   const previewResource = location.state?.resourcePreview?._id === resourceId ? location.state.resourcePreview : null;
   const cachedResource = getCachedResourceById(resourceId);
@@ -215,7 +244,10 @@ export default function ResourceDetail() {
 
   const backLink = useMemo(() => {
     const stateBackTo = location.state?.backTo;
-    if (typeof stateBackTo === 'string' && stateBackTo.startsWith('/')) {
+    if (
+      isSafeResourceBackTarget(stateBackTo, isCounselorDetailView)
+      && stateBackTo !== location.pathname
+    ) {
       return {
         to: stateBackTo,
         label: location.state?.backLabel || (isCounselorDetailView ? 'Back to counselor resources' : 'Back to library')
@@ -233,7 +265,7 @@ export default function ResourceDetail() {
       to: '/mental-health/resources',
       label: 'Back to library'
     };
-  }, [isCounselorDetailView, location.state]);
+  }, [isCounselorDetailView, location.pathname, location.state]);
 
   if (error) return <div className="pt-36 px-6 text-red-600">{error}</div>;
   if (!resource) return <div className="pt-36 px-6">Loading resource...</div>;
@@ -265,6 +297,15 @@ export default function ResourceDetail() {
         ? 'Resource saved to your library. You can find it again from the Saved filter in the self-help library.'
         : 'Resource removed from your saved library.'
     );
+  }
+
+  function handleBackNavigation() {
+    if (location.state?.backTo && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(backLink.to, { replace: true });
   }
 
   if (isCounselorDetailView) {
@@ -300,10 +341,10 @@ export default function ResourceDetail() {
                 </div>
 
                 <div className="flex flex-col gap-3 lg:items-end">
-                  <Link to={backLink.to} className="pharmacy-secondary">
+                  <button type="button" onClick={handleBackNavigation} className="pharmacy-secondary">
                     <ArrowLeft className="h-4 w-4" />
                     <span className="whitespace-nowrap">{backLink.label}</span>
-                  </Link>
+                  </button>
                   <button
                     type="button"
                     onClick={handleToggleSavedResource}
@@ -365,13 +406,14 @@ export default function ResourceDetail() {
         />
 
         <div className="mb-8 flex items-center justify-end">
-          <Link
-            to={backLink.to}
+          <button
+            type="button"
+            onClick={handleBackNavigation}
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-primary-text shadow-[0_10px_22px_rgba(15,41,66,0.05)] transition hover:-translate-y-0.5 hover:bg-slate-50"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLink.label}
-          </Link>
+          </button>
         </div>
 
         <section className="rounded-[2.1rem] border border-cyan-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(233,248,255,0.92))] p-6 shadow-[0_20px_44px_rgba(15,41,66,0.06)] md:p-8">

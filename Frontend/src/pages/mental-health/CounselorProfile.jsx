@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, MessageSquareText, Shield, Star } from 'lucide-react';
-import { getCachedCounselorProfile, getCounselorProfile } from '../../lib/counseling';
+import { getCachedCounselorProfile, getCounselorProfile, subscribeCounselingLiveRefresh } from '../../lib/counseling';
 import { getPreferredCounselors, togglePreferredCounselor } from '../../lib/mentalHealth';
 
 function formatSlot(slot) {
@@ -21,23 +21,58 @@ export default function CounselorProfile() {
   useEffect(() => {
     let active = true;
 
-    (async () => {
+    const loadProfile = async ({ silent = false } = {}) => {
       try {
         const profile = await getCounselorProfile(counselorId);
 
         if (!active) return;
         setProvider(profile);
         setSlots(Array.isArray(profile?.openSlots) ? profile.openSlots : []);
+        if (!silent) {
+          setError('');
+        }
       } catch (err) {
         if (!active) return;
-        setError(err.message || 'Failed to load counselor profile');
+        if (!silent) {
+          setError(err.message || 'Failed to load counselor profile');
+        }
       } finally {
-        if (active) setLoading(false);
+        if (active && !silent) setLoading(false);
       }
-    })();
+    };
+
+    loadProfile();
+
+    const refreshProfile = () => {
+      loadProfile({ silent: true });
+    };
+
+    const unsubscribeLiveRefresh = subscribeCounselingLiveRefresh((payload) => {
+      if (payload?.counselorId && payload.counselorId !== counselorId && payload.providerId !== counselorId) {
+        return;
+      }
+
+      refreshProfile();
+    });
+
+    const handleWindowFocus = () => {
+      refreshProfile();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshProfile();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       active = false;
+      unsubscribeLiveRefresh();
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [counselorId]);
 
@@ -58,21 +93,22 @@ export default function CounselorProfile() {
   return (
     <div className="pharmacy-shell pt-36 pb-16 px-6">
       <div className="max-w-6xl mx-auto space-y-8">
-        <div>
-          <Link to="/mental-health/counselors" className="pharmacy-secondary w-full justify-center sm:w-auto">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Counselor Directory
-          </Link>
-        </div>
-
         <section className="pharmacy-hero">
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <span className="pharmacy-pill bg-sky-50 text-sky-700">
+              <Shield className="w-3.5 h-3.5" />
+              Confidential counseling care
+            </span>
+
+            <Link to="/mental-health/counselors" className="pharmacy-secondary w-full justify-center sm:w-auto sm:shrink-0">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Counselor Directory
+            </Link>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
-              <span className="pharmacy-pill bg-sky-50 text-sky-700">
-                <Shield className="w-3.5 h-3.5" />
-                Confidential counseling care
-              </span>
-              <h1 className="mt-5 text-5xl font-semibold tracking-tight text-primary-text">{provider.name}</h1>
+              <h1 className="text-5xl font-semibold tracking-tight text-primary-text">{provider.name}</h1>
               <p className="mt-3 text-lg text-secondary-text">{provider.specialty || 'Counselor'}</p>
               <p className="mt-5 text-base leading-7 text-secondary-text">
                 {provider.bio || 'Support with stress, anxiety, burnout, transitions, and sustainable coping strategies for student life.'}

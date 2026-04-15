@@ -13,6 +13,7 @@ const {
   rescheduleAppointment,
   checkInAppointment,
   updateConsultation,
+  updateAppointmentCompat,
   getDoctorAvailability,
   getDoctorQueue,
   getDoctorPatients,
@@ -32,8 +33,10 @@ router.get('/patients', protect, authorize('doctor'), getDoctorPatients);
 router.get('/patients/:studentId', protect, authorize('doctor'), getDoctorPatientById);
 router.get('/:id', protect, getAppointmentById);
 router.post('/', protect, authorize('student'), bookAppointment);
+router.put('/:id', protect, updateAppointmentCompat);
 router.put('/:id/status', protect, updateAppointmentStatus);
 router.put('/:id/reschedule', protect, rescheduleAppointment);
+router.put('/:id/checkin', protect, authorize('student'), checkInAppointment);
 router.put('/:id/check-in', protect, authorize('student'), checkInAppointment);
 router.put('/:id/consultation', protect, authorize('doctor'), updateConsultation);
 

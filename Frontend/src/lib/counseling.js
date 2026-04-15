@@ -1,11 +1,16 @@
 import { apiFetch } from './api';
+import { getAuthenticatedSocket, onAvailabilityUpdated, onCounselingSessionUpdated } from './socket';
 
 const COUNSELOR_DASHBOARD_CACHE_KEY = 'campushealth_counselor_dashboard_cache_v1';
 const COUNSELOR_DASHBOARD_CACHE_TTL = 30 * 1000;
 const COUNSELOR_DASHBOARD_REFRESH_EVENT = 'campushealth:counselor-dashboard-refresh';
 const COUNSELOR_DASHBOARD_REFRESH_SIGNAL_KEY = 'campushealth_counselor_dashboard_refresh_signal';
+const COUNSELING_SESSION_REFRESH_EVENT = 'campushealth:counseling-session-refresh';
+const COUNSELING_SESSION_REFRESH_SIGNAL_KEY = 'campushealth_counseling_session_refresh_signal';
+const COUNSELING_LIVE_REFRESH_EVENT = 'campushealth:counseling-live-refresh';
+const COUNSELING_LIVE_REFRESH_SIGNAL_KEY = 'campushealth_counseling_live_refresh_signal';
 const COUNSELOR_NOTES_CACHE_PREFIX = 'campushealth_counselor_notes_cache_v1';
-const COUNSELOR_WORKSPACE_CACHE_PREFIX = 'campushealth_counselor_workspace_cache_v1';
+const COUNSELOR_WORKSPACE_CACHE_PREFIX = 'campushealth_counselor_workspace_cache_v2';
 const COUNSELOR_TRENDS_CACHE_PREFIX = 'campushealth_counselor_trends_cache_v1';
 const COUNSELOR_BROWSE_CACHE_PREFIX = 'campushealth_counselor_browse_cache_v1';
 const COUNSELING_SESSION_CACHE_PREFIX = 'campushealth_counseling_session_cache_v1';
@@ -38,6 +43,9 @@ const LEGACY_TO_CANONICAL = {
   'in_person': 'in_person',
   'chat': 'chat'
 };
+const COUNSELING_BOOKING_CONFLICT_STATUSES = new Set(['Pending', 'Confirmed', 'Ready', 'In Progress']);
+const COUNSELOR_WORKSPACE_ACTIVE_STATUSES = new Set(['Pending', 'Confirmed', 'Ready', 'In Progress']);
+const COUNSELOR_WORKSPACE_OUTCOME_STATUSES = new Set(['Completed', 'Cancelled', 'No Show']);
 
 function canUseSessionStorage() {
   return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined';
@@ -143,26 +151,23 @@ export function setCachedCounselorNotes(notes) {
 }
 
 export function getCachedCounselorWorkspace() {
+  const emptyWorkspace = {
+    openSlots: [],
+    bookedSessions: [],
+    recentOutcomes: []
+  };
+
   if (!canUseSessionStorage()) {
-    return {
-      openSlots: [],
-      bookedSessions: []
-    };
+    return emptyWorkspace;
   }
 
   try {
     const raw = window.sessionStorage.getItem(getCounselorWorkspaceCacheKey());
     const parsed = raw ? JSON.parse(raw) : null;
 
-    return {
-      openSlots: Array.isArray(parsed?.openSlots) ? parsed.openSlots.map(normalizeSlot) : [],
-      bookedSessions: Array.isArray(parsed?.bookedSessions) ? parsed.bookedSessions.map(normalizeSession) : []
-    };
+    return normalizeCounselorWorkspacePayload(parsed);
   } catch {
-    return {
-      openSlots: [],
-      bookedSessions: []
-    };
+    return emptyWorkspace;
   }
 }
 
@@ -174,7 +179,8 @@ export function setCachedCounselorWorkspace(workspace) {
       getCounselorWorkspaceCacheKey(),
       JSON.stringify({
         openSlots: Array.isArray(workspace?.openSlots) ? workspace.openSlots : [],
-        bookedSessions: Array.isArray(workspace?.bookedSessions) ? workspace.bookedSessions : []
+        bookedSessions: Array.isArray(workspace?.bookedSessions) ? workspace.bookedSessions : [],
+        recentOutcomes: Array.isArray(workspace?.recentOutcomes) ? workspace.recentOutcomes : []
       })
     );
   } catch {
@@ -420,6 +426,121 @@ function invalidateCounselingSessionCaches() {
   }
 }
 
+export function broadcastCounselingSessionRefresh() {
+  invalidateCounselingSessionCaches();
+
+  if (typeof window === 'undefined') return;
+
+  window.dispatchEvent(new CustomEvent(COUNSELING_SESSION_REFRESH_EVENT));
+
+  try {
+    window.localStorage.setItem(COUNSELING_SESSION_REFRESH_SIGNAL_KEY, `${Date.now()}`);
+  } catch {
+    // Ignore localStorage sync failures.
+  }
+}
+
+export function subscribeCounselingSessionRefresh(callback) {
+  if (typeof window === 'undefined') return () => {};
+
+  const handleRefresh = () => {
+    callback();
+  };
+
+  const handleStorage = (event) => {
+    if (event.key === COUNSELING_SESSION_REFRESH_SIGNAL_KEY) {
+      callback();
+    }
+  };
+
+  window.addEventListener(COUNSELING_SESSION_REFRESH_EVENT, handleRefresh);
+  window.addEventListener('storage', handleStorage);
+
+  return () => {
+    window.removeEventListener(COUNSELING_SESSION_REFRESH_EVENT, handleRefresh);
+    window.removeEventListener('storage', handleStorage);
+  };
+}
+
+function isCounselingLivePayload(payload) {
+  if (!payload) return true;
+
+  return payload.module === 'counseling'
+    || payload.role === 'counselor'
+    || Boolean(payload.counselorId)
+    || Boolean(payload.availabilityEntryId)
+    || Boolean(payload.sessionId);
+}
+
+export function broadcastCounselingLiveRefresh(payload = {}) {
+  invalidateCounselorBrowseCaches();
+  broadcastCounselorDashboardRefresh();
+  broadcastCounselingSessionRefresh();
+
+  if (typeof window === 'undefined') return;
+
+  const eventPayload = {
+    ...payload,
+    module: payload.module || 'counseling',
+    timestamp: Date.now()
+  };
+
+  window.dispatchEvent(new CustomEvent(COUNSELING_LIVE_REFRESH_EVENT, { detail: eventPayload }));
+
+  try {
+    window.localStorage.setItem(COUNSELING_LIVE_REFRESH_SIGNAL_KEY, JSON.stringify(eventPayload));
+  } catch {
+    // Ignore localStorage sync failures.
+  }
+}
+
+export function subscribeCounselingLiveRefresh(callback) {
+  if (typeof window === 'undefined') return () => {};
+
+  let refreshTimer = null;
+
+  const scheduleRefresh = (payload = {}) => {
+    if (!isCounselingLivePayload(payload)) return;
+    invalidateCounselorBrowseCaches();
+    invalidateCounselorDashboardCache();
+    invalidateCounselingSessionCaches();
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(() => {
+      callback(payload);
+    }, 150);
+  };
+
+  const handleLiveRefresh = (event) => {
+    scheduleRefresh(event.detail || {});
+  };
+
+  const handleStorage = (event) => {
+    if (event.key !== COUNSELING_LIVE_REFRESH_SIGNAL_KEY) return;
+
+    try {
+      scheduleRefresh(event.newValue ? JSON.parse(event.newValue) : {});
+    } catch {
+      scheduleRefresh();
+    }
+  };
+
+  window.addEventListener(COUNSELING_LIVE_REFRESH_EVENT, handleLiveRefresh);
+  window.addEventListener('storage', handleStorage);
+
+  const token = window.localStorage.getItem('token');
+  const socket = getAuthenticatedSocket(token);
+  const unsubscribeAvailability = socket ? onAvailabilityUpdated(scheduleRefresh) : undefined;
+  const unsubscribeSession = socket ? onCounselingSessionUpdated(scheduleRefresh) : undefined;
+
+  return () => {
+    window.clearTimeout(refreshTimer);
+    window.removeEventListener(COUNSELING_LIVE_REFRESH_EVENT, handleLiveRefresh);
+    window.removeEventListener('storage', handleStorage);
+    unsubscribeAvailability?.();
+    unsubscribeSession?.();
+  };
+}
+
 export function normalizeCounselingMode(value) {
   const normalized = `${value || ''}`.trim().toLowerCase();
   return LEGACY_TO_CANONICAL[normalized] || 'video';
@@ -428,6 +549,96 @@ export function normalizeCounselingMode(value) {
 export function getCounselingModeLabel(value) {
   const normalized = normalizeCounselingMode(value);
   return MODE_LABELS[normalized] || MODE_LABELS.video;
+}
+
+export function parseCounselingDateTime(dateValue, timeValue = '') {
+  if (!dateValue) {
+    return null;
+  }
+
+  const sessionDateTime = new Date(dateValue);
+  if (Number.isNaN(sessionDateTime.getTime())) {
+    return null;
+  }
+
+  sessionDateTime.setHours(0, 0, 0, 0);
+
+  const timeText = `${timeValue || ''}`.trim();
+  const match = timeText.match(/^(\d{1,2}):(\d{2})(?:\s*([AP]M))?$/i);
+
+  if (!match) {
+    return sessionDateTime;
+  }
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+
+  if (meridiem) {
+    if (meridiem === 'AM') {
+      hours = hours === 12 ? 0 : hours;
+    } else {
+      hours = hours === 12 ? 12 : hours + 12;
+    }
+  }
+
+  sessionDateTime.setHours(hours, minutes, 0, 0);
+  return sessionDateTime;
+}
+
+export function findCounselingBookingConflict(
+  sessions,
+  { date, time, excludeSessionId = '' } = {}
+) {
+  const targetDateTime = parseCounselingDateTime(date, time);
+  if (!targetDateTime || !Array.isArray(sessions)) {
+    return null;
+  }
+
+  const excludedId = normalizeEntityId(excludeSessionId);
+
+  return sessions.find((session) => {
+    if (!COUNSELING_BOOKING_CONFLICT_STATUSES.has(session?.status)) {
+      return false;
+    }
+
+    const sessionId = normalizeEntityId(session?._id || session?.id);
+    if (excludedId && sessionId === excludedId) {
+      return false;
+    }
+
+    const sessionDateTime = parseCounselingDateTime(session?.date, session?.time);
+    return sessionDateTime?.getTime() === targetDateTime.getTime();
+  }) || null;
+}
+
+export function describeCounselingBookingConflict(session) {
+  if (!session) {
+    return 'You already have another counseling session booked for this date and time.';
+  }
+
+  const dateLabel = session?.date ? new Date(session.date).toLocaleDateString() : 'this date';
+  const counselorLabel = session?.counselorName ? ` with ${session.counselorName}` : '';
+
+  return `You already have a counseling session${counselorLabel} on ${dateLabel} at ${session.time}. Choose a different time.`;
+}
+
+function getCancellationActorDisplayName(cancelledBy) {
+  const actor = `${cancelledBy || ''}`.trim().toLowerCase();
+
+  if (actor === 'student') return 'Student';
+  if (actor === 'counselor') return 'Counselor';
+  if (actor === 'system') return 'System';
+  return '';
+}
+
+export function getCancellationActorLabel(session) {
+  const actorLabel = `${session?.cancelledByLabel || getCancellationActorDisplayName(session?.cancelledBy)}`.trim();
+
+  if (!actorLabel) return 'Cancellation source unavailable';
+  if (actorLabel.toLowerCase() === 'system') return 'Cancelled automatically';
+
+  return `Cancelled by ${actorLabel.toLowerCase()}`;
 }
 
 function normalizeSession(session) {
@@ -448,6 +659,7 @@ function normalizeSession(session) {
     studentId: normalizeEntityId(session.studentId),
     mode: normalizeCounselingMode(session.mode || session.type || session.typeLabel),
     typeLabel: session.typeLabel || getCounselingModeLabel(session.mode || session.type),
+    cancelledByLabel: session.cancelledByLabel || getCancellationActorDisplayName(session.cancelledBy),
     allowedActions: session.allowedActions || {}
   };
 }
@@ -462,6 +674,92 @@ function normalizeSlot(slot) {
     counselorId: normalizeEntityId(slot.counselorId || slot.providerId),
     mode: normalizeCounselingMode(slot.mode || slot.typeLabel),
     typeLabel: slot.typeLabel || getCounselingModeLabel(slot.mode)
+  };
+}
+
+function getCounselingEntityDateTimeStamp(entity) {
+  const dateTime = parseCounselingDateTime(entity?.date, entity?.startTime || entity?.time);
+  return dateTime?.getTime() || 0;
+}
+
+function getCounselingSessionEndTimeStamp(session) {
+  const startStamp = getCounselingEntityDateTimeStamp(session);
+  if (!startStamp) return 0;
+
+  const durationMinutes = Math.max(15, Number(session?.duration) || 50);
+  return startStamp + (durationMinutes * 60 * 1000);
+}
+
+function compareCounselingEntityDateTimeAsc(left, right) {
+  return getCounselingEntityDateTimeStamp(left) - getCounselingEntityDateTimeStamp(right);
+}
+
+function compareCounselingEntityDateTimeDesc(left, right) {
+  return getCounselingEntityDateTimeStamp(right) - getCounselingEntityDateTimeStamp(left);
+}
+
+function getValidTimeStamp(value) {
+  if (!value) return 0;
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function getCounselingEntityOutcomeTimeStamp(entity) {
+  return getValidTimeStamp(entity?.outcomeAt)
+    || (entity?.status === 'Cancelled' ? getValidTimeStamp(entity?.cancelledAt) : 0)
+    || getValidTimeStamp(entity?.updatedAt)
+    || getValidTimeStamp(entity?.createdAt)
+    || getCounselingEntityDateTimeStamp(entity);
+}
+
+function compareCounselingEntityOutcomeDesc(left, right) {
+  const outcomeDifference = getCounselingEntityOutcomeTimeStamp(right) - getCounselingEntityOutcomeTimeStamp(left);
+  return outcomeDifference || compareCounselingEntityDateTimeDesc(left, right);
+}
+
+function isFutureCounselorSlot(slot) {
+  return getCounselingEntityDateTimeStamp(slot) > Date.now();
+}
+
+function isActiveCounselorWorkspaceSession(session) {
+  return COUNSELOR_WORKSPACE_ACTIVE_STATUSES.has(session?.status)
+    && getCounselingSessionEndTimeStamp(session) > Date.now();
+}
+
+function isCounselorWorkspaceOutcomeSession(session) {
+  return COUNSELOR_WORKSPACE_OUTCOME_STATUSES.has(session?.status);
+}
+
+function normalizeCounselorWorkspacePayload(data = {}) {
+  const normalizedBookedSessions = Array.isArray(data?.bookedSessions)
+    ? data.bookedSessions.map(normalizeSession)
+    : [];
+  const normalizedRecentOutcomes = Array.isArray(data?.recentOutcomes)
+    ? data.recentOutcomes.map(normalizeSession)
+    : [];
+  const activeBookedSlotIds = new Set(
+    normalizedBookedSessions
+      .filter(isActiveCounselorWorkspaceSession)
+      .map((session) => session.availabilityEntryId)
+      .filter(Boolean)
+  );
+  const normalizedOpenSlots = Array.isArray(data?.openSlots)
+    ? data.openSlots
+      .map(normalizeSlot)
+      .filter((slot) => isFutureCounselorSlot(slot) && !activeBookedSlotIds.has(slot.availabilityEntryId))
+      .sort(compareCounselingEntityDateTimeAsc)
+    : [];
+
+  return {
+    openSlots: normalizedOpenSlots,
+    bookedSessions: normalizedBookedSessions
+      .filter(isActiveCounselorWorkspaceSession)
+      .sort(compareCounselingEntityDateTimeAsc),
+    recentOutcomes: (normalizedRecentOutcomes.length ? normalizedRecentOutcomes : normalizedBookedSessions)
+      .filter(isCounselorWorkspaceOutcomeSession)
+      .sort(compareCounselingEntityOutcomeDesc)
+      .slice(0, 8)
   };
 }
 
@@ -707,9 +1005,7 @@ export async function bookCounselingSession(payload) {
     method: 'POST',
     body: JSON.stringify(payload)
   });
-  broadcastCounselorDashboardRefresh();
-  invalidateCounselorBrowseCaches();
-  invalidateCounselingSessionCaches();
+  broadcastCounselingLiveRefresh({ action: 'session-created' });
   return normalizeSession(data);
 }
 
@@ -718,9 +1014,7 @@ export async function rescheduleCounselingSession(id, payload) {
     method: 'PUT',
     body: JSON.stringify(payload)
   });
-  broadcastCounselorDashboardRefresh();
-  invalidateCounselorBrowseCaches();
-  invalidateCounselingSessionCaches();
+  broadcastCounselingLiveRefresh({ action: 'session-rescheduled', sessionId: id });
   return normalizeSession(data);
 }
 
@@ -729,9 +1023,7 @@ export async function deleteCounselingSession(id, payload = {}) {
     method: 'DELETE',
     body: JSON.stringify(payload)
   });
-  broadcastCounselorDashboardRefresh();
-  invalidateCounselorBrowseCaches();
-  invalidateCounselingSessionCaches();
+  broadcastCounselingLiveRefresh({ action: 'session-cancelled', sessionId: id });
   return {
     ...data,
     session: data?.session ? normalizeSession(data.session) : null
@@ -743,9 +1035,7 @@ export async function updateCounselingSessionStatus(id, payload) {
     method: 'PUT',
     body: JSON.stringify(payload)
   });
-  broadcastCounselorDashboardRefresh();
-  invalidateCounselorBrowseCaches();
-  invalidateCounselingSessionCaches();
+  broadcastCounselingLiveRefresh({ action: 'session-status-updated', sessionId: id });
   return normalizeSession(data);
 }
 
@@ -754,8 +1044,7 @@ export async function updateCounselingSessionNotes(id, payload) {
     method: 'PUT',
     body: JSON.stringify(payload)
   });
-  broadcastCounselorDashboardRefresh();
-  invalidateCounselingSessionCaches();
+  broadcastCounselingLiveRefresh({ action: 'session-notes-updated', sessionId: id });
   return normalizeSession(data);
 }
 
@@ -764,18 +1053,14 @@ export function submitCounselingFeedback(id, payload) {
     method: 'POST',
     body: JSON.stringify(payload)
   }).then((response) => {
-    invalidateCounselorBrowseCaches();
-    invalidateCounselingSessionCaches();
+    broadcastCounselingLiveRefresh({ action: 'session-feedback-submitted', sessionId: id });
     return response;
   });
 }
 
 export async function getCounselorWorkspace() {
   const data = await apiFetch(`/counseling/workspace?t=${Date.now()}`);
-  const workspace = {
-    openSlots: Array.isArray(data?.openSlots) ? data.openSlots.map(normalizeSlot) : [],
-    bookedSessions: Array.isArray(data?.bookedSessions) ? data.bookedSessions.map(normalizeSession) : []
-  };
+  const workspace = normalizeCounselorWorkspacePayload(data);
   setCachedCounselorWorkspace(workspace);
   return workspace;
 }
@@ -785,8 +1070,7 @@ export function createCounselorSlot(payload) {
     method: 'POST',
     body: JSON.stringify(payload)
   }).then((data) => {
-    broadcastCounselorDashboardRefresh();
-    invalidateCounselorBrowseCaches();
+    broadcastCounselingLiveRefresh({ action: 'slot-created' });
     return normalizeSlot(data);
   });
 }
@@ -796,8 +1080,7 @@ export function updateCounselorSlot(id, payload) {
     method: 'PATCH',
     body: JSON.stringify(payload)
   }).then((data) => {
-    broadcastCounselorDashboardRefresh();
-    invalidateCounselorBrowseCaches();
+    broadcastCounselingLiveRefresh({ action: 'slot-updated', availabilityEntryId: id });
     return normalizeSlot(data);
   });
 }
@@ -806,8 +1089,7 @@ export function deleteCounselorSlot(id) {
   return apiFetch(`/counseling/slots/${id}`, {
     method: 'DELETE'
   }).then((data) => {
-    broadcastCounselorDashboardRefresh();
-    invalidateCounselorBrowseCaches();
+    broadcastCounselingLiveRefresh({ action: 'slot-deleted', availabilityEntryId: id });
     return data;
   });
 }

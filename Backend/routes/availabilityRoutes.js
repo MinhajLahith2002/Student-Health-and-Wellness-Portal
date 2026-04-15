@@ -10,6 +10,7 @@ const { protect } = authMiddleware;
 const { authorize } = roleMiddleware;
 
 router.get('/me', protect, authorize('doctor', 'counselor'), availabilityController.getMyAvailability);
+router.get('/live/providers', protect, availabilityController.getLiveProviderAvailability);
 router.get('/:providerId', protect, availabilityController.getAvailabilityByProvider);
 router.post('/', protect, authorize('doctor', 'counselor'), availabilityController.createAvailability);
 router.put('/:id', protect, authorize('doctor', 'counselor'), availabilityController.updateAvailability);

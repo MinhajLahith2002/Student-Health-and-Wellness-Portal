@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "predev": "node scripts/ensure-port-free.js 5001",
+    "predev": "node -e \"const path=require('node:path');const {pathToFileURL}=require('node:url');const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,'scripts/ensure-port-free.js')).href);\" _ 5001",
     "dev": "nodemon server.js",
-    "prestart": "node scripts/ensure-port-free.js 5001",
+    "prestart": "node -e \"const path=require('node:path');const {pathToFileURL}=require('node:url');const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,'scripts/ensure-port-free.js')).href);\" _ 5001",
     "seed": "node scripts/seed.js",
     "seed:dev": "NODE_ENV=development node scripts/seed.js",
     "seed:prod": "NODE_ENV=production node scripts/seed.js",
-    "start": "node server.js"
+    "start": "node -e \"const path=require('node:path');const {pathToFileURL}=require('node:url');const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,'server.js')).href);\""
   },
   "keywords": [],
   "author": "",

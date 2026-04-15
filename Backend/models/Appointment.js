@@ -11,6 +11,11 @@ const appointmentSchema = new Schema({
     ref: 'User',
     required: true
   },
+  availabilityId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Availability',
+    default: null
+  },
   doctorName: {
     type: String,
     required: true
@@ -48,6 +53,19 @@ const appointmentSchema = new Schema({
     enum: ['Pending', 'Confirmed', 'Ready', 'In Progress', 'Completed', 'Cancelled', 'No Show'],
     default: 'Pending'
   },
+  meetingProvider: {
+    type: String,
+    enum: ['jitsi'],
+    default: null
+  },
+  meetingDomain: {
+    type: String,
+    default: null
+  },
+  meetingRoom: {
+    type: String,
+    default: null
+  },
   meetingLink: {
     type: String
   },
@@ -70,6 +88,16 @@ const appointmentSchema = new Schema({
     type: String
   },
   checkInAt: {
+    type: Date,
+    default: null
+  },
+  /** Set when consultation begins (status In Progress) */
+  startedAt: {
+    type: Date,
+    default: null
+  },
+  /** Set when consultation ends (status Completed) */
+  completedAt: {
     type: Date,
     default: null
   },
@@ -113,5 +141,8 @@ const appointmentSchema = new Schema({
 appointmentSchema.index({ studentId: 1, date: -1 });
 appointmentSchema.index({ doctorId: 1, date: -1 });
 appointmentSchema.index({ status: 1, date: 1 });
+appointmentSchema.index({ doctorId: 1, date: 1, time: 1, status: 1 });
+appointmentSchema.index({ availabilityId: 1, date: 1 }, { sparse: true });
+appointmentSchema.index({ meetingRoom: 1 }, { sparse: true });
 
 export default model('Appointment', appointmentSchema);

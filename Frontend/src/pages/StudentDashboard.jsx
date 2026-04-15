@@ -150,14 +150,14 @@ export default function StudentDashboard() {
       </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        <section className="student-surface p-5 sm:p-8">
+        <section className="student-surface flex max-h-[34rem] flex-col overflow-hidden p-5 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <h2 className="text-2xl font-semibold text-primary-text">Upcoming medical care</h2>
             <Link to="/student/appointments" className="text-sm font-semibold text-accent-primary">
               View all
             </Link>
           </div>
-          <div className="space-y-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1 [scrollbar-gutter:stable] sm:pr-2">
             {upcomingAppointments.length === 0 ? (
               <p className="text-secondary-text">No upcoming medical appointments yet.</p>
             ) : (
@@ -186,14 +186,14 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        <section className="student-surface p-5 sm:p-8">
+        <section className="student-surface flex max-h-[34rem] flex-col overflow-hidden p-5 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <h2 className="text-2xl font-semibold text-primary-text">Counseling & wellness</h2>
             <Link to="/mental-health/sessions" className="text-sm font-semibold text-accent-primary">
               View all
             </Link>
           </div>
-          <div className="space-y-4 mb-8">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1 [scrollbar-gutter:stable] sm:pr-2">
             {upcomingCounselingSessions.length === 0 ? (
               <p className="text-secondary-text">No counseling sessions booked yet.</p>
             ) : (
@@ -217,7 +217,7 @@ export default function StudentDashboard() {
             )}
           </div>
 
-          <div className="student-muted-panel p-6 bg-accent-purple/10">
+          <div className="student-muted-panel mt-8 shrink-0 p-6 bg-accent-purple/10">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent-purple mb-2">Saved for later</p>
             <p className="text-primary-text font-semibold">{savedResources.length} bookmarked resources</p>
             <p className="text-sm text-secondary-text mt-2">

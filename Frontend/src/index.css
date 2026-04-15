@@ -106,6 +106,20 @@
     @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-[#d7e4ea] bg-white/90 px-5 py-3.5 font-bold text-primary-text shadow-[0_10px_24px_rgba(15,41,66,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-secondary-bg;
   }
 
+  .mental-health-scroll-stable .student-card,
+  .mental-health-scroll-stable .student-surface,
+  .mental-health-scroll-stable .student-hero {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    backface-visibility: hidden;
+    contain: paint;
+    transform: translateZ(0);
+  }
+
+  .mental-health-scroll-stable .student-card:hover {
+    transform: translateZ(0);
+  }
+
   .student-tag {
     @apply inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em];
   }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  AlertTriangle,
   Bell,
   ChevronRight,
   CalendarCheck2,
@@ -32,6 +33,12 @@ function getDefaultGroupByForRange(range) {
   if (range === '14d') return 'day';
   if (range === '12m') return 'month';
   return 'week';
+}
+
+function getDefaultRangeForGroupBy(groupBy) {
+  if (groupBy === 'day') return '14d';
+  if (groupBy === 'month') return '12m';
+  return '8w';
 }
 
 export default function CounselorDashboard() {
@@ -224,6 +231,11 @@ export default function CounselorDashboard() {
     setTrendGroupBy(getDefaultGroupByForRange(nextRange));
   }
 
+  function handleTrendGroupByChange(nextGroupBy) {
+    setTrendGroupBy(nextGroupBy);
+    setTrendRange(getDefaultRangeForGroupBy(nextGroupBy));
+  }
+
   const shouldShowDashboardError = Boolean(error) && !dashboard;
   const shouldShowTrendError = Boolean(trendError) && !trendData.length;
 
@@ -276,22 +288,71 @@ export default function CounselorDashboard() {
           <section className="pharmacy-panel p-8 text-secondary-text">Loading counselor dashboard...</section>
         ) : (
           <>
-            <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+            <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-6">
               {[
-                { label: 'Upcoming Sessions', value: upcomingSessions.length, icon: CalendarClock },
-                { label: 'Active Students', value: stats.activeStudents || 0, icon: HeartHandshake },
-                { label: 'Pending Notes', value: stats.pendingNotes || 0, icon: FileText },
-                { label: 'Assigned Resources', value: stats.assignedResources || 0, icon: NotebookPen },
-                { label: 'Open Slots', value: stats.openSlots || 0, icon: CalendarDays }
-              ].map((item) => (
-                <div key={item.label} className="pharmacy-card p-6">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                    <item.icon className="w-5 h-5" />
+                {
+                  label: 'Upcoming Sessions',
+                  value: upcomingSessions.length,
+                  icon: CalendarClock,
+                  accentClassName: 'bg-emerald-50 text-emerald-700'
+                },
+                {
+                  label: 'Active Students',
+                  value: stats.activeStudents || 0,
+                  icon: HeartHandshake,
+                  accentClassName: 'bg-emerald-50 text-emerald-700'
+                },
+                {
+                  label: 'Pending Notes',
+                  value: stats.pendingNotes || 0,
+                  icon: FileText,
+                  accentClassName: 'bg-emerald-50 text-emerald-700'
+                },
+                {
+                  label: 'No Shows',
+                  value: stats.noShows || 0,
+                  icon: AlertTriangle,
+                  accentClassName: 'bg-amber-50 text-amber-700',
+                  to: '/counselor/sessions?outcome=no-show#recent-outcomes'
+                },
+                {
+                  label: 'Assigned Resources',
+                  value: stats.assignedResources || 0,
+                  icon: NotebookPen,
+                  accentClassName: 'bg-emerald-50 text-emerald-700'
+                },
+                {
+                  label: 'Open Slots',
+                  value: stats.openSlots || 0,
+                  icon: CalendarDays,
+                  accentClassName: 'bg-emerald-50 text-emerald-700'
+                }
+              ].map((item) => {
+                const cardClasses = cn(
+                  'pharmacy-card p-6',
+                  item.to && 'transition-transform hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300'
+                );
+
+                const content = (
+                  <>
+                    <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', item.accentClassName)}>
+                      <item.icon className="w-5 h-5" />
+                    </div>
+                    <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">{item.label}</p>
+                    <p className="mt-3 text-3xl font-semibold text-primary-text">{item.value}</p>
+                  </>
+                );
+
+                return item.to ? (
+                  <Link key={item.label} to={item.to} className={cardClasses}>
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={item.label} className={cardClasses}>
+                    {content}
                   </div>
-                  <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">{item.label}</p>
-                  <p className="mt-3 text-3xl font-semibold text-primary-text">{item.value}</p>
-                </div>
-              ))}
+                );
+              })}
             </section>
 
             <CounselorSessionTrendChart
@@ -304,7 +365,7 @@ export default function CounselorDashboard() {
               generatedAt={trendGeneratedAt}
               pendingThreshold={trendSummary.pendingAttentionThreshold}
               onRangeChange={handleTrendRangeChange}
-              onGroupByChange={setTrendGroupBy}
+              onGroupByChange={handleTrendGroupByChange}
               onRetry={() => {
                 const requestId = trendRequestIdRef.current + 1;
                 trendRequestIdRef.current = requestId;

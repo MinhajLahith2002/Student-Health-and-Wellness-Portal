@@ -116,7 +116,7 @@ export default function AppointmentFeedback() {
               rows={6}
               value={comment}
               onChange={(event) => setComment(event.target.value)}
-              className="w-full px-6 py-4 bg-[#edf5f8] border-none rounded-2xl outline-none resize-none"
+              className="w-full px-6 py-4 bg-secondary-bg border-none rounded-2xl outline-none resize-none text-primary-text"
               placeholder="What went well, and what could be improved?"
             />
           </div>

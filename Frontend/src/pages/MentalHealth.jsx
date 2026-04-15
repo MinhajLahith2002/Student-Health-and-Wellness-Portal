@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Bookmark, CalendarDays, Heart, MessageSquareHeart, ShieldCheck, Sparkles, Users, Video } from 'lucide-react';
 import {
@@ -26,10 +26,32 @@ import {
 } from '../lib/mentalHealth';
 import { getResourceTypePresentation } from '../lib/resourcePresentation';
 
+const DASHBOARD_UPCOMING_SESSION_LIMIT = 5;
+const ACTIVE_COUNSELING_SESSION_STATUSES = ['Confirmed', 'Ready', 'In Progress'];
+
+function asArray(value) {
+  return Array.isArray(value) ? value.filter(Boolean) : [];
+}
+
+function getValidDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function getMoodStreak(logs = []) {
   if (!Array.isArray(logs) || logs.length === 0) return 0;
 
-  const uniqueDays = [...new Set(logs.map((entry) => new Date(entry.date).toISOString().slice(0, 10)))].sort().reverse();
+  const uniqueDays = [
+    ...new Set(
+      logs
+        .map((entry) => getValidDate(entry?.date))
+        .filter(Boolean)
+        .map((date) => date.toISOString().slice(0, 10))
+    )
+  ].sort().reverse();
+
+  if (uniqueDays.length === 0) return 0;
+
   let streak = 0;
   const cursor = new Date();
   cursor.setHours(0, 0, 0, 0);
@@ -53,10 +75,16 @@ function getMoodStreak(logs = []) {
 }
 
 function toSessionDateTime(dateValue, timeValue) {
-  if (!dateValue || !timeValue) return null;
+  if (!dateValue) return null;
 
-  const baseDate = new Date(dateValue);
-  if (Number.isNaN(baseDate.getTime())) return null;
+  const baseDate = getValidDate(dateValue);
+  if (!baseDate) return null;
+
+  if (!timeValue) {
+    const dateOnly = new Date(baseDate);
+    dateOnly.setHours(0, 0, 0, 0);
+    return dateOnly;
+  }
 
   const [clock = '', meridiem = 'AM'] = `${timeValue}`.split(' ');
   const [hourText = '0', minuteText = '0'] = clock.split(':');
@@ -77,28 +105,50 @@ function toSessionDateTime(dateValue, timeValue) {
   );
 }
 
+function normalizeDateOnly(dateValue) {
+  const date = getValidDate(dateValue) || new Date(0);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function isUpcomingCounselingSession(session) {
+  if (!ACTIVE_COUNSELING_SESSION_STATUSES.includes(session?.status)) {
+    return false;
+  }
+
+  if (session.status === 'In Progress') {
+    return normalizeDateOnly(session.date).getTime() >= normalizeDateOnly(new Date()).getTime();
+  }
+
+  const sessionDateTime = toSessionDateTime(session.date, session.time);
+  if (!sessionDateTime) {
+    return false;
+  }
+
+  return sessionDateTime.getTime() >= Date.now();
+}
+
 export default function MentalHealthHub() {
   const cachedStats = getCachedMoodStats();
   const cachedResources = getCachedMentalHealthResources({ limit: 12 });
-  const cachedSessionSummary = getCachedCounselingSessions({ limit: 3 });
+  const cachedSessionSummary = getCachedCounselingSessions({
+    limit: DASHBOARD_UPCOMING_SESSION_LIMIT,
+    scope: 'upcoming'
+  });
   const cachedForumBootstrap = getCachedForumBootstrap();
-  const initialResources = Array.isArray(cachedResources) ? cachedResources : [];
-  const initialSessions = Array.isArray(cachedSessionSummary?.sessions) ? cachedSessionSummary.sessions : [];
+  const initialResources = asArray(cachedResources);
+  const initialSessions = asArray(cachedSessionSummary?.sessions);
   const [stats, setStats] = useState(cachedStats);
-  const [resources, setResources] = useState(initialResources);
   const [resourceTotal, setResourceTotal] = useState(0);
   const [suggestions, setSuggestions] = useState(() => buildMoodSuggestions({
     stats: cachedStats,
     resources: initialResources
   }));
   const [sessions, setSessions] = useState(initialSessions);
-  const [forumThreads, setForumThreads] = useState(() => (
-    Array.isArray(cachedForumBootstrap?.threads) ? cachedForumBootstrap.threads : []
-  ));
+  const [forumThreads, setForumThreads] = useState(() => asArray(cachedForumBootstrap?.threads));
   const [error, setError] = useState('');
   const [savedResources] = useState(() => getSavedResources());
   const [preferredCounselors] = useState(() => getPreferredCounselors());
-  const [referenceNow] = useState(() => Date.now());
 
   useEffect(() => {
     let active = true;
@@ -113,15 +163,11 @@ export default function MentalHealthHub() {
 
       const nextStats = moodStatsResult.status === 'fulfilled' ? moodStatsResult.value : cachedStats;
       const nextResources = resourceListResult.status === 'fulfilled' && Array.isArray(resourceListResult.value)
-        ? resourceListResult.value
+        ? asArray(resourceListResult.value)
         : initialResources;
 
       if (moodStatsResult.status === 'fulfilled') {
         setStats(nextStats);
-      }
-
-      if (resourceListResult.status === 'fulfilled') {
-        setResources(nextResources);
       }
 
       setSuggestions(buildMoodSuggestions({
@@ -145,7 +191,10 @@ export default function MentalHealthHub() {
     (async () => {
       const [resourceSummaryResult, sessionDataResult] = await Promise.allSettled([
         getResources({ category: 'Mental Health', limit: 1 }),
-        getCounselingSessions({ limit: 3 })
+        getCounselingSessions({
+          limit: DASHBOARD_UPCOMING_SESSION_LIMIT,
+          scope: 'upcoming'
+        })
       ]);
 
       if (!active) return;
@@ -157,7 +206,7 @@ export default function MentalHealthHub() {
       }
 
       if (sessionDataResult.status === 'fulfilled') {
-        setSessions(Array.isArray(sessionDataResult.value?.sessions) ? sessionDataResult.value.sessions : []);
+        setSessions(asArray(sessionDataResult.value?.sessions));
       }
 
       if (resourceSummaryResult.status === 'rejected' && sessionDataResult.status === 'rejected') {
@@ -177,7 +226,7 @@ export default function MentalHealthHub() {
       try {
         const forumData = await getForumBootstrap();
         if (!active) return;
-        setForumThreads(Array.isArray(forumData?.threads) ? forumData.threads : []);
+        setForumThreads(asArray(forumData?.threads));
       } catch {
         if (!active) return;
         setForumThreads([]);
@@ -190,10 +239,19 @@ export default function MentalHealthHub() {
   }, []);
 
   const moodStreak = getMoodStreak(stats?.logs);
-  const upcomingSessions = sessions.filter((session) => {
-    const sessionDateTime = toSessionDateTime(session.date, session.time);
-    return sessionDateTime && sessionDateTime.getTime() >= referenceNow;
-  });
+  const upcomingSessions = useMemo(
+    () => sessions
+      .filter((session) => session?._id && isUpcomingCounselingSession(session))
+      .sort((left, right) => (
+        (toSessionDateTime(left.date, left.time)?.getTime() ?? new Date(left.date).getTime())
+        - (toSessionDateTime(right.date, right.time)?.getTime() ?? new Date(right.date).getTime())
+      )),
+    [sessions]
+  );
+  const visibleSuggestions = useMemo(
+    () => asArray(suggestions).filter((resource) => resource?._id),
+    [suggestions]
+  );
   const nextSession = upcomingSessions[0] || null;
   const snapshotItems = [
     {
@@ -242,7 +300,7 @@ export default function MentalHealthHub() {
   }
 
   return (
-    <div className="student-shell pt-32 md:pt-36 pb-12">
+    <div className="student-shell mental-health-scroll-stable pt-32 md:pt-36 pb-12">
       <div className="px-4 sm:px-6 max-w-7xl mx-auto">
       <header className="student-hero mb-12 md:mb-16 text-center max-w-[54rem] mx-auto px-5 sm:px-8 md:px-10 py-8 sm:py-10 md:py-12">
         <div className="student-chip bg-purple-100 text-purple-700 mb-6 md:mb-8">
@@ -359,7 +417,7 @@ export default function MentalHealthHub() {
           {nextSession ? (
             <>
               <h2 className="text-3xl font-semibold !text-white">{nextSession.counselorName}</h2>
-              <p className="text-white/80 mt-3">{new Date(nextSession.date).toLocaleDateString()} • {nextSession.time} • {nextSession.type}</p>
+              <p className="text-white/80 mt-3">{new Date(nextSession.date).toLocaleDateString()} • {nextSession.time} • {nextSession.typeLabel}</p>
               <p className="text-white/80 mt-3">Status: {nextSession.status}</p>
               <div className="mt-auto pt-6">
                 <Link
@@ -484,10 +542,10 @@ export default function MentalHealthHub() {
               </Link>
             </div>
             <div className="space-y-4">
-              {suggestions.length === 0 ? (
+              {visibleSuggestions.length === 0 ? (
                 <p className="text-secondary-text">Suggestions will improve as you log more mood data.</p>
               ) : (
-                suggestions.map((resource) => {
+                visibleSuggestions.map((resource) => {
                   const presentation = getResourceTypePresentation(resource.type);
                   const TypeIcon = presentation.icon;
 
@@ -607,7 +665,7 @@ export default function MentalHealthHub() {
           </section>
         </div>
 
-        <aside className="space-y-8">
+        <aside className="space-y-8 lg:self-start">
           <div className="relative overflow-hidden rounded-[2rem] min-h-[25.1rem] p-6 md:p-7 bg-[linear-gradient(145deg,#dc2626_0%,#ef4444_58%,#fb7185_100%)] text-white shadow-[0_24px_60px_rgba(220,38,38,0.18)] border border-rose-200/20">
             <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.22)_0%,rgba(255,255,255,0)_72%)]" />
             <div className="relative flex flex-1 flex-col">
@@ -619,13 +677,13 @@ export default function MentalHealthHub() {
                   Urgent help
                 </span>
               </div>
-                <div className="mt-5 flex flex-1 flex-col">
-                  <div className="min-h-[8.35rem]">
-                    <h3 className="text-[1.85rem] leading-tight font-semibold tracking-tight !text-white">Emergency Support</h3>
-                    <p className="mt-3 text-white/85 text-[0.97rem] leading-[1.9] max-w-md">
-                      If you are in immediate distress or need urgent help, call 988 or use your campus emergency line right away.
-                    </p>
-                  </div>
+              <div className="mt-5 flex flex-1 flex-col">
+                <div className="min-h-[8.35rem]">
+                  <h3 className="text-[1.85rem] leading-tight font-semibold tracking-tight !text-white">Emergency Support</h3>
+                  <p className="mt-3 text-white/85 text-[0.97rem] leading-[1.9] max-w-md">
+                    If you are in immediate distress or need urgent help, call 988 or use your campus emergency line right away.
+                  </p>
+                </div>
                 <div className="mt-6 min-h-[6.5rem] rounded-[1.35rem] border border-white/15 bg-white/10 px-4 py-3.5 backdrop-blur-sm">
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">Always available</p>
                   <p className="mt-2 text-sm text-white/85">24/7 crisis support is available right now.</p>
@@ -639,7 +697,7 @@ export default function MentalHealthHub() {
             </div>
           </div>
 
-          <div className="student-surface p-8">
+          <div className="student-surface flex h-[36rem] flex-col overflow-hidden p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">Upcoming support</p>
@@ -652,7 +710,7 @@ export default function MentalHealthHub() {
                 <Video className="w-5 h-5" />
               </div>
             </div>
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1 sm:pr-2">
               {upcomingSessions.length === 0 ? (
                 <div className="rounded-[1.6rem] border border-sky-100 bg-[linear-gradient(180deg,rgba(240,249,255,0.82)_0%,rgba(248,250,252,0.96)_100%)] px-5 py-5 shadow-[0_16px_32px_rgba(15,41,66,0.06)]">
                   <div className="flex items-start gap-4">
@@ -682,36 +740,38 @@ export default function MentalHealthHub() {
                   </div>
                 </div>
               ) : (
-                upcomingSessions.map((session) => (
-                  <Link
-                    key={session._id}
-                    to={`/mental-health/sessions/${session._id}`}
-                    onMouseEnter={() => handlePrefetchSession(session._id)}
-                    onFocus={() => handlePrefetchSession(session._id)}
-                    className="block rounded-[1.5rem] border border-slate-100 bg-[linear-gradient(180deg,rgba(248,250,252,0.96)_0%,rgba(255,255,255,1)_100%)] px-5 py-5 shadow-[0_14px_28px_rgba(15,41,66,0.05)] transition-transform duration-200 hover:-translate-y-0.5"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.1rem] bg-sky-50 text-sky-700">
-                        <CalendarDays className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex rounded-full bg-sky-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-sky-700">
-                            Booked support
-                          </span>
+                <div className="space-y-4">
+                  {upcomingSessions.map((session) => (
+                    <Link
+                      key={session._id}
+                      to={`/mental-health/sessions/${session._id}`}
+                      onMouseEnter={() => handlePrefetchSession(session._id)}
+                      onFocus={() => handlePrefetchSession(session._id)}
+                      className="block rounded-[1.5rem] border border-slate-100 bg-[linear-gradient(180deg,rgba(248,250,252,0.96)_0%,rgba(255,255,255,1)_100%)] px-5 py-5 shadow-[0_14px_28px_rgba(15,41,66,0.05)] transition-transform duration-200 hover:-translate-y-0.5"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.1rem] bg-sky-50 text-sky-700">
+                          <CalendarDays className="h-5 w-5" />
                         </div>
-                        <p className="mt-3 font-semibold text-primary-text">{session.counselorName}</p>
-                        <p className="mt-1 text-sm text-secondary-text">
-                          {new Date(session.date).toLocaleDateString()} • {session.time}
-                        </p>
-                        <p className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-accent-primary">
-                          Open session plan
-                          <ArrowRight className="h-4 w-4" />
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex rounded-full bg-sky-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-sky-700">
+                              Booked support
+                            </span>
+                          </div>
+                          <p className="mt-3 font-semibold text-primary-text">{session.counselorName}</p>
+                          <p className="mt-1 text-sm text-secondary-text">
+                            {new Date(session.date).toLocaleDateString()} • {session.time}
+                          </p>
+                          <p className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-accent-primary">
+                            Open session plan
+                            <ArrowRight className="h-4 w-4" />
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                ))
+                    </Link>
+                  ))}
+                </div>
               )}
             </div>
           </div>

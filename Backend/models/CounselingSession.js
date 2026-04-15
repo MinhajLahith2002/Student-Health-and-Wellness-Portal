@@ -62,7 +62,7 @@ const counselingSessionSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Confirmed', 'Ready', 'In Progress', 'Completed', 'Cancelled'],
+    enum: ['Pending', 'Confirmed', 'Ready', 'In Progress', 'Completed', 'Cancelled', 'No Show'],
     default: 'Confirmed'
   },
   meetingLink: {

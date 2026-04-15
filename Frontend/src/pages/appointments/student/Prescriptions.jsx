@@ -77,7 +77,7 @@ const Prescriptions = () => {
               placeholder="Search by doctor or medicine name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-[#edf5f8] border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-600/20 transition-all outline-none"
+              className="w-full pl-12 pr-4 py-4 bg-secondary-bg border-none rounded-2xl text-sm focus:ring-2 focus:ring-accent-primary/20 transition-all outline-none"
             />
           </div>
         </div>
@@ -93,7 +93,7 @@ const Prescriptions = () => {
               onClick={() => setSelectedPrescription(prescription)}
             >
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-[#e8f4f8] text-accent-primary rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-accent-primary/10 text-accent-primary rounded-2xl flex items-center justify-center">
                   <FileText className="w-6 h-6" />
                 </div>
                 <div>
@@ -116,7 +116,7 @@ const Prescriptions = () => {
                 </div>
               </div>
 
-              <button className="w-full py-4 bg-[#edf5f8] text-primary-text rounded-2xl font-bold text-sm hover:bg-[#EBEBEF] transition-all flex items-center justify-center gap-2">
+              <button className="w-full py-4 bg-secondary-bg text-primary-text rounded-2xl font-bold text-sm hover:bg-border-gray/50 transition-all flex items-center justify-center gap-2">
                 View Details
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -128,7 +128,7 @@ const Prescriptions = () => {
         {error && <p className="text-sm text-red-600">{error}</p>}
         {!loading && !error && filteredPrescriptions.length === 0 && (
           <div className="py-20 text-center">
-            <div className="w-20 h-20 bg-[#edf5f8] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-secondary-bg rounded-full flex items-center justify-center mx-auto mb-6">
               <FileText className="w-10 h-10 text-secondary-text" />
             </div>
             <h3 className="text-2xl font-bold text-primary-text">No prescriptions found</h3>
@@ -157,7 +157,7 @@ const Prescriptions = () => {
               <div className="p-10">
                 <div className="flex justify-between items-center mb-10">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-[#e8f4f8] text-accent-primary rounded-2xl flex items-center justify-center">
+                    <div className="w-14 h-14 bg-accent-primary/10 text-accent-primary rounded-2xl flex items-center justify-center">
                       <FileText className="w-8 h-8" />
                     </div>
                     <div>
@@ -165,15 +165,15 @@ const Prescriptions = () => {
                       <p className="text-sm text-secondary-text font-medium">Issued by {selectedPrescription.doctorName} on {selectedPrescription.date}</p>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedPrescription(null)} className="p-2 hover:bg-[#edf5f8] rounded-full transition-all">
+                  <button onClick={() => setSelectedPrescription(null)} className="p-2 hover:bg-secondary-bg rounded-full transition-all">
                     <X className="w-6 h-6 text-secondary-text" />
                   </button>
                 </div>
 
                 <div className="space-y-8">
-                  <div className="bg-[#edf5f8] p-8 rounded-3xl space-y-6">
+                  <div className="bg-secondary-bg p-8 rounded-3xl space-y-6">
                     {selectedPrescription.medicines.map((m, idx) => (
-                      <div key={idx} className="pb-6 border-b border-[#EBEBEF] last:border-0 last:pb-0">
+                      <div key={idx} className="pb-6 border-b border-border-gray last:border-0 last:pb-0">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="text-lg font-bold text-primary-text">{m.name}</h4>
                           <span className="px-3 py-1 bg-white text-accent-primary text-[10px] font-bold rounded-full uppercase tracking-widest border border-blue-100">
@@ -197,13 +197,13 @@ const Prescriptions = () => {
                   )}
 
                   <div className="pt-6 flex gap-4">
-                    <button className="flex-1 py-5 bg-[#edf5f8] text-primary-text rounded-[24px] font-bold hover:bg-[#EBEBEF] transition-all flex items-center justify-center gap-2">
+                    <button className="flex-1 py-5 bg-secondary-bg text-primary-text rounded-[24px] font-bold hover:bg-border-gray/50 transition-all flex items-center justify-center gap-2">
                       <Download className="w-5 h-5" />
                       Download PDF
                     </button>
                     <Link 
                       to="/pharmacy"
-                      className="flex-[2] py-5 bg-accent-primary text-white rounded-[24px] font-bold hover:bg-[#105f72] transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
+                      className="flex-[2] py-5 bg-accent-primary text-white rounded-[24px] font-bold hover:bg-[#105f72] transition-all shadow-lg shadow-accent-primary/15 flex items-center justify-center gap-2"
                     >
                       <ShoppingBag className="w-5 h-5" />
                       Order from Pharmacy

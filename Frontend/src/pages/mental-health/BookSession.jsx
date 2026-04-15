@@ -3,10 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CalendarDays, Clock3 } from 'lucide-react';
 import {
   bookCounselingSession,
+  describeCounselingBookingConflict,
+  findCounselingBookingConflict,
+  getCachedCounselingSessions,
   getCachedCounselorProfile,
   getCachedCounselorSlots,
+  getCounselingSessions,
   getCounselorProfile,
-  getCounselorSlots
+  getCounselorSlots,
+  subscribeCounselingLiveRefresh
 } from '../../lib/counseling';
 import DismissibleBanner from '../../components/DismissibleBanner';
 import { cn } from '../../lib/utils';
@@ -14,12 +19,27 @@ import { cn } from '../../lib/utils';
 function getDefaultDate() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
-  return date.toISOString().slice(0, 10);
+  return getDateInputValue(date);
 }
 
 function getTodayValue() {
-  return new Date().toISOString().slice(0, 10);
+  return getDateInputValue();
 }
+
+function getDateInputValue(date = new Date()) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-');
+}
+
+const STUDENT_BOOKING_SESSION_QUERY = {
+  scope: 'upcoming',
+  limit: 100
+};
+
+const SLOT_AUTO_REFRESH_INTERVAL_MS = 15000;
 
 export default function BookSession() {
   const { counselorId } = useParams();
@@ -27,15 +47,21 @@ export default function BookSession() {
   const [selectedDate, setSelectedDate] = useState(getDefaultDate());
   const cachedProfile = getCachedCounselorProfile(counselorId);
   const cachedSlots = getCachedCounselorSlots(counselorId, { date: getDefaultDate() });
+  const cachedSessions = getCachedCounselingSessions(STUDENT_BOOKING_SESSION_QUERY);
   const [provider, setProvider] = useState(cachedProfile);
   const [selectedSlotId, setSelectedSlotId] = useState('');
   const [urgency, setUrgency] = useState('Medium');
   const [reason, setReason] = useState('');
   const [slots, setSlots] = useState(() => Array.isArray(cachedSlots?.slots) ? cachedSlots.slots : []);
+  const [studentSessions, setStudentSessions] = useState(() => (
+    Array.isArray(cachedSessions?.sessions) ? cachedSessions.sessions : []
+  ));
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({ slot: '', reason: '' });
   const [loading, setLoading] = useState(() => !cachedProfile);
   const [submitting, setSubmitting] = useState(false);
+  const [slotRefreshKey, setSlotRefreshKey] = useState(0);
+  const [sessionRefreshKey, setSessionRefreshKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -63,6 +89,24 @@ export default function BookSession() {
 
     (async () => {
       try {
+        const data = await getCounselingSessions(STUDENT_BOOKING_SESSION_QUERY);
+        if (!active) return;
+        setStudentSessions(Array.isArray(data?.sessions) ? data.sessions : []);
+      } catch {
+        // Keep booking available even if the background session refresh fails.
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [sessionRefreshKey]);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
         const data = await getCounselorSlots(counselorId, { date: selectedDate });
         if (!active) return;
         const nextSlots = Array.isArray(data?.slots) ? data.slots : [];
@@ -79,20 +123,72 @@ export default function BookSession() {
     return () => {
       active = false;
     };
-  }, [counselorId, selectedDate]);
+  }, [counselorId, selectedDate, slotRefreshKey]);
 
-  const selectedSlot = useMemo(
-    () => slots.find((slot) => slot.availabilityEntryId === selectedSlotId) || null,
-    [slots, selectedSlotId]
+  useEffect(() => {
+    function refreshBookingAvailability() {
+      if (document.visibilityState !== 'visible') return;
+      setSlotRefreshKey((current) => current + 1);
+      setSessionRefreshKey((current) => current + 1);
+    }
+
+    const intervalId = window.setInterval(refreshBookingAvailability, SLOT_AUTO_REFRESH_INTERVAL_MS);
+    const unsubscribeLiveRefresh = subscribeCounselingLiveRefresh((payload) => {
+      if (payload?.counselorId && payload.counselorId !== counselorId && payload.providerId !== counselorId) {
+        return;
+      }
+
+      refreshBookingAvailability();
+    });
+    document.addEventListener('visibilitychange', refreshBookingAvailability);
+
+    return () => {
+      window.clearInterval(intervalId);
+      unsubscribeLiveRefresh();
+      document.removeEventListener('visibilitychange', refreshBookingAvailability);
+    };
+  }, [counselorId]);
+
+  const slotOptions = useMemo(
+    () => slots.map((slot) => ({
+      ...slot,
+      conflictSession: findCounselingBookingConflict(studentSessions, {
+        date: slot.date,
+        time: slot.time
+      })
+    })),
+    [slots, studentSessions]
   );
 
-  const canSubmit = Boolean(selectedSlotId && reason.trim().length >= 10 && !submitting);
+  const selectedSlot = useMemo(
+    () => slotOptions.find((slot) => slot.availabilityEntryId === selectedSlotId) || null,
+    [slotOptions, selectedSlotId]
+  );
+  const selectedSlotConflict = selectedSlot?.conflictSession || null;
+
+  const canSubmit = Boolean(
+    selectedSlotId
+    && reason.trim().length >= 10
+    && !selectedSlotConflict
+    && !submitting
+  );
 
   async function handleSubmit(event) {
     event.preventDefault();
 
+    const bookingConflict = selectedSlot
+      ? findCounselingBookingConflict(studentSessions, {
+        date: selectedSlot.date,
+        time: selectedSlot.time
+      })
+      : null;
+
     const nextFieldErrors = {
-      slot: selectedSlotId ? '' : 'Choose one of the counselor’s open slots.',
+      slot: !selectedSlotId
+        ? 'Choose one of the counselor’s open slots.'
+        : bookingConflict
+          ? describeCounselingBookingConflict(bookingConflict)
+          : '',
       reason: reason.trim().length >= 10 ? '' : 'Share at least 10 characters so the counselor can prepare.'
     };
 
@@ -118,6 +214,8 @@ export default function BookSession() {
       });
     } catch (err) {
       setError(err.message || 'Failed to book session');
+      setSlotRefreshKey((current) => current + 1);
+      setSessionRefreshKey((current) => current + 1);
     } finally {
       setSubmitting(false);
     }
@@ -135,15 +233,21 @@ export default function BookSession() {
     <div className="pharmacy-shell pt-36 pb-16 px-6">
       <div className="max-w-6xl mx-auto grid gap-8 xl:grid-cols-[1.1fr,0.9fr]">
         <section className="pharmacy-panel p-8">
-          <Link to="/mental-health/counselors" className="pharmacy-secondary self-start">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Counselor Directory
-          </Link>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <span className="pharmacy-pill bg-emerald-50 text-emerald-700">Book Counseling</span>
 
-          <span className="pharmacy-pill bg-emerald-50 text-emerald-700">Book Counseling</span>
+            <Link to="/mental-health/counselors" className="pharmacy-secondary w-full justify-center sm:w-auto sm:shrink-0">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Counselor Directory
+            </Link>
+          </div>
+
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-primary-text">Reserve one open slot with {provider.name}.</h1>
           <p className="mt-4 text-secondary-text">
             You’re booking from counselor-created availability only. If a slot disappears, it means it was booked or removed before confirmation.
+          </p>
+          <p className="mt-2 text-sm text-secondary-text">
+            You can still book chat, video, and in-person counseling, but overlapping sessions at the same date and time are blocked automatically.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-8">
@@ -169,16 +273,19 @@ export default function BookSession() {
                 <div className="max-h-[20rem] overflow-y-auto p-3">
                   {slots.length ? (
                     <div className="space-y-3">
-                      {slots.map((slot) => (
+                      {slotOptions.map((slot) => (
                         <button
                           key={slot.availabilityEntryId}
                           type="button"
+                          disabled={Boolean(slot.conflictSession)}
                           onClick={() => {
                             setSelectedSlotId(slot.availabilityEntryId);
                             setFieldErrors((current) => ({ ...current, slot: '' }));
+                            setError('');
                           }}
                           className={cn(
                             'w-full rounded-[1.35rem] border px-5 py-4 text-left transition-all',
+                            slot.conflictSession && 'cursor-not-allowed border-amber-200 bg-amber-50/80 opacity-90',
                             selectedSlotId === slot.availabilityEntryId
                               ? 'border-accent-primary bg-white shadow-[0_16px_36px_rgba(20,116,139,0.12)]'
                               : 'border-white/80 bg-[#fbfdfe] hover:border-[#cde0e8]'
@@ -189,6 +296,11 @@ export default function BookSession() {
                             <span className="pharmacy-pill bg-sky-50 text-sky-700">{slot.typeLabel}</span>
                           </div>
                           <p className="mt-3 text-sm text-secondary-text">{new Date(slot.date).toLocaleDateString()} • {slot.duration} min</p>
+                          {slot.conflictSession && (
+                            <p className="mt-2 text-sm text-amber-700">
+                              {describeCounselingBookingConflict(slot.conflictSession)}
+                            </p>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -270,6 +382,14 @@ export default function BookSession() {
                   <p className="text-sm text-secondary-text">Session mode</p>
                   <p className="mt-2 font-semibold text-primary-text">{selectedSlot.typeLabel}</p>
                 </div>
+                {selectedSlotConflict && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-700">Time conflict</p>
+                    <p className="mt-2 text-sm leading-6 text-secondary-text">
+                      {describeCounselingBookingConflict(selectedSlotConflict)}
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="mt-4 text-sm text-secondary-text">Choose an open slot to preview the booking details here.</p>
