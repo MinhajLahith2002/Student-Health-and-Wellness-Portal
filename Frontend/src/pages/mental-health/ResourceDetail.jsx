@@ -20,11 +20,13 @@ function createFallbackVideoUrl(title = '') {
   return `https://www.youtube.com/results?search_query=${query}`;
 }
 
-function ResourceMetaItem({ icon: Icon, label, value, accentClass = 'bg-sky-100 text-sky-700' }) {
+function ResourceMetaItem({ icon, label, value, accentClass = 'bg-sky-100 text-sky-700' }) {
+  const MetaIcon = icon;
+
   return (
     <div className="flex items-start gap-3 rounded-[1.25rem] border border-white/80 bg-white/75 p-4">
       <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${accentClass}`}>
-        <Icon className="h-4 w-4" />
+        <MetaIcon className="h-4 w-4" />
       </span>
       <div className="min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-secondary-text">{label}</p>

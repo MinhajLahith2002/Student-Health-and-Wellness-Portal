@@ -16,6 +16,8 @@ const THREAD_DUPLICATE_WINDOW_MS = 15 * 60 * 1000;
 const REPLY_DUPLICATE_WINDOW_MS = 10 * 60 * 1000;
 const MAX_MOOD_LOG_LIMIT = 50;
 const MOOD_LOG_SELECT = '_id mood moodScore notes factors date createdAt';
+const ALLOWED_MOODS = ['Great', 'Okay', 'Down', 'Stressed', 'Tired', 'Anxious', 'Happy', 'Sad', 'Energetic'];
+const ALLOWED_MOOD_FACTORS = ['Sleep', 'Exercise', 'Diet', 'Social', 'Work', 'Exams', 'Relationships', 'Health'];
 const MAX_RESOURCE_LIMIT = 24;
 const FORUM_THREAD_SELECT = '_id userId authorAlias title body supportType replies._id replies.userId replies.authorAlias replies.body replies.createdAt replies.updatedAt createdAt updatedAt lastActivityAt';
 const RESOURCE_LIST_SELECT = '_id title description type category subCategory content coverImage videoUrl duration author readTime tags views likes createdAt';
@@ -181,6 +183,50 @@ function parseResourceLimit(limit, fallback = 10) {
   const parsed = Number.parseInt(limit, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return Math.min(parsed, MAX_RESOURCE_LIMIT);
+}
+
+function validateMoodPayload({ mood, moodScore, notes, factors }) {
+  const normalized = {};
+
+  if (!mood) {
+    return { error: 'Mood is required' };
+  }
+
+  const normalizedMood = `${mood}`.trim();
+  if (!ALLOWED_MOODS.includes(normalizedMood)) {
+    return { error: 'Mood must be one of the supported mood options' };
+  }
+  normalized.mood = normalizedMood;
+
+  if (moodScore !== undefined) {
+    const normalizedScore = Number(moodScore);
+    if (!Number.isFinite(normalizedScore) || normalizedScore < 1 || normalizedScore > 10) {
+      return { error: 'Mood intensity must be between 1 and 10' };
+    }
+    normalized.moodScore = normalizedScore;
+  }
+
+  if (notes !== undefined) {
+    const normalizedNotes = notes == null ? '' : `${notes}`;
+    if (normalizedNotes && !normalizedNotes.trim()) {
+      return { error: 'Journal entry cannot be empty' };
+    }
+    normalized.notes = normalizedNotes.trim();
+  }
+
+  if (factors !== undefined) {
+    if (!Array.isArray(factors)) {
+      return { error: 'Mood factors must be an array' };
+    }
+
+    const invalidFactors = factors.filter((factor) => !ALLOWED_MOOD_FACTORS.includes(factor));
+    if (invalidFactors.length > 0) {
+      return { error: 'Mood factors must use supported factor options' };
+    }
+    normalized.factors = factors;
+  }
+
+  return { normalized };
 }
 
 async function buildForumBootstrapPayload(user) {
@@ -543,25 +589,18 @@ const getMoodLogs = async (req, res) => {
 const createMoodLog = async (req, res) => {
   try {
     const { mood, moodScore, notes, factors } = req.body;
+    const { normalized, error } = validateMoodPayload({ mood, moodScore, notes, factors });
 
-    if (!mood) {
-      return res.status(400).json({ message: 'Mood is required' });
-    }
-
-    if (moodScore !== undefined && (Number(moodScore) < 1 || Number(moodScore) > 10)) {
-      return res.status(400).json({ message: 'Mood intensity must be between 1 and 10' });
-    }
-
-    if (notes && !notes.trim()) {
-      return res.status(400).json({ message: 'Journal entry cannot be empty' });
+    if (error) {
+      return res.status(400).json({ message: error });
     }
 
     const moodLog = await MoodLog.create({
       userId: req.user.id,
-      mood,
-      moodScore: Number(moodScore) || undefined,
-      notes: notes?.trim() || '',
-      factors,
+      mood: normalized.mood,
+      moodScore: normalized.moodScore,
+      notes: normalized.notes || '',
+      factors: normalized.factors,
       date: new Date()
     });
 
@@ -583,22 +622,16 @@ const updateMoodLog = async (req, res) => {
       return res.status(404).json({ message: 'Mood entry not found' });
     }
 
-    if (!mood) {
-      return res.status(400).json({ message: 'Mood is required' });
+    const { normalized, error } = validateMoodPayload({ mood, moodScore, notes, factors });
+
+    if (error) {
+      return res.status(400).json({ message: error });
     }
 
-    if (moodScore !== undefined && (Number(moodScore) < 1 || Number(moodScore) > 10)) {
-      return res.status(400).json({ message: 'Mood intensity must be between 1 and 10' });
-    }
-
-    if (notes !== undefined && notes && !notes.trim()) {
-      return res.status(400).json({ message: 'Journal entry cannot be empty' });
-    }
-
-    moodLog.mood = mood;
-    moodLog.moodScore = Number(moodScore) || moodLog.moodScore;
-    moodLog.notes = notes?.trim() || '';
-    moodLog.factors = Array.isArray(factors) ? factors : moodLog.factors;
+    moodLog.mood = normalized.mood;
+    moodLog.moodScore = normalized.moodScore ?? moodLog.moodScore;
+    moodLog.notes = normalized.notes ?? '';
+    moodLog.factors = normalized.factors ?? moodLog.factors;
 
     await moodLog.save();
     res.json(moodLog);

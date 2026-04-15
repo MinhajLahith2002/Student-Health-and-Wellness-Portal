@@ -13,8 +13,6 @@ const moodCacheConfig = {
   resourceRecommendations: { key: 'resource-recommendations', ttlMs: 60 * 1000 },
   forumBootstrap: { key: 'forum-bootstrap', ttlMs: 20 * 1000 }
 };
-const FORUM_ALIAS_ADJECTIVES = ['Quiet', 'Kind', 'Brave', 'Calm', 'Soft', 'Bright', 'Gentle', 'Steady', 'Silver', 'Sunny'];
-const FORUM_ALIAS_NOUNS = ['Comet', 'River', 'Notebook', 'Lantern', 'Feather', 'Echo', 'Harbor', 'Sky', 'Willow', 'Star'];
 const MOOD_RESOURCE_KEYWORDS = {
   Anxious: ['anxiety', 'grounding', 'stress', 'panic', 'calm', 'breathing'],
   Stressed: ['stress', 'grounding', 'burnout', 'panic', 'focus', 'reset'],
@@ -77,112 +75,6 @@ function getSessionUserKey(suffix) {
   const rawUser = localStorage.getItem('campushealth_user');
   const user = rawUser ? JSON.parse(rawUser) : null;
   return `${SESSION_CACHE_PREFIX}:${user?.id || 'guest'}:${suffix}`;
-}
-
-const sampleForumThreads = [
-  {
-    id: 'seed-thread-1',
-    author: 'QuietComet',
-    title: 'How do you handle burnout during exam week?',
-    body: 'I feel like I am always behind whenever deadlines stack up. What actually helps you reset without losing momentum?',
-    supportType: 'Burnout',
-    createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    isOwned: false,
-    replies: [
-      {
-        id: 'seed-reply-1',
-        author: 'KindRiver',
-        body: 'I break the day into two must-do tasks and one rest block. It helps me feel less trapped.',
-        createdAt: new Date(Date.now() - 1000 * 60 * 70).toISOString(),
-        isOwned: false
-      },
-      {
-        id: 'seed-reply-2',
-        author: 'NorthStar',
-        body: 'A 10 minute walk between study sessions helps me stop spiraling when I am exhausted.',
-        createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-        isOwned: false
-      }
-    ]
-  },
-  {
-    id: 'seed-thread-2',
-    author: 'BlueNotebook',
-    title: 'Looking for small routines that reduce anxiety',
-    body: 'I have tried journaling on and off. Curious what tiny habits make the biggest difference for you.',
-    supportType: 'Anxiety',
-    createdAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-    isOwned: false,
-    replies: [
-      {
-        id: 'seed-reply-3',
-        author: 'SoftEcho',
-        body: 'I keep a super short grounding list on my phone: water, breathing, one message to a friend, then one small task.',
-        createdAt: new Date(Date.now() - 1000 * 60 * 150).toISOString(),
-        isOwned: false
-      }
-    ]
-  },
-  {
-    id: 'seed-thread-3',
-    author: 'SunnyInk',
-    title: 'Anyone have calm bedtime routines that actually work?',
-    body: 'My sleep has been inconsistent lately and my brain feels loud at night. I would love simple ideas that help you wind down.',
-    supportType: 'Sleep',
-    createdAt: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-    isOwned: false,
-    replies: [
-      {
-        id: 'seed-reply-4',
-        author: 'SlowRiver',
-        body: 'Dim lights, no laptop in bed, and a short breathing video has helped me a lot more than trying to force sleep.',
-        createdAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-        isOwned: false
-      }
-    ]
-  }
-];
-
-function getForumStorageKey() {
-  return getUserKey('forum');
-}
-
-function getForumReportsKey() {
-  return getUserKey('forum-reports');
-}
-
-function getForumAliasKey() {
-  return getUserKey('forum-alias');
-}
-
-function buildRandomForumAlias() {
-  const adjective = FORUM_ALIAS_ADJECTIVES[Math.floor(Math.random() * FORUM_ALIAS_ADJECTIVES.length)];
-  const noun = FORUM_ALIAS_NOUNS[Math.floor(Math.random() * FORUM_ALIAS_NOUNS.length)];
-  return `${adjective}${noun}`;
-}
-
-function normalizeForumAlias(alias) {
-  return `${alias || ''}`.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
-}
-
-function normalizeForumThreads(threads = []) {
-  return threads.map((thread) => ({
-    ...thread,
-    supportType: thread.supportType || 'General Support',
-    isOwned: Boolean(thread.isOwned),
-    replies: Array.isArray(thread.replies)
-      ? thread.replies.map((reply) => ({
-        ...reply,
-        isOwned: Boolean(reply.isOwned)
-      }))
-      : []
-  }));
-}
-
-function persistForumThreads(threads) {
-  const normalized = normalizeForumThreads(threads);
-  writeLocal(getForumStorageKey(), normalized);
-  return normalized;
 }
 
 function buildMoodCacheKey(baseKey, params = {}) {
