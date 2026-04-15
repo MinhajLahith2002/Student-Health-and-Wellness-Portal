@@ -1,8 +1,10 @@
 import Availability from '../models/Availability.js';
-import CounselingSession from '../models/CounselingSession.js';
+import Appointment from '../models/Appointment.js';
 import User from '../models/User.js';
-import { getAvailabilityForProvider } from '../services/availabilityService.js';
-import { normalizeDateOnly, toMinutes } from '../utils/timeSlots.js';
+import { getAvailabilityForProvider, matchesDateEntry } from '../services/availabilityService.js';
+import { generateSlots, normalizeDateOnly, toMinutes } from '../utils/timeSlots.js';
+import { getDoctorScopeIds } from '../utils/doctorScope.js';
+import { emitAvailabilityUpdate } from '../utils/socket.js';
 
 function normalizeRecurringDays(recurringDays = []) {
   return recurringDays
@@ -48,6 +50,59 @@ function validateSchedule({ isUnavailable, date, recurringDays, startTime, endTi
   return null;
 }
 
+function slotMatchesEntry(entry, appointment) {
+  if (!entry || entry.isUnavailable || !appointment?.time) return false;
+
+  if (!matchesDateEntry(entry, appointment.date)) {
+    return false;
+  }
+
+  const entrySlots = generateSlots({
+    startTime: entry.startTime,
+    endTime: entry.endTime,
+    slotDuration: entry.slotDuration,
+    breaks: entry.breaks
+  });
+
+  return entrySlots.some((slot) => {
+    const slotMinutes = toMinutes(slot);
+    const appointmentMinutes = toMinutes(appointment.time);
+    return slotMinutes !== null && appointmentMinutes !== null && slotMinutes === appointmentMinutes;
+  });
+}
+
+function appointmentMatchesEntry(entry, appointment) {
+  if (!entry || !appointment) return false;
+
+  if (appointment.availabilityId) {
+    return appointment.availabilityId.toString() === entry._id.toString();
+  }
+
+  return slotMatchesEntry(entry, appointment);
+}
+
+function toEntryWithBookings(entry, bookedAppointments = [], isEditable = true) {
+  return {
+    ...entry.toObject(),
+    isEditable,
+    bookedCount: bookedAppointments.length,
+    bookedAppointments
+  };
+}
+
+function broadcastAvailabilityMutation({ action, entry, providerId, role }) {
+  emitAvailabilityUpdate({
+    action,
+    providerId: providerId?.toString?.() || providerId,
+    role: role || entry?.role || null,
+    availabilityId: entry?._id?.toString?.() || null,
+    date: entry?.date || null,
+    recurringDays: entry?.recurringDays || [],
+    status: entry?.status || null,
+    isUnavailable: entry?.isUnavailable || false
+  });
+}
+
 // @desc    Get provider availability for a date
 // @route   GET /api/availability/:providerId
 // @access  Private
@@ -85,10 +140,54 @@ const getAvailabilityByProvider = async (req, res) => {
 // @access  Private/Doctor,Counselor
 const getMyAvailability = async (req, res) => {
   try {
+    const providerScopeIds = req.user.role === 'doctor'
+      ? await getDoctorScopeIds(req.user)
+      : [req.user.id];
+
     const entries = await Availability.find({ providerId: req.user.id })
       .sort({ date: 1, createdAt: -1 });
 
-    res.json({ entries });
+    const normalizedToday = normalizeDateOnly(new Date());
+    const appointments = await Appointment.find({
+      doctorId: { $in: providerScopeIds },
+      date: { $gte: normalizedToday },
+      status: { $in: ['Pending', 'Confirmed', 'Ready', 'In Progress'] }
+    })
+      .select('studentId studentName date time type status symptoms notes availabilityId')
+      .populate('studentId', 'name email studentId profileImage')
+      .sort({ date: 1, time: 1 });
+
+    const entrySnapshots = entries.map((entry) => ({
+      entry,
+      bookedAppointments: []
+    }));
+
+    appointments.forEach((appointment) => {
+      const matchingEntry = entrySnapshots.find(({ entry }) => appointmentMatchesEntry(entry, appointment));
+      if (matchingEntry) {
+        matchingEntry.bookedAppointments.push({
+          _id: appointment._id,
+          availabilityId: appointment.availabilityId || null,
+          studentId: appointment.studentId?._id || appointment.studentId,
+          studentName: appointment.studentName || appointment.studentId?.name || 'Student',
+          studentEmail: appointment.studentId?.email || '',
+          studentRecordId: appointment.studentId?.studentId || '',
+          profileImage: appointment.studentId?.profileImage || '',
+          date: appointment.date,
+          time: appointment.time,
+          type: appointment.type,
+          status: appointment.status,
+          symptoms: appointment.symptoms || '',
+          notes: appointment.notes || ''
+        });
+      }
+    });
+
+    const hydratedEntries = entrySnapshots.map(({ entry, bookedAppointments }) => (
+      toEntryWithBookings(entry, bookedAppointments, entry.providerId?.toString?.() === req.user.id)
+    ));
+
+    res.json({ entries: hydratedEntries });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -99,10 +198,6 @@ const getMyAvailability = async (req, res) => {
 // @access  Private/Doctor,Counselor
 const createAvailability = async (req, res) => {
   try {
-    if (req.user.role === 'counselor') {
-      return res.status(403).json({ message: 'Counselors must create session slots through the counseling workspace' });
-    }
-
     const recurringDays = normalizeRecurringDays(req.body.recurringDays);
     const breaks = normalizeBreaks(req.body.breaks);
     const isUnavailable = Boolean(req.body.isUnavailable);
@@ -132,6 +227,12 @@ const createAvailability = async (req, res) => {
     }
 
     const entry = await Availability.create(payload);
+    broadcastAvailabilityMutation({
+      action: 'created',
+      entry,
+      providerId: req.user.id,
+      role: req.user.role
+    });
     res.status(201).json(entry);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -143,10 +244,6 @@ const createAvailability = async (req, res) => {
 // @access  Private/Doctor,Counselor
 const updateAvailability = async (req, res) => {
   try {
-    if (req.user.role === 'counselor') {
-      return res.status(403).json({ message: 'Counselors must manage slots through the counseling workspace' });
-    }
-
     const entry = await Availability.findOne({ _id: req.params.id, providerId: req.user.id });
 
     if (!entry) {
@@ -178,6 +275,12 @@ const updateAvailability = async (req, res) => {
     }
 
     await entry.save();
+    broadcastAvailabilityMutation({
+      action: 'updated',
+      entry,
+      providerId: req.user.id,
+      role: req.user.role
+    });
     res.json(entry);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -189,26 +292,20 @@ const updateAvailability = async (req, res) => {
 // @access  Private/Doctor,Counselor
 const deleteAvailability = async (req, res) => {
   try {
-    if (req.user.role === 'counselor') {
-      const linkedSession = await CounselingSession.findOne({
-        availabilityEntryId: req.params.id,
-        status: { $in: ['Confirmed', 'Ready', 'In Progress', 'Completed'] }
-      }).select('_id');
-
-      if (linkedSession) {
-        return res.status(409).json({ message: 'Booked counselor slots cannot be deleted' });
-      }
-
-      return res.status(403).json({ message: 'Counselors must manage slots through the counseling workspace' });
-    }
-
     const entry = await Availability.findOne({ _id: req.params.id, providerId: req.user.id });
 
     if (!entry) {
       return res.status(404).json({ message: 'Availability entry not found' });
     }
 
+    const snapshot = entry.toObject();
     await entry.deleteOne();
+    broadcastAvailabilityMutation({
+      action: 'deleted',
+      entry: snapshot,
+      providerId: req.user.id,
+      role: req.user.role
+    });
     res.json({ message: 'Availability entry deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });

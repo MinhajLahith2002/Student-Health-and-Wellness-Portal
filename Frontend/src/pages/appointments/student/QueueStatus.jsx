@@ -1,7 +1,12 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Calendar, CheckCircle2, Clock, Video } from 'lucide-react';
-import { canOpenVideoVisit, checkInAppointment, getAppointmentById, getVideoVisitBlockedReason } from '../../../lib/appointments';
+import { canOpenVideoVisit, getVideoVisitBlockedReason } from '../../../lib/appointments';
+import { useAppointmentById } from '../../../hooks/useAppointments';
+import { useSocket } from '../../../hooks/useSocket';
+import { LoadingState } from '../../../components/LoadingState';
+import { AppointmentStatusBadge } from '../../../components/AppointmentStatusBadge';
+import ErrorBoundary from '../../../components/ErrorBoundary';
 
 function formatDateLabel(value) {
   return new Date(value).toLocaleDateString([], {
@@ -13,55 +18,88 @@ function formatDateLabel(value) {
 
 export default function QueueStatus() {
   const { appointmentId } = useParams();
-  const [appointment, setAppointment] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [actionState, setActionState] = useState(false);
-  const [helperMessage, setHelperMessage] = useState('');
+  const [queuePos, setQueuePos] = useState(null);
+  const [doctorReady, setDoctorReady] = useState(false);
 
+  // PHASE 3: Use new hook with auto-refresh every 5 seconds
+  const { appointment, loading, error, refetch, checkInAppointment } = useAppointmentById(appointmentId, {
+    refreshInterval: 5000
+  });
+
+  // PHASE 4: Real-time socket updates
+  const { listenForDoctorReady, listenForQueuePosition, subscribeAppointment } = useSocket();
+
+  // Subscribe to real-time appointment updates
   useEffect(() => {
-    let active = true;
+    if (!appointmentId) return;
 
-    (async () => {
-      try {
-        const data = await getAppointmentById(appointmentId);
-        if (!active) return;
-        setAppointment(data);
-      } catch (err) {
-        if (!active) return;
-        setError(err.message || 'Failed to load queue details');
-      } finally {
-        if (active) setLoading(false);
+    // Listen for doctor marking ready
+    const removeDoctorReady = listenForDoctorReady(appointmentId, () => {
+      console.log('✅ Doctor is ready!');
+      setDoctorReady(true);
+      refetch(); // Also fetch latest appointment state
+    });
+
+    // Listen for queue position updates
+    const removeQueuePosition = listenForQueuePosition(appointmentId, (position) => {
+      setQueuePos(position);
+    });
+
+    // Subscribe to overall appointment updates
+    const unsubscribeAppointment = subscribeAppointment(appointmentId, (updated) => {
+      // Auto-refetch will handle UI update
+      if (updated.status === 'Ready') {
+        setDoctorReady(true);
       }
-    })();
+    });
 
     return () => {
-      active = false;
+      removeDoctorReady?.();
+      removeQueuePosition?.();
+      unsubscribeAppointment?.();
     };
-  }, [appointmentId]);
+  }, [appointmentId, listenForDoctorReady, listenForQueuePosition, subscribeAppointment, refetch]);
 
   async function handleCheckIn() {
     try {
       setActionState(true);
-      const updated = await checkInAppointment(appointmentId);
-      setAppointment(updated);
+      // PHASE 3: Use hook method
+      await checkInAppointment(appointmentId);
+      // Hook automatically updates state
     } catch (err) {
-      setError(err.message || 'Failed to check in');
+      alert(`Failed to check in: ${err.message}`);
     } finally {
       setActionState(false);
     }
   }
 
   function handleCalendarHelper() {
-    setHelperMessage('Calendar export is demo-ready here: use this appointment time to add a reminder in your preferred calendar app.');
+    alert('Calendar export is demo-ready here: use this appointment time to add a reminder in your preferred calendar app.');
   }
 
-  if (loading) return <div className="student-shell pt-36 px-6">Loading queue status...</div>;
-  if (error || !appointment) return <div className="student-shell pt-36 px-6 text-red-600">{error || 'Appointment not found'}</div>;
+  // Determine if checked in (student has checked in)
+  const checkedIn =
+    Boolean(appointment?.checkInAt) ||
+    ['Ready', 'In Progress', 'Completed'].includes(appointment?.status);
 
-  const checkedIn = Boolean(appointment.checkInAt);
+  // PHASE 3: Show loading skeleton
+  if (loading) return <LoadingState message="Loading queue status..." />;
+  if (error || !appointment) {
+    return (
+      <div className="student-shell pt-36 px-6">
+        <div className="max-w-md mx-auto text-center">
+          <p className="text-red-600">{error || 'Appointment not found'}</p>
+          <Link to="/student/appointments" className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg">
+            Back to Appointments
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
+    <ErrorBoundary>
     <div className="student-shell pt-36 px-6 pb-20">
       <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         <section className="student-surface p-8">
@@ -83,7 +121,7 @@ export default function QueueStatus() {
             </div>
             <div className="flex items-center gap-3 text-sm text-secondary-text">
               <Clock className="w-4 h-4" />
-              Status: {appointment.status}
+              <AppointmentStatusBadge status={appointment.status} size="sm" />
             </div>
           </div>
         </section>
@@ -97,6 +135,27 @@ export default function QueueStatus() {
                 ? 'You are marked as ready. Keep this page open for the next step in your visit.'
                 : 'Check in before joining the consultation or arriving for your in-person visit.'}
             </p>
+
+            {/* PHASE 4: Real-time indicator for doctor status */}
+            {checkedIn && doctorReady && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-xs text-green-700 font-semibold">🟢 Doctor is ready for you!</p>
+              </div>
+            )}
+
+            {/* Queue position (if available) */}
+            {queuePos && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-700">
+                  Queue position: <span className="font-bold">{queuePos.queuePosition}</span> of {queuePos.totalInQueue}
+                </p>
+                {(queuePos.estimatedWait ?? null) !== null && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Estimated wait: {queuePos.estimatedWait} minutes
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mt-8 space-y-4">
@@ -132,19 +191,14 @@ export default function QueueStatus() {
             <button
               type="button"
               onClick={handleCalendarHelper}
-              className="w-full py-4 bg-white border border-[#F0F0F3] text-primary-text rounded-2xl font-bold"
+              className="w-full py-4 bg-white border border-border-gray text-primary-text rounded-2xl font-bold"
             >
               Add Reminder / Export Time
             </button>
-            {helperMessage && (
-              <div className="rounded-2xl bg-amber-50 border border-amber-100 p-5 text-sm text-amber-800">
-                {helperMessage}
-              </div>
-            )}
           </div>
         </section>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
-

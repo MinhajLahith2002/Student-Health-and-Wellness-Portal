@@ -160,6 +160,24 @@ export const initializeSocket = (server) => {
       socket.join(`appointment:${appointmentId}`);
     });
 
+    socket.on('appointment:subscribe', (appointmentId) => {
+      socket.join(`appointment:${appointmentId}`);
+      socket.emit('subscribe:success', { appointmentId });
+    });
+
+    socket.on('appointment:unsubscribe', (appointmentId) => {
+      socket.leave(`appointment:${appointmentId}`);
+    });
+
+    socket.on('queue:subscribe', (doctorId) => {
+      socket.join(`queue:${doctorId}`);
+      socket.emit('subscribe:success', { doctorId });
+    });
+
+    socket.on('queue:unsubscribe', (doctorId) => {
+      socket.leave(`queue:${doctorId}`);
+    });
+
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.user.name}`);
     });
@@ -171,6 +189,52 @@ export const initializeSocket = (server) => {
 export const getIO = () => {
   if (!io) throw new Error('Socket.IO not initialized');
   return io;
+};
+
+export const emitAppointmentUpdate = (appointmentId, data) => {
+  if (!io) return;
+
+  io.to(`appointment:${appointmentId}`).emit(`appointment:${appointmentId}:updated`, {
+    appointmentId,
+    ...data,
+    timestamp: new Date()
+  });
+};
+
+export const emitQueueUpdate = (doctorId, data) => {
+  if (!io) return;
+
+  io.to(`queue:${doctorId}`).emit(`queue:${doctorId}:updated`, {
+    ...data,
+    timestamp: new Date()
+  });
+};
+
+export const emitQueuePosition = (appointmentId, data) => {
+  if (!io) return;
+
+  io.to(`appointment:${appointmentId}`).emit(`queue:${appointmentId}:position`, {
+    ...data,
+    timestamp: new Date()
+  });
+};
+
+export const emitNotification = (userId, notification) => {
+  if (!io) return;
+
+  io.to(`user:${userId}`).emit('notification:new', {
+    ...notification,
+    timestamp: new Date()
+  });
+};
+
+export const emitAvailabilityUpdate = (data) => {
+  if (!io) return;
+
+  io.emit('availability:updated', {
+    ...data,
+    timestamp: new Date()
+  });
 };
 
 export const emitToUser = (userId, event, data) => {

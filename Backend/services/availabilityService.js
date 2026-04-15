@@ -7,7 +7,9 @@ import {
   getDateRange,
   isDateTimeInPast,
   matchesRecurringDay,
-  normalizeDateOnly
+  normalizeDateOnly,
+  toMinutes,
+  toDisplayTime
 } from '../utils/timeSlots.js';
 
 function sortSlots(slots = []) {
@@ -15,6 +17,21 @@ function sortSlots(slots = []) {
     const leftValue = Date.parse(`1970-01-01 ${left}`);
     const rightValue = Date.parse(`1970-01-01 ${right}`);
     return leftValue - rightValue;
+  });
+}
+
+/**
+ * Convert 12-hour time format (e.g., "10:00 AM") to 24-hour format (e.g., "10:00")
+ * This ensures API consistency regardless of input format
+ */
+function normalize24HourFormat(timeSlots = []) {
+  return timeSlots.map((slot) => {
+    // Parse to get total minutes, then convert back to HH:MM format (24-hour)
+    const minutes = toMinutes(slot);
+    if (minutes === null) return slot; // Return unchanged if parse fails
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
   });
 }
 
@@ -102,15 +119,19 @@ async function getAvailabilityForProvider({ providerId, role, date, excludeId = 
     excludeId
   });
 
-  const availableSlots = configuredSlots.filter((slot) => (
+  // Filter available slots and normalize time format to 24-hour format for API consistency
+  const filteredSlots = configuredSlots.filter((slot) => (
     !bookedSlots.includes(slot) && !isDateTimeInPast(normalizedDate, slot)
   ));
+
+  const availableSlots = normalize24HourFormat(filteredSlots);
+  const normalizedConfiguredSlots = normalize24HourFormat(configuredSlots);
 
   return {
     date: normalizedDate,
     availableSlots,
-    bookedSlots,
-    configuredSlots,
+    bookedSlots: normalize24HourFormat(bookedSlots),
+    configuredSlots: normalizedConfiguredSlots,
     entries: scheduleEntries
   };
 }

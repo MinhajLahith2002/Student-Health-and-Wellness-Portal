@@ -141,8 +141,12 @@ class AppointmentService {
       appointment.cancelledAt = Date.now();
       appointment.cancellationReason = cancellationReason;
     }
-    if (status === 'In Progress') appointment.startedAt = Date.now();
-    if (status === 'Completed') appointment.completedAt = Date.now();
+    if (status === 'In Progress' && !appointment.startedAt) {
+      appointment.startedAt = new Date();
+    }
+    if (status === 'Completed') {
+      appointment.completedAt = new Date();
+    }
 
     await appointment.save();
 
