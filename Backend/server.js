@@ -184,12 +184,14 @@ if (isProduction) {
 // Stricter rate limit for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: isProduction ? 5 : 100,
   skipSuccessfulRequests: true,
   message: 'Too many login attempts, please try again later.'
 });
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+if (isProduction) {
+  app.use('/api/auth/login', authLimiter);
+  app.use('/api/auth/register', authLimiter);
+}
 
 // Body parsing middleware
 app.use(json({ limit: '10mb' }));
@@ -284,7 +286,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Create HTTP server
-const DEFAULT_PORT = Number(process.env.PORT) || 5000;
+const DEFAULT_PORT = Number(process.env.PORT) || 5001;
 const server = isVercel ? null : createServer(app);
 
 // Initialize Socket.IO

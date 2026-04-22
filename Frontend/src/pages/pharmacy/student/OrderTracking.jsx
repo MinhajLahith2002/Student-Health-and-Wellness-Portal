@@ -114,6 +114,8 @@ const OrderTracking = () => {
 
   const currentStageIndex = useMemo(() => STATUS_TO_STEP[order?.status] ?? 0, [order?.status]);
   const isPrescriptionOrder = Boolean(order?.prescriptionId);
+  const supportEmail = order?.studentId?.email || order?.studentEmail || '';
+  const supportPhone = order?.studentId?.phone || order?.studentPhone || '';
   const progressWidth = useMemo(() => {
     if (!order || currentStageIndex <= 1) return 0;
     return ((currentStageIndex - 1) / (TRACKING_STAGES.length - 1)) * 100;
@@ -317,12 +319,33 @@ const OrderTracking = () => {
             <section className="pharmacy-panel p-8">
               <h2 className="text-lg font-bold text-primary-text mb-6">Need Help?</h2>
               <div className="space-y-4">
-                <button className="w-full py-4 bg-[#eff6f9] text-primary-text rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-[#e6f0f4] transition-all">
-                  <MessageSquare className="w-5 h-5 text-accent-primary" /> Contact Pharmacist
-                </button>
-                <button className="w-full py-4 bg-[#eff6f9] text-primary-text rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-[#e6f0f4] transition-all">
-                  <AlertCircle className="w-5 h-5 text-rose-500" /> Report an Issue
-                </button>
+                {supportEmail ? (
+                  <a
+                    href={`mailto:${supportEmail}`}
+                    className="w-full py-4 bg-[#eff6f9] text-primary-text rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-[#e6f0f4] transition-all"
+                  >
+                    <MessageSquare className="w-5 h-5 text-accent-primary" /> Contact Pharmacy
+                  </a>
+                ) : (
+                  <div className="w-full py-4 bg-[#eff6f9] text-secondary-text rounded-xl font-bold flex items-center justify-center gap-3">
+                    <MessageSquare className="w-5 h-5 text-secondary-text/70" /> Contact details unavailable
+                  </div>
+                )}
+                {supportPhone ? (
+                  <a
+                    href={`tel:${supportPhone}`}
+                    className="w-full py-4 bg-[#eff6f9] text-primary-text rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-[#e6f0f4] transition-all"
+                  >
+                    <AlertCircle className="w-5 h-5 text-rose-500" /> Call Support
+                  </a>
+                ) : (
+                  <Link
+                    to="/student/pharmacy/orders"
+                    className="w-full py-4 bg-[#eff6f9] text-primary-text rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-[#e6f0f4] transition-all"
+                  >
+                    <AlertCircle className="w-5 h-5 text-rose-500" /> Back to Order Activity
+                  </Link>
+                )}
               </div>
             </section>
 

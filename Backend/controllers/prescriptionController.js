@@ -61,20 +61,23 @@ const uploadPrescription = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    if (!req.file.mimetype?.startsWith('image/')) {
+    const isImageFile = req.file.mimetype?.startsWith('image/');
+    const isPdfFile = req.file.mimetype === 'application/pdf';
+
+    if (!isImageFile && !isPdfFile) {
       if (req.file.path) {
         await unlink(req.file.path).catch(() => {});
       }
 
       return res.status(400).json({
-        message: 'Prescription upload only supports image files (JPG, PNG, WEBP, or GIF).'
+        message: 'Prescription upload only supports image files or PDFs.'
       });
     }
 
     let imageUrl = `/uploads/prescriptions/${req.file.filename}`;
     let imagePublicId = null;
 
-    if (isCloudinaryConfigured()) {
+    if (isCloudinaryConfigured() && isImageFile) {
       const result = await uploadPrescriptionImage(req.file.path);
       imageUrl = result.secure_url;
       imagePublicId = result.public_id;
@@ -83,8 +86,6 @@ const uploadPrescription = async (req, res) => {
     const prescription = await Prescription.create({
       studentId: req.user.id,
       studentName: req.user.name,
-      doctorId: req.user.id,
-      doctorName: req.user.name,
       status: 'Pending',
       imageUrl,
       fileMimeType: req.file.mimetype,

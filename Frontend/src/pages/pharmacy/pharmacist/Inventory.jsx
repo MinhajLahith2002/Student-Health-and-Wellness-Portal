@@ -19,6 +19,8 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
 
+const MEDICINE_CATEGORIES = ['Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins', 'First Aid', 'Personal Care', 'Hygiene', 'Wellness'];
+
 const InventoryManagement = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,7 +29,15 @@ const InventoryManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const categories = ['All', 'Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins'];
+  const categories = useMemo(() => {
+    const categorySet = new Set(MEDICINE_CATEGORIES);
+    medicines.forEach((medicine) => {
+      if (medicine.category) {
+        categorySet.add(medicine.category);
+      }
+    });
+    return ['All', ...categorySet];
+  }, [medicines]);
 
   useEffect(() => {
     let active = true;

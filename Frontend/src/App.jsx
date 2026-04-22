@@ -153,6 +153,7 @@ function AppLayout() {
           <Route path="/mental-health/sessions/:sessionId/feedback" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><SessionFeedback /></PageWrapper></ProtectedRoute>} />
 
           <Route path="/pharmacy" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PharmacyDashboard /></PageWrapper></ProtectedRoute>} />
+          <Route path="/student/pharmacy" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PharmacyDashboard /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/pharmacy/search" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MedicineSearch /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/pharmacy/medicine/:id" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MedicineDetail /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/pharmacy/upload-prescription" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PrescriptionUpload /></PageWrapper></ProtectedRoute>} />

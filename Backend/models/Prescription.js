@@ -45,12 +45,10 @@ const prescriptionSchema = new Schema({
   },
   doctorId: {
     type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
   doctorName: {
-    type: String,
-    required: true
+    type: String
   },
   medicines: [medicineSchema],
   notes: {

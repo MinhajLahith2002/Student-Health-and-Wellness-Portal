@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Plus,
   Minus,
-  Heart,
   Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -114,9 +113,6 @@ const MedicineDetail = () => {
             <ChevronLeft className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-4">
-            <button className="p-2 hover:bg-[#e6f0f4] rounded-full transition-colors text-secondary-text/80 hover:text-rose-500">
-              <Heart className="w-6 h-6" />
-            </button>
             <Link to="/student/pharmacy/checkout" className="relative p-2 hover:bg-[#e6f0f4] rounded-full transition-colors text-secondary-text">
               <ShoppingCart className="w-6 h-6" />
               <span className="absolute top-0 right-0 min-w-5 h-5 px-1 bg-accent-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
@@ -260,13 +256,13 @@ const MedicineDetail = () => {
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3">
                   <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-amber-900">Prescription Required</p>
-                    <p className="text-xs text-amber-700/80 leading-relaxed">
-                      This medicine requires a valid prescription. You can upload it during checkout or
-                      <Link to="/student/pharmacy/upload-prescription" className="underline font-bold ml-1">upload now</Link>.
-                    </p>
+                      <p className="text-sm font-bold text-amber-900">Prescription Required</p>
+                      <p className="text-xs text-amber-700/80 leading-relaxed">
+                       This medicine requires an approved prescription before checkout. You can
+                        <Link to="/student/pharmacy/upload-prescription" className="underline font-bold ml-1">upload now</Link>.
+                      </p>
+                    </div>
                   </div>
-                </div>
               )}
             </div>
 
@@ -397,7 +393,3 @@ const MedicineDetail = () => {
 };
 
 export default MedicineDetail;
-
-
-
-

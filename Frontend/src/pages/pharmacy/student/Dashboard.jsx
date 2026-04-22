@@ -202,12 +202,18 @@ const PharmacyDashboard = () => {
               Book a session today or browse our health guides.
             </p>
             <div className="flex flex-wrap gap-4">
-              <button className="px-6 py-3 bg-white text-primary-text rounded-xl font-bold hover:bg-cyan-50 transition-colors">
+              <Link
+                to="/student/pharmacy/first-aid"
+                className="px-6 py-3 bg-white text-primary-text rounded-xl font-bold hover:bg-cyan-50 transition-colors"
+              >
                 Read Health Guides
-              </button>
-              <button className="px-6 py-3 bg-white/10 text-white rounded-xl font-bold border border-white/20 hover:bg-white/16 transition-colors backdrop-blur-sm">
+              </Link>
+              <Link
+                to="/mental-health/counselors"
+                className="px-6 py-3 bg-white/10 text-white rounded-xl font-bold border border-white/20 hover:bg-white/15 transition-colors backdrop-blur-sm"
+              >
                 Book Consultation
-              </button>
+              </Link>
             </div>
           </div>
           <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-gradient-to-l from-cyan-300/15 to-transparent hidden md:block" />

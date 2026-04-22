@@ -1,31 +1,31 @@
-import connectDB from '../config/database.js';
 import { config } from 'dotenv';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-
-import mongoUriUtils from '../utils/mongoUri.js';
-import User from '../models/User.js';
-import Medicine from '../models/Medicine.js';
-import FAQ from '../models/FAQ.js';
-import Resource from '../models/Resource.js';
-import Settings from '../models/Settings.js';
-import Order from '../models/Order.js';
-import Prescription from '../models/Prescription.js';
-import Pharmacy from '../models/Pharmacy.js';
-import Availability from '../models/Availability.js';
-import Appointment from '../models/Appointment.js';
-import CounselingSession from '../models/CounselingSession.js';
-import MoodLog from '../models/MoodLog.js';
-import seedData from '../config/seedData.js';
-
-const { normalizeMongoUri, resolveMongoUriFromEnv } = mongoUriUtils;
-const { seedDatabase } = seedData;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load environment variables
 config({ path: join(__dirname, '../.env') });
+
+const [{ default: connectDB }, { default: User }, { default: Medicine }, { default: FAQ }, { default: Resource }, { default: Settings }, { default: Order }, { default: Prescription }, { default: Pharmacy }, { default: Availability }, { default: Appointment }, { default: CounselingSession }, { default: MoodLog }, { default: seedData }] = await Promise.all([
+  import('../config/database.js'),
+  import('../models/User.js'),
+  import('../models/Medicine.js'),
+  import('../models/FAQ.js'),
+  import('../models/Resource.js'),
+  import('../models/Settings.js'),
+  import('../models/Order.js'),
+  import('../models/Prescription.js'),
+  import('../models/Pharmacy.js'),
+  import('../models/Availability.js'),
+  import('../models/Appointment.js'),
+  import('../models/CounselingSession.js'),
+  import('../models/MoodLog.js'),
+  import('../config/seedData.js')
+]);
+
+const { seedDatabase } = seedData;
 
 // Database connection
 const runSeed = async () => {

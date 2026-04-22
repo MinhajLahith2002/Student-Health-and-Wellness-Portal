@@ -138,7 +138,7 @@ const OrderManagement = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => navigate('/admin/dashboard')}
+              onClick={() => navigate('/pharmacist/dashboard')}
               className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -159,9 +159,10 @@ const OrderManagement = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="p-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-all">
+            <div className="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold flex items-center gap-2">
               <Filter className="w-5 h-5" />
-            </button>
+              {filteredOrders.length} shown
+            </div>
           </div>
         </div>
       </div>
@@ -238,7 +239,7 @@ const OrderManagement = () => {
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3 text-slate-400" />
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          {order.items.length} Items • ${order.total}
+                          {order.items.length} Items | ${Number(order.total || 0).toFixed(2)}
                         </span>
                       </div>
                       <ChevronRight className={cn(
@@ -288,12 +289,32 @@ const OrderManagement = () => {
                           </div>
                         </div>
                         <div className="flex gap-3">
-                          <button className="p-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all">
-                            <Phone className="w-6 h-6" />
-                          </button>
-                          <button className="p-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all">
-                            <MessageSquare className="w-6 h-6" />
-                          </button>
+                          {currentOrder.studentPhone ? (
+                            <a
+                              href={`tel:${currentOrder.studentPhone}`}
+                              className="p-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all"
+                              aria-label="Call student"
+                            >
+                              <Phone className="w-6 h-6" />
+                            </a>
+                          ) : (
+                            <div className="p-4 bg-slate-100 text-slate-300 rounded-2xl cursor-not-allowed" aria-hidden="true">
+                              <Phone className="w-6 h-6" />
+                            </div>
+                          )}
+                          {currentOrder.studentEmail ? (
+                            <a
+                              href={`mailto:${currentOrder.studentEmail}`}
+                              className="p-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all"
+                              aria-label="Email student"
+                            >
+                              <MessageSquare className="w-6 h-6" />
+                            </a>
+                          ) : (
+                            <div className="p-4 bg-slate-100 text-slate-300 rounded-2xl cursor-not-allowed" aria-hidden="true">
+                              <MessageSquare className="w-6 h-6" />
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -388,7 +409,9 @@ const OrderManagement = () => {
                                   </div>
                                   <div>
                                     <p className="text-emerald-900 font-bold">Order Delivered</p>
-                                    <p className="text-xs text-emerald-700/70">Completed on Feb 28, 2026</p>
+                                    <p className="text-xs text-emerald-700/70">
+                                      {`Completed on ${new Date(currentOrder.deliveredAt || currentOrder.updatedAt || currentOrder.createdAt).toLocaleDateString()}`}
+                                    </p>
                                   </div>
                                 </div>
                               )}

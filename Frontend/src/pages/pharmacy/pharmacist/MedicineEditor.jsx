@@ -19,6 +19,8 @@ import { useForm } from '../../../hooks/useForm';
 import { apiFetch } from '../../../lib/api';
 import { cn } from '../../../lib/utils';
 
+const MEDICINE_CATEGORIES = ['Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins', 'First Aid', 'Personal Care', 'Hygiene', 'Wellness'];
+
 const MedicineEditor = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -398,11 +400,9 @@ const MedicineEditor = () => {
                       errors.category && touched.category && "border-rose-500 bg-rose-50/10 ring-2 ring-rose-500/20"
                     )}
                   >
-                    <option value="Pain Relief">Pain Relief</option>
-                    <option value="Antibiotics">Antibiotics</option>
-                    <option value="Allergy">Allergy</option>
-                    <option value="Cold & Flu">Cold & Flu</option>
-                    <option value="Vitamins">Vitamins</option>
+                    {MEDICINE_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
                   </select>
                   {errors.category && touched.category && <p className="text-rose-500 text-[10px] font-bold px-2">{errors.category}</p>}
                 </div>

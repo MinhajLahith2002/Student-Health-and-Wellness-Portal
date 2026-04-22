@@ -156,6 +156,7 @@ const PharmacistDashboard = () => {
   ];
 
   const displayName = getDisplayName(profile);
+  const notificationTarget = pendingPrescriptions.length > 0 ? '/pharmacist/prescriptions' : '/pharmacist/orders';
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
@@ -178,7 +179,11 @@ const PharmacistDashboard = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="relative p-2 text-slate-400 hover:text-emerald-600 transition-colors">
+            <button
+              onClick={() => navigate(notificationTarget)}
+              className="relative p-2 text-slate-400 hover:text-emerald-600 transition-colors"
+              aria-label="Open pharmacy work queue"
+            >
               <Bell className="w-6 h-6" />
               {(pendingPrescriptions.length > 0 || ordersToProcess.length > 0) && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />

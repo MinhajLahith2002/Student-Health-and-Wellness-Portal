@@ -15,9 +15,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { useCallback } from 'react';
 import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
-import { useCallback } from 'react';
 
 const DEFAULT_RADIUS_KM = 10;
 
@@ -115,7 +115,7 @@ const PharmacyLocator = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [radiusKm, setRadiusKm] = useState(DEFAULT_RADIUS_KM);
 
-  const loadPharmacies = useCallback(async (location = userLocation, radius = radiusKm) => {
+  const loadPharmacies = useCallback(async (location = null, radius = DEFAULT_RADIUS_KM) => {
     setLoading(true);
     setError('');
 
@@ -149,10 +149,11 @@ const PharmacyLocator = () => {
     } finally {
       setLoading(false);
     }
-  }, [radiusKm, userLocation]);
+  }, []);
 
   const requestUserLocation = useCallback(() => {
     if (!navigator.geolocation) {
+      setUserLocation(null);
       setLocationError('Location services are not available in this browser. Showing all pharmacies instead.');
       loadPharmacies(null, radiusKm);
       return;
@@ -166,9 +167,9 @@ const PharmacyLocator = () => {
           lng: position.coords.longitude
         };
         setUserLocation(nextLocation);
-        loadPharmacies(nextLocation, radiusKm);
       },
       () => {
+        setUserLocation(null);
         setLocationError('Location permission was denied, so all pharmacies are shown without distance ranking.');
         loadPharmacies(null, radiusKm);
       },
@@ -177,8 +178,30 @@ const PharmacyLocator = () => {
   }, [loadPharmacies, radiusKm]);
 
   useEffect(() => {
-    requestUserLocation();
-  }, [requestUserLocation]);
+    if (!navigator.geolocation) {
+      setUserLocation(null);
+      setLocationError('Location services are not available in this browser. Showing all pharmacies instead.');
+      loadPharmacies(null, DEFAULT_RADIUS_KM);
+      return;
+    }
+
+    setLocationError('');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setUserLocation(nextLocation);
+      },
+      () => {
+        setUserLocation(null);
+        setLocationError('Location permission was denied, so all pharmacies are shown without distance ranking.');
+        loadPharmacies(null, DEFAULT_RADIUS_KM);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }, [loadPharmacies]);
 
   useEffect(() => {
     if (userLocation) {
@@ -478,5 +501,3 @@ const PharmacyLocator = () => {
 };
 
 export default PharmacyLocator;
-
-

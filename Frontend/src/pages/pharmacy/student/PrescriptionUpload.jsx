@@ -5,7 +5,8 @@ import {
   CheckCircle2, 
   Clock, 
   ShieldCheck,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -38,8 +39,11 @@ const PrescriptionUpload = () => {
         setPreview(reader.result);
       };
       reader.readAsDataURL(selectedFile);
+    } else if (selectedFile.type === 'application/pdf') {
+      setFile(selectedFile);
+      setPreview(null);
     } else {
-      alert('Please upload a prescription image only (JPG, PNG, WEBP, or GIF). PDF files are not supported.');
+      alert('Please upload a prescription image or PDF file.');
     }
   };
 
@@ -161,7 +165,7 @@ const PrescriptionUpload = () => {
                   type="file" 
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept="image/*"
+                  accept="image/*,application/pdf"
                   className="hidden"
                 />
 
@@ -179,7 +183,7 @@ const PrescriptionUpload = () => {
                       </div>
                       <div>
                         <p className="text-lg font-bold text-primary-text">Drag & drop or click to upload</p>
-                        <p className="text-sm text-secondary-text mt-1">Supports JPG, PNG, WEBP, or GIF (Max 10MB)</p>
+                        <p className="text-sm text-secondary-text mt-1">Supports JPG, PNG, WEBP, GIF, or PDF (Max 10MB)</p>
                       </div>
                     </motion.div>
                   ) : (
@@ -189,8 +193,15 @@ const PrescriptionUpload = () => {
                       animate={{ opacity: 1, scale: 1 }}
                       className="relative"
                     >
-                      <div className="relative w-48 h-64 mx-auto rounded-xl overflow-hidden shadow-lg border-4 border-white">
-                        <img src={preview} alt="Prescription preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <div className="relative w-48 h-64 mx-auto rounded-xl overflow-hidden shadow-lg border-4 border-white bg-white">
+                        {preview ? (
+                          <img src={preview} alt="Prescription preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-secondary-text">
+                            <FileText className="w-14 h-14 text-accent-primary" />
+                            <p className="text-xs font-bold uppercase tracking-wider px-4 text-center break-all">{file?.name}</p>
+                          </div>
+                        )}
                         <button 
                           type="button"
                           onClick={(e) => { e.stopPropagation(); removeFile(); }}
@@ -265,5 +276,3 @@ const PrescriptionUpload = () => {
 };
 
 export default PrescriptionUpload;
-
-

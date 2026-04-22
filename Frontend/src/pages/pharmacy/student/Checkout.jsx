@@ -1,13 +1,13 @@
-﻿import React, { useMemo, useState } from 'react';
-import { 
-  ShoppingCart, 
-  Trash2, 
-  Plus, 
-  Minus, 
-  MapPin, 
-  CreditCard, 
-  Truck, 
-  ShieldCheck, 
+import React, { useMemo, useState } from 'react';
+import {
+  ShoppingCart,
+  Trash2,
+  Plus,
+  Minus,
+  MapPin,
+  CreditCard,
+  Truck,
+  ShieldCheck,
   ChevronLeft,
   CheckCircle2,
   AlertCircle,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
 import { clearCart, getCartItems, saveCartItems } from '../../../lib/pharmacyCart';
@@ -29,6 +30,9 @@ const Checkout = () => {
   const [address] = useState('Dorm A, Room 302');
   const [placedOrderId, setPlacedOrderId] = useState('');
   const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '', name: '' });
+  const [approvedPrescriptions, setApprovedPrescriptions] = useState([]);
+  const [selectedPrescriptionId, setSelectedPrescriptionId] = useState('');
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
 
   const formatCardNumber = (val) => {
     const v = val.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
@@ -69,8 +73,42 @@ const Checkout = () => {
   }, [paymentMethod]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const deliveryFee = 2.50;
+  const deliveryFee = 2.5;
   const total = subtotal + deliveryFee;
+  const hasPrescriptionItems = useMemo(() => cartItems.some((item) => item.requiresPrescription), [cartItems]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadApprovedPrescriptions = async () => {
+      if (!hasPrescriptionItems) {
+        setApprovedPrescriptions([]);
+        setSelectedPrescriptionId('');
+        return;
+      }
+
+      setPrescriptionLoading(true);
+      try {
+        const data = await apiFetch('/prescriptions?status=Approved&limit=100');
+        if (!active) return;
+        const nextPrescriptions = Array.isArray(data?.prescriptions) ? data.prescriptions : [];
+        setApprovedPrescriptions(nextPrescriptions);
+        setSelectedPrescriptionId((current) => current || nextPrescriptions[0]?._id || '');
+      } catch (err) {
+        if (!active) return;
+        setApprovedPrescriptions([]);
+        setSelectedPrescriptionId('');
+        setError(err.message || 'Failed to load approved prescriptions');
+      } finally {
+        if (active) setPrescriptionLoading(false);
+      }
+    };
+
+    loadApprovedPrescriptions();
+    return () => {
+      active = false;
+    };
+  }, [hasPrescriptionItems]);
 
   const updateQuantity = (id, delta) => {
     setCartItems((prev) => {
@@ -103,7 +141,8 @@ const Checkout = () => {
         body: JSON.stringify({
           items,
           address,
-          paymentMethod: backendPaymentMethod
+          paymentMethod: backendPaymentMethod,
+          prescriptionId: hasPrescriptionItems ? selectedPrescriptionId : undefined
         })
       });
       clearCart();
@@ -120,7 +159,7 @@ const Checkout = () => {
   if (isSuccess) {
     return (
       <div className="pharmacy-shell flex items-center justify-center p-6">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-md w-full bg-white rounded-3xl p-10 text-center shadow-xl shadow-slate-200/50"
@@ -134,13 +173,13 @@ const Checkout = () => {
             Your order has been received and is being processed. You can track its status in real-time.
           </p>
           <div className="space-y-4">
-            <button 
+            <button
               onClick={() => navigate(`/student/pharmacy/order/${placedOrderId}`)}
               className="w-full py-4 bg-accent-primary text-white rounded-xl font-bold hover:bg-[#105f72] transition-all shadow-lg shadow-cyan-100"
             >
               Track Order
             </button>
-            <button 
+            <button
               onClick={() => navigate('/student/pharmacy')}
               className="w-full py-4 bg-[#e6f0f4] text-secondary-text rounded-xl font-bold hover:bg-slate-200 transition-all"
             >
@@ -160,7 +199,7 @@ const Checkout = () => {
         </div>
         <h2 className="text-2xl font-bold text-primary-text mb-2">Your cart is empty</h2>
         <p className="text-secondary-text mb-8">Add some medicines or health products to get started.</p>
-        <button 
+        <button
           onClick={() => navigate('/student/pharmacy/products')}
           className="px-8 py-3 bg-accent-primary text-white rounded-xl font-bold hover:bg-[#105f72] transition-all"
         >
@@ -178,12 +217,11 @@ const Checkout = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Left Column: Cart Items */}
           <div className="lg:col-span-2 space-y-6">
             <section className="pharmacy-panel overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-primary-text">Cart Items ({cartItems.length})</h2>
-                <button 
+                <button
                   onClick={() => {
                     clearCart();
                     setCartItems([]);
@@ -203,11 +241,11 @@ const Checkout = () => {
                       <div className="flex justify-between items-start mb-1">
                         <div>
                           <h3 className="font-bold text-primary-text text-lg">{item.name}</h3>
-                          <p className="text-xs text-secondary-text">{item.strength} â€¢ {item.manufacturer}</p>
+                          <p className="text-xs text-secondary-text">{[item.strength, item.manufacturer].filter(Boolean).join(' - ')}</p>
                         </div>
                         <p className="font-bold text-primary-text text-lg">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
-                      
+
                       {item.requiresPrescription && (
                         <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-2 py-1 rounded w-fit">
                           <AlertCircle className="w-3 h-3" /> Rx Required
@@ -216,21 +254,21 @@ const Checkout = () => {
 
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center gap-3 bg-[#eff6f9] p-1 rounded-lg">
-                          <button 
+                          <button
                             onClick={() => updateQuantity(item._id || item.id, -1)}
                             className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-secondary-text hover:text-accent-primary shadow-sm transition-colors"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
                           <span className="w-6 text-center font-bold text-primary-text text-sm">{item.quantity}</span>
-                          <button 
+                          <button
                             onClick={() => updateQuantity(item._id || item.id, 1)}
                             className="w-8 h-8 flex items-center justify-center bg-white rounded-md text-secondary-text hover:text-accent-primary shadow-sm transition-colors"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
-                        <button 
+                        <button
                           onClick={() => removeItem(item._id || item.id)}
                           className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
                         >
@@ -243,13 +281,14 @@ const Checkout = () => {
               </div>
             </section>
 
-            {/* Delivery Address */}
             <section className="pharmacy-panel p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-primary-text flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-accent-primary" /> Delivery Address
                 </h2>
-                <button className="text-sm font-bold text-accent-primary hover:underline">Change</button>
+                <span className="text-xs font-bold uppercase tracking-wider text-secondary-text">
+                  Campus delivery
+                </span>
               </div>
               <div className="p-4 bg-[#eff6f9] rounded-2xl border border-slate-100 flex items-start gap-4">
                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-secondary-text/80 shadow-sm">
@@ -263,7 +302,6 @@ const Checkout = () => {
               </div>
             </section>
 
-            {/* Payment Method */}
             <section className="pharmacy-panel p-8">
               <h2 className="text-lg font-bold text-primary-text flex items-center gap-2 mb-6">
                 <CreditCard className="w-5 h-5 text-accent-primary" /> Payment Method
@@ -278,26 +316,25 @@ const Checkout = () => {
                     key={method.id}
                     onClick={() => setPaymentMethod(method.id)}
                     className={cn(
-                      "p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3",
-                      paymentMethod === method.id 
-                        ? "border-accent-primary bg-[#e8f7f5]/50" 
-                        : "border-slate-100 bg-white hover:border-emerald-200"
+                      'p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-3',
+                      paymentMethod === method.id
+                        ? 'border-accent-primary bg-[#e8f7f5]/50'
+                        : 'border-slate-100 bg-white hover:border-emerald-200'
                     )}
                   >
                     <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                      paymentMethod === method.id ? "bg-accent-primary text-white" : "bg-[#e6f0f4] text-secondary-text/80"
+                      'w-10 h-10 rounded-xl flex items-center justify-center transition-colors',
+                      paymentMethod === method.id ? 'bg-accent-primary text-white' : 'bg-[#e6f0f4] text-secondary-text/80'
                     )}>
                       <method.icon className="w-5 h-5" />
                     </div>
-                    <span className={cn("font-bold text-sm", paymentMethod === method.id ? "text-emerald-900" : "text-secondary-text")}>
+                    <span className={cn('font-bold text-sm', paymentMethod === method.id ? 'text-emerald-900' : 'text-secondary-text')}>
                       {method.name}
                     </span>
                   </button>
                 ))}
               </div>
 
-              {/* Card Details Form */}
               <AnimatePresence>
                 {paymentMethod === 'card' && (
                   <motion.div
@@ -310,7 +347,7 @@ const Checkout = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">Card Number</label>
-                          <input 
+                          <input
                             type="text"
                             value={cardDetails.number}
                             onChange={(e) => setCardDetails({ ...cardDetails, number: formatCardNumber(e.target.value) })}
@@ -321,7 +358,7 @@ const Checkout = () => {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">Cardholder Name</label>
-                          <input 
+                          <input
                             type="text"
                             value={cardDetails.name}
                             onChange={(e) => setCardDetails({ ...cardDetails, name: e.target.value })}
@@ -333,7 +370,7 @@ const Checkout = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">Expiry Date</label>
-                          <input 
+                          <input
                             type="text"
                             value={cardDetails.expiry}
                             onChange={(e) => setCardDetails({ ...cardDetails, expiry: formatExpiry(e.target.value) })}
@@ -344,7 +381,7 @@ const Checkout = () => {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">CVV</label>
-                          <input 
+                          <input
                             type="password"
                             value={cardDetails.cvv}
                             onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) })}
@@ -361,11 +398,10 @@ const Checkout = () => {
             </section>
           </div>
 
-          {/* Right Column: Order Summary */}
           <div className="space-y-6">
             <section className="pharmacy-panel p-8 sticky top-28">
               <h2 className="text-xl font-bold text-primary-text mb-6">Order Summary</h2>
-              
+
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between text-secondary-text">
                   <span>Subtotal</span>
@@ -381,31 +417,53 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {cartItems.some(i => i.requiresPrescription) && (
+              {hasPrescriptionItems && (
                 <div className="mb-8 p-4 bg-amber-50 rounded-2xl border border-amber-100">
                   <div className="flex gap-3 mb-3">
                     <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
                     <p className="text-xs font-bold text-amber-900 leading-tight">
-                      Some items in your cart require a prescription.
+                      Some items in your cart require an approved prescription before you can place the order.
                     </p>
                   </div>
-                  <Link 
+                  {prescriptionLoading ? (
+                    <div className="flex items-center justify-center gap-2 rounded-lg bg-white py-3 text-xs font-bold text-amber-700 border border-amber-200">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Loading approved prescriptions...
+                    </div>
+                  ) : approvedPrescriptions.length > 0 ? (
+                    <select
+                      value={selectedPrescriptionId}
+                      onChange={(event) => setSelectedPrescriptionId(event.target.value)}
+                      className="w-full mb-3 bg-white border border-amber-200 rounded-lg px-3 py-3 text-sm text-primary-text"
+                    >
+                      {approvedPrescriptions.map((prescription) => (
+                        <option key={prescription._id} value={prescription._id}>
+                          {`Prescription ${new Date(prescription.createdAt).toLocaleDateString()}${prescription.doctorName ? ` - ${prescription.doctorName}` : ''}`}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  <Link
                     to="/student/pharmacy/upload-prescription"
                     className="w-full py-2 bg-white text-amber-700 rounded-lg text-xs font-bold border border-amber-200 flex items-center justify-center hover:bg-amber-100 transition-colors"
                   >
-                    Upload Now
+                    {approvedPrescriptions.length > 0 ? 'Upload Another Prescription' : 'Upload Prescription'}
                   </Link>
+                  {!prescriptionLoading && approvedPrescriptions.length === 0 && (
+                    <p className="mt-3 text-[11px] text-amber-700">
+                      No approved prescriptions are available yet. Upload a prescription and wait for pharmacist approval before checkout.
+                    </p>
+                  )}
                 </div>
               )}
 
-              <button 
+              <button
                 onClick={handlePlaceOrder}
-                disabled={isProcessing || !isCardValid}
+                disabled={isProcessing || !isCardValid || (hasPrescriptionItems && !selectedPrescriptionId)}
                 className={cn(
-                  "w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg",
-                  isProcessing || !isCardValid
-                    ? "bg-[#e6f0f4] text-secondary-text/80 cursor-not-allowed" 
-                    : "bg-accent-primary text-white hover:bg-[#105f72] shadow-cyan-100"
+                  'w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg',
+                  isProcessing || !isCardValid || (hasPrescriptionItems && !selectedPrescriptionId)
+                    ? 'bg-[#e6f0f4] text-secondary-text/80 cursor-not-allowed'
+                    : 'bg-accent-primary text-white hover:bg-[#105f72] shadow-cyan-100'
                 )}
               >
                 {isProcessing ? (
@@ -432,5 +490,3 @@ const Checkout = () => {
 };
 
 export default Checkout;
-
-

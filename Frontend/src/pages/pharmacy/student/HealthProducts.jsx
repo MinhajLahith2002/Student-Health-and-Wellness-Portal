@@ -2,7 +2,6 @@
 import {
   Search,
   ShoppingCart,
-  Heart,
   ChevronRight,
   Star,
   Plus,
@@ -180,11 +179,6 @@ const ProductCatalog = () => {
                         <AlertCircle className="w-12 h-12" />
                       </div>
                     )}
-                    <div className="absolute top-4 right-4 flex flex-col gap-2">
-                      <button type="button" className="p-3 bg-white/90 backdrop-blur-sm rounded-full text-secondary-text hover:text-rose-500 transition-colors shadow-sm">
-                        <Heart className="w-5 h-5" />
-                      </button>
-                    </div>
                     {product.requiresPrescription && (
                       <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-amber-100/90 backdrop-blur-sm text-amber-700 text-[10px] font-bold rounded-full flex items-center shadow-sm">
                         <CheckCircle2 className="w-3 h-3 mr-1" /> Rx Required

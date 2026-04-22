@@ -54,6 +54,29 @@ const configuredCounselorAccount = {
   password: process.env.COUNSELOR_PASSWORD || defaultCounselorAccount.password
 };
 
+const defaultStudentAccount = {
+  name: 'John Doe',
+  email: 'john.doe@student.edu',
+  password: 'student123',
+  role: 'student',
+  studentId: 'STU001',
+  phone: '1234567890',
+  address: 'Dorm A, Room 302',
+  bloodType: 'O+',
+  allergies: ['Penicillin'],
+  medicalHistory: [
+    { condition: 'Seasonal Allergies', date: '2024-05-10', status: 'active' }
+  ],
+  isActive: true,
+  isVerified: true
+};
+
+const configuredStudentAccount = {
+  ...defaultStudentAccount,
+  email: process.env.STUDENT_EMAIL || defaultStudentAccount.email,
+  password: process.env.STUDENT_PASSWORD || defaultStudentAccount.password
+};
+
 /**
  * Seed data for initial database population
  */
@@ -110,22 +133,7 @@ const seedData = {
   
   // Sample Students
   students: [
-    {
-      name: 'John Doe',
-      email: 'john.doe@student.edu',
-      password: 'Student@123',
-      role: 'student',
-      studentId: 'STU001',
-      phone: '1234567890',
-      address: 'Dorm A, Room 302',
-      bloodType: 'O+',
-      allergies: ['Penicillin'],
-      medicalHistory: [
-        { condition: 'Seasonal Allergies', date: '2024-05-10', status: 'active' }
-      ],
-      isActive: true,
-      isVerified: true
-    },
+    configuredStudentAccount,
     {
       name: 'Jane Smith',
       email: 'jane.smith@student.edu',
@@ -967,7 +975,15 @@ function buildCounselorDemoSlots(counselorUser) {
 }
 
 async function syncDemoUser(User, templateUser, label) {
-  const existingUser = await User.findOne({ email: templateUser.email });
+  const userLookupConditions = [{ email: templateUser.email }];
+
+  if (templateUser.role === 'student' && templateUser.studentId) {
+    userLookupConditions.push({ studentId: templateUser.studentId });
+  }
+
+  const existingUser = await User.findOne({
+    $or: userLookupConditions
+  });
 
   if (!existingUser) {
     await User.create(templateUser);
@@ -976,6 +992,7 @@ async function syncDemoUser(User, templateUser, label) {
   }
 
   existingUser.name = templateUser.name;
+  existingUser.email = templateUser.email;
   existingUser.password = templateUser.password;
   existingUser.role = templateUser.role;
   existingUser.isActive = true;
@@ -1380,4 +1397,3 @@ const seedDatabase = async (models) => {
 };
 
 export default { seedData, seedDatabase, ensureCoreAccessUsers };
-
