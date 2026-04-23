@@ -153,7 +153,7 @@ export default function ConsultationRoom() {
     try {
       setCreatingPrescription(true);
       setError('');
-      const prescription = await createPrescription({
+      const prescriptionPayload = {
         appointmentId: appointment._id,
         studentId: appointment.studentId?._id || appointment.studentId,
         medicines: [{
@@ -164,19 +164,27 @@ export default function ConsultationRoom() {
           instructions: medicine.instructions.trim()
         }],
         notes: consultationNotes.trim() || diagnosis.trim()
-      });
+      };
+      const prescription = await createPrescription(prescriptionPayload);
 
-      const updated = await updateConsultation(id, {
-        consultationNotes: consultationNotes.trim(),
-        diagnosis: diagnosis.trim(),
-        followUpDate,
-        followUpReason: followUpDate ? 'Follow-up recommended' : '',
-        prescriptionId: prescription._id,
-        status: 'Completed'
-      });
+      try {
+        const updated = await updateConsultation(id, {
+          consultationNotes: consultationNotes.trim(),
+          diagnosis: diagnosis.trim(),
+          followUpDate,
+          followUpReason: followUpDate ? 'Follow-up recommended' : '',
+          prescriptionId: prescription._id,
+          status: 'Completed'
+        });
 
-      setAppointment(updated);
-      navigate('/doctor/prescriptions');
+        setAppointment(updated);
+        navigate('/doctor/prescriptions');
+      } catch (err) {
+        setAppointment((current) => (
+          current ? { ...current, prescriptionId: prescription._id } : current
+        ));
+        setError(err.message || 'Prescription was issued, but completing the consultation failed');
+      }
     } catch (err) {
       setError(err.message || 'Failed to create prescription');
     } finally {
