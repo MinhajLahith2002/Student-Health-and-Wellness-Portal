@@ -16,6 +16,16 @@ function formatDateLabel(value) {
   });
 }
 
+function isDoctorReadyForAppointment(appointment) {
+  return Boolean(
+    appointment
+    && (
+      Boolean(appointment.startedAt)
+      || ['In Progress', 'Completed'].includes(appointment.status)
+    )
+  );
+}
+
 export default function QueueStatus() {
   const { appointmentId } = useParams();
   const [actionState, setActionState] = useState(false);
@@ -28,18 +38,15 @@ export default function QueueStatus() {
   });
 
   // PHASE 4: Real-time socket updates
-  const { listenForDoctorReady, listenForQueuePosition, subscribeAppointment } = useSocket();
+  const { listenForQueuePosition, subscribeAppointment } = useSocket();
+
+  useEffect(() => {
+    setDoctorReady(isDoctorReadyForAppointment(appointment));
+  }, [appointment]);
 
   // Subscribe to real-time appointment updates
   useEffect(() => {
     if (!appointmentId) return;
-
-    // Listen for doctor marking ready
-    const removeDoctorReady = listenForDoctorReady(appointmentId, () => {
-      console.log('✅ Doctor is ready!');
-      setDoctorReady(true);
-      refetch(); // Also fetch latest appointment state
-    });
 
     // Listen for queue position updates
     const removeQueuePosition = listenForQueuePosition(appointmentId, (position) => {
@@ -48,18 +55,18 @@ export default function QueueStatus() {
 
     // Subscribe to overall appointment updates
     const unsubscribeAppointment = subscribeAppointment(appointmentId, (updated) => {
-      // Auto-refetch will handle UI update
-      if (updated.status === 'Ready') {
+      if (isDoctorReadyForAppointment(updated)) {
         setDoctorReady(true);
       }
+
+      refetch();
     });
 
     return () => {
-      removeDoctorReady?.();
       removeQueuePosition?.();
       unsubscribeAppointment?.();
     };
-  }, [appointmentId, listenForDoctorReady, listenForQueuePosition, subscribeAppointment, refetch]);
+  }, [appointmentId, listenForQueuePosition, subscribeAppointment, refetch]);
 
   async function handleCheckIn() {
     try {

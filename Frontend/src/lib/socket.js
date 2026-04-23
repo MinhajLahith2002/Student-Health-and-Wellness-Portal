@@ -92,22 +92,44 @@ export function unsubscribeFromQueueUpdates(doctorId) {
   socketInstance.off(`queue:${doctorId}:updated`);
 }
 
-export function onAppointmentReady(appointmentId, callback) {
+function subscribeToAppointmentUpdateMatch(appointmentId, predicate, callback) {
   if (!socketInstance || !appointmentId) return undefined;
-  socketInstance.on(`appointment:${appointmentId}:ready`, callback);
-  return () => socketInstance?.off(`appointment:${appointmentId}:ready`, callback);
+
+  const handler = (payload) => {
+    if (predicate(payload)) {
+      callback(payload);
+    }
+  };
+
+  socketInstance.on(`appointment:${appointmentId}:updated`, handler);
+
+  return () => {
+    socketInstance?.off(`appointment:${appointmentId}:updated`, handler);
+  };
+}
+
+export function onAppointmentReady(appointmentId, callback) {
+  return subscribeToAppointmentUpdateMatch(
+    appointmentId,
+    (payload) => payload?.status === 'In Progress' || Boolean(payload?.startedAt),
+    callback
+  );
 }
 
 export function onAppointmentStarted(appointmentId, callback) {
-  if (!socketInstance || !appointmentId) return undefined;
-  socketInstance.on(`appointment:${appointmentId}:started`, callback);
-  return () => socketInstance?.off(`appointment:${appointmentId}:started`, callback);
+  return subscribeToAppointmentUpdateMatch(
+    appointmentId,
+    (payload) => payload?.status === 'In Progress' || Boolean(payload?.startedAt),
+    callback
+  );
 }
 
 export function onPrescriptionCreated(appointmentId, callback) {
-  if (!socketInstance || !appointmentId) return undefined;
-  socketInstance.on(`prescription:${appointmentId}:created`, callback);
-  return () => socketInstance?.off(`prescription:${appointmentId}:created`, callback);
+  return subscribeToAppointmentUpdateMatch(
+    appointmentId,
+    (payload) => Boolean(payload?.prescriptionId),
+    callback
+  );
 }
 
 export function onNotification(callback) {
