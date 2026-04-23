@@ -7,6 +7,7 @@ import {
   getAppointmentById,
   updateConsultation
 } from '../../../lib/appointments';
+import { toLocalDateInputValue } from '../../../lib/date';
 import { useJitsi } from '../../../hooks/useJitsi';
 import ErrorBoundary from '../../../components/ErrorBoundary';
 import { LoadingState } from '../../../components/LoadingState';
@@ -62,7 +63,7 @@ export default function ConsultationRoom() {
       setAppointment(data);
       setConsultationNotes(data.consultationNotes || '');
       setDiagnosis(data.diagnosis || '');
-      setFollowUpDate(data.followUpDate ? new Date(data.followUpDate).toISOString().slice(0, 10) : '');
+      setFollowUpDate(data.followUpDate ? toLocalDateInputValue(data.followUpDate) : '');
       setError('');
     } catch (err) {
       if (!active) return;
