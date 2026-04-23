@@ -20,6 +20,7 @@ import { useSocket } from '../../../hooks/useSocket';
 import { getLiveProviderAvailability, getProviderAvailability } from '../../../lib/providers';
 import { AppointmentStatusBadge } from '../../../components/AppointmentStatusBadge';
 import ErrorBoundary from '../../../components/ErrorBoundary';
+import { toLocalDateInputValue } from '../../../lib/date';
 import {
   canOpenVideoVisit,
   getVideoVisitBlockedReason
@@ -82,11 +83,11 @@ function to24HourTime(timeValue) {
 }
 
 function getTodayValue() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateInputValue();
 }
 
 function toDateInputValue(value) {
-  return new Date(value).toISOString().slice(0, 10);
+  return toLocalDateInputValue(value);
 }
 
 function toAppointmentDateTime(dateValue, timeValue) {

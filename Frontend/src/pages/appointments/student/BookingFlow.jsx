@@ -6,10 +6,11 @@ import { useSocket } from '../../../hooks/useSocket';
 import { LoadingState } from '../../../components/LoadingState';
 import ErrorBoundary from '../../../components/ErrorBoundary';
 import * as appointmentsAPI from '../../../lib/appointmentsAPI';
+import { toLocalDateInputValue } from '../../../lib/date';
 import { cn } from '../../../lib/utils';
 
 function getDefaultDate() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateInputValue();
 }
 
 function getInitialSelectedDate(searchParams) {
@@ -22,7 +23,7 @@ function getInitialSelectedDate(searchParams) {
 }
 
 function getTodayValue() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateInputValue();
 }
 
 function toDateTimeValue(dateValue, timeValue) {

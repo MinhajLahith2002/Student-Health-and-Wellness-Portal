@@ -5,11 +5,12 @@ import { getProviderAvailability, getProviderById } from '../../../lib/providers
 import ErrorBoundary from '../../../components/ErrorBoundary';
 import { LoadingState } from '../../../components/LoadingState';
 import { useSocket } from '../../../hooks/useSocket';
+import { toLocalDateInputValue } from '../../../lib/date';
 
 const AVAILABILITY_LOOKAHEAD_DAYS = 14;
 
 function getTodayValue() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateInputValue();
 }
 
 function addDaysToDateValue(dateValue, daysToAdd) {

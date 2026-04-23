@@ -5,6 +5,7 @@ import ErrorBoundary from '../../../components/ErrorBoundary';
 import { LoadingState } from '../../../components/LoadingState';
 import { useAuth } from '../../../hooks/useAuth';
 import { useSocket } from '../../../hooks/useSocket';
+import { toLocalDateInputValue } from '../../../lib/date';
 
 const WEEKDAYS = [
   { label: 'Sun', value: 0 },
@@ -28,7 +29,7 @@ const CONSULTATION_TYPES = ['Video Call', 'In-Person'];
 function getTomorrow() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
-  return date.toISOString().slice(0, 10);
+  return toLocalDateInputValue(date);
 }
 
 function getInitialForm() {
@@ -225,7 +226,7 @@ export default function ManageAvailability() {
       id: entry._id,
       title: entry.title || '',
       scheduleMode: entry.date ? 'specific' : 'recurring',
-      date: entry.date ? new Date(entry.date).toISOString().slice(0, 10) : getTomorrow(),
+      date: entry.date ? toLocalDateInputValue(entry.date) : getTomorrow(),
       recurringDays: entry.recurringDays || [],
       startTime: entry.startTime || '09:00 AM',
       endTime: entry.endTime || '05:00 PM',
@@ -370,7 +371,7 @@ export default function ManageAvailability() {
                 <input
                   type="date"
                   value={form.date}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={toLocalDateInputValue()}
                   onChange={(event) => setForm((current) => ({ ...current, date: event.target.value }))}
                   className="w-full px-5 py-4 bg-secondary-bg rounded-2xl outline-none"
                 />
