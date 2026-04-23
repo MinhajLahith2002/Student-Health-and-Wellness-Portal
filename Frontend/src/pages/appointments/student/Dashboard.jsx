@@ -1023,7 +1023,7 @@ export default function AppointmentDashboard() {
                   <div className="mt-6 space-y-3 text-sm text-secondary-text">
                     <p className="rounded-2xl bg-secondary-bg px-4 py-4">Find a doctor based on specialty and availability.</p>
                     <p className="rounded-2xl bg-secondary-bg px-4 py-4">Reschedule or cancel directly from the appointment card if your plans change.</p>
-                    <p className="rounded-2xl bg-secondary-bg px-4 py-4">Video appointments unlock when the doctor starts the call or the visit reaches ready status.</p>
+                    <p className="rounded-2xl bg-secondary-bg px-4 py-4">Video appointments unlock when the doctor starts the call.</p>
                   </div>
                   {nextAppointment && (
                     <Link

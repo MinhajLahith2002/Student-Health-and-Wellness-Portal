@@ -215,7 +215,7 @@ export function canOpenVideoVisit(appointment) {
   return Boolean(
     appointment
     && appointment.type === 'Video Call'
-    && ['Ready', 'In Progress'].includes(appointment.status)
+    && (appointment.status === 'In Progress' || Boolean(appointment.startedAt))
   );
 }
 
@@ -224,8 +224,8 @@ export function getVideoVisitBlockedReason(appointment) {
     return 'This is not an active video consultation.';
   }
 
-  if (['Confirmed', 'Pending'].includes(appointment.status)) {
-    return 'Video access unlocks when your appointment is marked ready or the doctor starts the video call.';
+  if (['Confirmed', 'Pending', 'Ready'].includes(appointment.status)) {
+    return 'Video access unlocks when the doctor starts the video call.';
   }
 
   if (appointment.status === 'Completed') {
