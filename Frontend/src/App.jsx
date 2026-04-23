@@ -203,7 +203,7 @@ function AppLayout() {
           <Route path="/doctor" element={<StaffLayout allowedRoles={['doctor']} />}>
             <Route index element={<Navigate to="/doctor/dashboard" replace />} />
             <Route path="dashboard" element={<DoctorAppointmentDashboard />} />
-            <Route path="appointments" element={<DoctorAppointmentDashboard />} />
+            <Route path="appointments" element={<Navigate to="/doctor/dashboard#doctor-queue" replace />} />
             <Route path="availability" element={<ManageAvailability />} />
             <Route path="consultation/:id" element={<ConsultationRoom />} />
             <Route path="patients" element={<PatientRecords />} />

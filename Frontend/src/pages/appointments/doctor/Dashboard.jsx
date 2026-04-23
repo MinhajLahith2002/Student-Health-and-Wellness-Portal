@@ -228,10 +228,10 @@ export default function DoctorDashboard() {
           </section>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <section className="xl:col-span-2 bg-white rounded-[32px] border border-border-gray shadow-sm p-8">
+            <section id="doctor-queue" className="xl:col-span-2 bg-white rounded-[32px] border border-border-gray shadow-sm p-8 scroll-mt-32">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-primary-text">Today's appointments</h2>
-                <Link to="/doctor/appointments" className="text-sm font-semibold text-accent-primary">
+                <Link to="/doctor/dashboard#doctor-queue" className="text-sm font-semibold text-accent-primary">
                   Open queue
                 </Link>
               </div>
@@ -307,7 +307,7 @@ export default function DoctorDashboard() {
                 <Link to="/doctor/availability" className="block rounded-2xl bg-secondary-bg px-5 py-4 font-semibold text-primary-text">
                   Update schedule blocks
                 </Link>
-                <Link to="/doctor/appointments" className="block rounded-2xl bg-secondary-bg px-5 py-4 font-semibold text-primary-text">
+                <Link to="/doctor/dashboard#doctor-queue" className="block rounded-2xl bg-secondary-bg px-5 py-4 font-semibold text-primary-text">
                   Manage live queue
                 </Link>
                 <div className="rounded-2xl bg-secondary-bg px-5 py-4">
