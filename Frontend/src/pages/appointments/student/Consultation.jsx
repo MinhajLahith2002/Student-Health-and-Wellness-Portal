@@ -272,7 +272,7 @@ export default function Consultation() {
 
         {appointment.prescriptionId && (
           <button
-            onClick={() => navigate('/student/prescriptions')}
+            onClick={() => navigate(`/student/prescriptions/${appointment.prescriptionId}`)}
             className="w-full py-4 bg-accent-primary text-white rounded-2xl font-bold flex items-center justify-center gap-2"
           >
             <FileText className="w-5 h-5" />
