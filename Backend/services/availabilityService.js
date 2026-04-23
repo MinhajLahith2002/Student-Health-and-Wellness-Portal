@@ -2,7 +2,6 @@ import Appointment from '../models/Appointment.js';
 import Availability from '../models/Availability.js';
 import CounselingSession from '../models/CounselingSession.js';
 import {
-  DEFAULT_PROVIDER_SLOTS,
   generateSlots,
   getDateRange,
   isDateTimeInPast,
@@ -117,7 +116,7 @@ async function getAvailabilityForProvider({ providerId, role, date, excludeId = 
       slotDuration: entry.slotDuration,
       breaks: entry.breaks
     })))
-    : DEFAULT_PROVIDER_SLOTS;
+    : [];
 
   const bookedSlots = await getBookedSlotsForProvider({
     providerId,

@@ -3,7 +3,6 @@ import Appointment from '../models/Appointment.js';
 import User from '../models/User.js';
 import { getAvailabilityForProvider, matchesDateEntry } from '../services/availabilityService.js';
 import {
-  DEFAULT_PROVIDER_SLOTS,
   generateSlots,
   getDateRange,
   isDateTimeInPast,
@@ -176,7 +175,7 @@ function buildDoctorAvailabilitySummary({ provider, entries = [], bookedAppointm
       slotDuration: entry.slotDuration,
       breaks: entry.breaks
     })))
-    : DEFAULT_PROVIDER_SLOTS;
+    : [];
 
   const bookedSlots = bookedAppointments.map((appointment) => appointment.time);
   const availableSlots = configuredSlots.filter((slot) => (
