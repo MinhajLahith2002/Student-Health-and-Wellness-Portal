@@ -902,8 +902,8 @@ const updateConsultation = async (req, res) => {
     appointment.diagnosis = req.body.diagnosis !== undefined
       ? cleanText(req.body.diagnosis, 1000)
       : appointment.diagnosis;
-    appointment.followUpDate = req.body.followUpDate
-      ? normalizeDateOnly(req.body.followUpDate)
+    appointment.followUpDate = req.body.followUpDate !== undefined
+      ? (cleanText(req.body.followUpDate, 32) ? normalizeDateOnly(req.body.followUpDate) : null)
       : appointment.followUpDate;
     appointment.followUpReason = req.body.followUpReason !== undefined
       ? cleanText(req.body.followUpReason, 500)
