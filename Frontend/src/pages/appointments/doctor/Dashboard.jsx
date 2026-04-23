@@ -154,7 +154,7 @@ export default function DoctorDashboard() {
             <StatCard label="Today's appointments" value={todayAppointments.length} hint="Booked for the current day" icon={Calendar} tone="bg-accent-primary/10 text-accent-primary" />
             <StatCard label="Patients in queue" value={stats.queue || 0} hint="Confirmed and waiting" icon={Users} tone="bg-emerald-50 text-emerald-600" />
             <StatCard label="Patient records" value={stats.totalPatients || 0} hint="Linked to this doctor account" icon={HeartPulse} tone="bg-rose-50 text-rose-600" />
-            <StatCard label="Pending prescriptions" value={stats.pendingPrescriptions || 0} hint="Need to be issued or verified" icon={FileText} tone="bg-amber-50 text-amber-600" />
+            <StatCard label="Issued prescriptions" value={stats.issuedPrescriptions || 0} hint="Created from completed consultations" icon={FileText} tone="bg-amber-50 text-amber-600" />
             <StatCard label="Active schedules" value={stats.activeSchedules || 0} hint="Availability blocks published" icon={Clock} tone="bg-purple-50 text-purple-600" />
           </section>
 

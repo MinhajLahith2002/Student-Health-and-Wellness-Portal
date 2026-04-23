@@ -372,7 +372,7 @@ const getDoctorDashboard = async (req, res) => {
       upcomingAppointments,
       patientHistory,
       queuePatients,
-      pendingPrescriptions,
+      issuedPrescriptions,
       completedToday,
       activeSchedules
     ] = await Promise.all([
@@ -410,7 +410,7 @@ const getDoctorDashboard = async (req, res) => {
         status: { $in: ['Confirmed', 'Ready'] }
       }),
 
-      Prescription.countDocuments({ doctorId: req.user.id, status: 'Pending' }),
+      Prescription.countDocuments({ doctorId: req.user.id, status: 'Approved' }),
 
       Appointment.countDocuments({
         doctorId: req.user.id,
@@ -429,7 +429,7 @@ const getDoctorDashboard = async (req, res) => {
       patientRecords,
       stats: {
         queue: queuePatients,
-        pendingPrescriptions,
+        issuedPrescriptions,
         completedToday,
         totalPatients: patientRecords.length,
         activeSchedules
