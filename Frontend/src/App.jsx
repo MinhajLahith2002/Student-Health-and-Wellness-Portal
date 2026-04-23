@@ -18,6 +18,7 @@ import DoctorAppointmentDashboard from './pages/appointments/doctor/Dashboard';
 import ConsultationRoom from './pages/appointments/doctor/ConsultationRoom';
 import PatientRecords from './pages/appointments/doctor/PatientRecords';
 import ManageAvailability from './pages/appointments/doctor/ManageAvailability';
+import DoctorPrescriptions from './pages/appointments/doctor/Prescriptions';
 import UserDirectory from './pages/admin/Users';
 import NotificationsHub from './pages/admin/Notifications';
 import HealthResources from './pages/admin/Resources';
@@ -206,7 +207,7 @@ function AppLayout() {
             <Route path="availability" element={<ManageAvailability />} />
             <Route path="consultation/:id" element={<ConsultationRoom />} />
             <Route path="patients" element={<PatientRecords />} />
-            <Route path="prescriptions" element={<StudentPrescriptions />} />
+            <Route path="prescriptions" element={<DoctorPrescriptions />} />
           </Route>
 
           <Route path="/counselor" element={<StaffLayout allowedRoles={['counselor']} />}>
