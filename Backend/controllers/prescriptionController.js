@@ -241,7 +241,7 @@ const createPrescription = async (req, res) => {
     }
 
     const appointment = await Appointment.findById(appointmentId)
-      .select('doctorId studentId studentName');
+      .select('doctorId studentId studentName prescriptionId');
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
@@ -252,6 +252,22 @@ const createPrescription = async (req, res) => {
 
     if (appointment.studentId?.toString() !== `${studentId}`) {
       return res.status(400).json({ message: 'Selected student does not match the appointment' });
+    }
+
+    const existingPrescription = await Prescription.findOne({
+      appointmentId,
+      studentId,
+      doctorId: req.user.id,
+      status: 'Approved'
+    }).sort({ createdAt: -1 });
+
+    if (existingPrescription) {
+      if (appointment.prescriptionId?.toString() !== existingPrescription._id.toString()) {
+        appointment.prescriptionId = existingPrescription._id;
+        await appointment.save();
+      }
+
+      return res.status(200).json(existingPrescription);
     }
 
     const student = await User.findById(studentId);
@@ -269,6 +285,11 @@ const createPrescription = async (req, res) => {
       notes,
       status: 'Approved'
     });
+
+    if (appointment.prescriptionId?.toString() !== prescription._id.toString()) {
+      appointment.prescriptionId = prescription._id;
+      await appointment.save();
+    }
 
     await Notification.create({
       title: 'New Prescription',
