@@ -16,6 +16,40 @@ function formatDateLabel(value) {
   });
 }
 
+function parseAppointmentDateTime(dateValue, timeValue) {
+  if (!dateValue || !timeValue) return null;
+
+  const [year, month, day] = `${dateValue}`.slice(0, 10).split('-').map(Number);
+  const match = `${timeValue}`.trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!year || !month || !day || !match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+
+  if (meridiem) {
+    if (hours === 12) hours = 0;
+    if (meridiem === 'PM') hours += 12;
+  }
+
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+}
+
+function formatCalendarStamp(value) {
+  return value
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}Z$/, 'Z');
+}
+
+function escapeCalendarText(value) {
+  return `${value || ''}`
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;');
+}
+
 function isDoctorReadyForAppointment(appointment) {
   return Boolean(
     appointment
@@ -82,7 +116,41 @@ export default function QueueStatus() {
   }
 
   function handleCalendarHelper() {
-    alert('Calendar export is demo-ready here: use this appointment time to add a reminder in your preferred calendar app.');
+    const startDate = parseAppointmentDateTime(appointment?.date, appointment?.time);
+    if (!startDate || Number.isNaN(startDate.getTime())) {
+      return;
+    }
+
+    const endDate = new Date(startDate.getTime() + ((appointment?.duration || 30) * 60 * 1000));
+    const appointmentType = appointment?.type || 'Appointment';
+    const location = appointmentType === 'In-Person'
+      ? (appointment?.location || 'Campus Health Center')
+      : (appointment?.meetingLink || 'Online consultation');
+    const calendarPayload = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Campus Health Portal//Appointments//EN',
+      'BEGIN:VEVENT',
+      `UID:appointment-${appointment?._id || appointmentId}@campus-health`,
+      `DTSTAMP:${formatCalendarStamp(new Date())}`,
+      `DTSTART:${formatCalendarStamp(startDate)}`,
+      `DTEND:${formatCalendarStamp(endDate)}`,
+      `SUMMARY:${escapeCalendarText(`${appointmentType} with ${appointment?.doctorName || 'Doctor'}`)}`,
+      `DESCRIPTION:${escapeCalendarText(`Appointment status: ${appointment?.status || 'Scheduled'}`)}`,
+      `LOCATION:${escapeCalendarText(location)}`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([calendarPayload], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `appointment-${appointment?._id || appointmentId}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   // Determine if checked in (student has checked in)
