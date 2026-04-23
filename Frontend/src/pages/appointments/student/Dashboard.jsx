@@ -90,6 +90,11 @@ function toDateInputValue(value) {
   return toLocalDateInputValue(value);
 }
 
+function toBookingDateValue(value, fallback = getTodayValue()) {
+  if (!value) return fallback;
+  return toLocalDateInputValue(value);
+}
+
 function toAppointmentDateTime(dateValue, timeValue) {
   if (!dateValue || !timeValue) return null;
 
@@ -571,6 +576,10 @@ export default function AppointmentDashboard() {
           ...provider,
           previewDate: provider.previewDate || provider.requestedDate || bookingPreviewDate,
           requestedDate: provider.requestedDate || bookingPreviewDate,
+          bookingDate: toBookingDateValue(
+            provider.previewDate || provider.requestedDate,
+            bookingPreviewDate
+          ),
           availableSlots: availableSlots.slice(0, 4),
           availabilityEntries,
           bookedSlots,
@@ -1258,7 +1267,7 @@ export default function AppointmentDashboard() {
                           View Profile
                         </Link>
                         <Link
-                          to={`/student/appointments/book/${doctor._id}?date=${doctor.previewDate}`}
+                          to={`/student/appointments/book/${doctor._id}?date=${doctor.bookingDate}`}
                           className="py-3 bg-accent-primary text-white rounded-xl font-bold text-sm text-center"
                         >
                           {doctor.availableSlots.length > 0 ? 'Book Slot' : 'View Dates'}
