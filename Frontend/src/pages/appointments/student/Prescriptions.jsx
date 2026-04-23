@@ -15,6 +15,73 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getPrescriptionById, getPrescriptionHistory } from '../../../lib/appointments';
 
+function formatIssueDate(value) {
+  if (!value) return 'Date unavailable';
+  return new Date(value).toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+function openPrescriptionPrintView(prescription) {
+  if (typeof window === 'undefined' || !prescription) return;
+
+  const popup = window.open('', '_blank', 'noopener,noreferrer,width=960,height=720');
+  if (!popup) return;
+
+  const medicinesMarkup = (prescription.medicines || []).map((medicine) => `
+    <tr>
+      <td style="padding:12px;border:1px solid #d8dee4;">${medicine.name || '-'}</td>
+      <td style="padding:12px;border:1px solid #d8dee4;">${medicine.dosage || '-'}</td>
+      <td style="padding:12px;border:1px solid #d8dee4;">${medicine.duration || '-'}</td>
+      <td style="padding:12px;border:1px solid #d8dee4;">${medicine.instructions || '-'}</td>
+    </tr>
+  `).join('');
+
+  popup.document.write(`
+    <html>
+      <head>
+        <title>Prescription ${prescription._id}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 32px; color: #1f2937; }
+          h1, h2, p { margin: 0 0 12px; }
+          .meta { margin-bottom: 24px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+          th { text-align: left; padding: 12px; border: 1px solid #d8dee4; background: #f3f4f6; }
+          td { vertical-align: top; }
+          .notes { margin-top: 24px; white-space: pre-wrap; }
+        </style>
+      </head>
+      <body>
+        <h1>Prescription Summary</h1>
+        <div class="meta">
+          <p><strong>Doctor:</strong> ${prescription.doctorName || '-'}</p>
+          <p><strong>Student:</strong> ${prescription.studentName || '-'}</p>
+          <p><strong>Issued:</strong> ${formatIssueDate(prescription.createdAt)}</p>
+          <p><strong>Status:</strong> ${prescription.status || '-'}</p>
+        </div>
+        <h2>Medicines</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Medicine</th>
+              <th>Dosage</th>
+              <th>Duration</th>
+              <th>Instructions</th>
+            </tr>
+          </thead>
+          <tbody>${medicinesMarkup}</tbody>
+        </table>
+        ${prescription.notes ? `<div class="notes"><h2>Notes</h2><p>${prescription.notes}</p></div>` : ''}
+      </body>
+    </html>
+  `);
+  popup.document.close();
+  popup.focus();
+  popup.print();
+}
+
 const Prescriptions = () => {
   const navigate = useNavigate();
   const { id: prescriptionId } = useParams();
@@ -245,9 +312,13 @@ const Prescriptions = () => {
                   )}
 
                   <div className="pt-6 flex gap-4">
-                    <button className="flex-1 py-5 bg-secondary-bg text-primary-text rounded-[24px] font-bold hover:bg-border-gray/50 transition-all flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openPrescriptionPrintView(selectedPrescription)}
+                      className="flex-1 py-5 bg-secondary-bg text-primary-text rounded-[24px] font-bold hover:bg-border-gray/50 transition-all flex items-center justify-center gap-2"
+                    >
                       <Download className="w-5 h-5" />
-                      Download PDF
+                      Print / Save PDF
                     </button>
                     <Link 
                       to="/pharmacy"
