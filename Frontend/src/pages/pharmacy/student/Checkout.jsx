@@ -27,7 +27,9 @@ const Checkout = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('campus');
-  const [address] = useState('Dorm A, Room 302');
+  const [address, setAddress] = useState('');
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [addressTouched, setAddressTouched] = useState(false);
   const [placedOrderId, setPlacedOrderId] = useState('');
   const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvv: '', name: '' });
   const [approvedPrescriptions, setApprovedPrescriptions] = useState([]);
@@ -76,6 +78,7 @@ const Checkout = () => {
   const deliveryFee = 2.5;
   const total = subtotal + deliveryFee;
   const hasPrescriptionItems = useMemo(() => cartItems.some((item) => item.requiresPrescription), [cartItems]);
+  const isAddressValid = address.trim().length >= 8;
 
   useEffect(() => {
     let active = true;
@@ -129,6 +132,12 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
+    setAddressTouched(true);
+    if (!isAddressValid) {
+      setError('Please enter a delivery address before placing the order.');
+      return;
+    }
+
     setIsProcessing(true);
     setError('');
     try {
@@ -140,7 +149,8 @@ const Checkout = () => {
         method: 'POST',
         body: JSON.stringify({
           items,
-          address,
+          address: address.trim(),
+          specialInstructions: specialInstructions.trim() || undefined,
           paymentMethod: backendPaymentMethod,
           prescriptionId: hasPrescriptionItems ? selectedPrescriptionId : undefined
         })
@@ -290,14 +300,51 @@ const Checkout = () => {
                   Campus delivery
                 </span>
               </div>
-              <div className="p-4 bg-[#eff6f9] rounded-2xl border border-slate-100 flex items-start gap-4">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-secondary-text/80 shadow-sm">
-                  <Truck className="w-5 h-5" />
+              <div className="space-y-4">
+                <div className="p-4 bg-[#eff6f9] rounded-2xl border border-slate-100 flex items-start gap-4">
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-secondary-text/80 shadow-sm shrink-0">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-primary-text">Campus delivery details required</p>
+                    <p className="text-sm text-secondary-text">Enter your dorm, room, building, or full campus delivery point.</p>
+                    <p className="text-xs text-secondary-text/80 mt-1">Estimated delivery: 30-45 mins after pharmacist review.</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-primary-text">Campus Dormitory</p>
-                  <p className="text-sm text-secondary-text">{address}</p>
-                  <p className="text-xs text-secondary-text/80 mt-1">Estimated delivery: 30-45 mins</p>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="delivery-address" className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">
+                    Delivery address
+                  </label>
+                  <textarea
+                    id="delivery-address"
+                    value={address}
+                    onChange={(event) => setAddress(event.target.value)}
+                    onBlur={() => setAddressTouched(true)}
+                    placeholder="Example: Dorm A, Room 302, near main entrance"
+                    rows={3}
+                    className={cn(
+                      'w-full resize-none bg-white border rounded-2xl px-4 py-3 outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all',
+                      addressTouched && !isAddressValid ? 'border-rose-300 bg-rose-50/30' : 'border-slate-200'
+                    )}
+                  />
+                  {addressTouched && !isAddressValid && (
+                    <p className="text-xs font-medium text-rose-600 ml-1">Please enter a complete delivery address.</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="delivery-instructions" className="text-xs font-bold text-secondary-text uppercase tracking-wider ml-1">
+                    Delivery instructions optional
+                  </label>
+                  <input
+                    id="delivery-instructions"
+                    type="text"
+                    value={specialInstructions}
+                    onChange={(event) => setSpecialInstructions(event.target.value)}
+                    placeholder="Example: Call when arriving"
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 transition-all"
+                  />
                 </div>
               </div>
             </section>
@@ -458,10 +505,10 @@ const Checkout = () => {
 
               <button
                 onClick={handlePlaceOrder}
-                disabled={isProcessing || !isCardValid || (hasPrescriptionItems && !selectedPrescriptionId)}
+                disabled={isProcessing || !isCardValid || !isAddressValid || (hasPrescriptionItems && !selectedPrescriptionId)}
                 className={cn(
                   'w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg',
-                  isProcessing || !isCardValid || (hasPrescriptionItems && !selectedPrescriptionId)
+                  isProcessing || !isCardValid || !isAddressValid || (hasPrescriptionItems && !selectedPrescriptionId)
                     ? 'bg-[#e6f0f4] text-secondary-text/80 cursor-not-allowed'
                     : 'bg-accent-primary text-white hover:bg-[#105f72] shadow-cyan-100'
                 )}
