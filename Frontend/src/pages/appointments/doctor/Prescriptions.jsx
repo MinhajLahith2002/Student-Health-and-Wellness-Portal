@@ -21,6 +21,15 @@ function formatIssueDate(value) {
   });
 }
 
+function escapeHtml(value) {
+  return `${value ?? ''}`
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function openPrescriptionPrintView(prescription) {
   if (typeof window === 'undefined' || !prescription) return;
 
@@ -29,17 +38,17 @@ function openPrescriptionPrintView(prescription) {
 
   const medicinesMarkup = (prescription.medicines || []).map((medicine) => `
     <tr>
-      <td style="padding:12px;border:1px solid #d8dee4;">${medicine.name || '-'}</td>
-      <td style="padding:12px;border:1px solid #d8dee4;">${medicine.dosage || '-'}</td>
-      <td style="padding:12px;border:1px solid #d8dee4;">${medicine.duration || '-'}</td>
-      <td style="padding:12px;border:1px solid #d8dee4;">${medicine.instructions || '-'}</td>
+      <td style="padding:12px;border:1px solid #d8dee4;">${escapeHtml(medicine.name || '-')}</td>
+      <td style="padding:12px;border:1px solid #d8dee4;">${escapeHtml(medicine.dosage || '-')}</td>
+      <td style="padding:12px;border:1px solid #d8dee4;">${escapeHtml(medicine.duration || '-')}</td>
+      <td style="padding:12px;border:1px solid #d8dee4;">${escapeHtml(medicine.instructions || '-')}</td>
     </tr>
   `).join('');
 
   popup.document.write(`
     <html>
       <head>
-        <title>Prescription ${prescription._id}</title>
+        <title>Prescription ${escapeHtml(prescription._id)}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 32px; color: #1f2937; }
           h1, h2, p { margin: 0 0 12px; }
@@ -53,10 +62,10 @@ function openPrescriptionPrintView(prescription) {
       <body>
         <h1>Prescription Summary</h1>
         <div class="meta">
-          <p><strong>Doctor:</strong> ${prescription.doctorName || '-'}</p>
-          <p><strong>Student:</strong> ${prescription.studentName || '-'}</p>
-          <p><strong>Issued:</strong> ${formatIssueDate(prescription.createdAt)}</p>
-          <p><strong>Status:</strong> ${prescription.status || '-'}</p>
+          <p><strong>Doctor:</strong> ${escapeHtml(prescription.doctorName || '-')}</p>
+          <p><strong>Student:</strong> ${escapeHtml(prescription.studentName || '-')}</p>
+          <p><strong>Issued:</strong> ${escapeHtml(formatIssueDate(prescription.createdAt))}</p>
+          <p><strong>Status:</strong> ${escapeHtml(prescription.status || '-')}</p>
         </div>
         <h2>Medicines</h2>
         <table>
@@ -70,7 +79,7 @@ function openPrescriptionPrintView(prescription) {
           </thead>
           <tbody>${medicinesMarkup}</tbody>
         </table>
-        ${prescription.notes ? `<div class="notes"><h2>Notes</h2><p>${prescription.notes}</p></div>` : ''}
+        ${prescription.notes ? `<div class="notes"><h2>Notes</h2><p>${escapeHtml(prescription.notes)}</p></div>` : ''}
       </body>
     </html>
   `);
