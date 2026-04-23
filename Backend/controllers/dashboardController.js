@@ -16,6 +16,95 @@ import {
 const COUNSELING_PENDING_STATUSES = ['Pending', 'Confirmed', 'Ready', 'In Progress'];
 const COUNSELING_COMPLETED_STATUSES = ['Completed'];
 const COUNSELING_TREND_PENDING_THRESHOLD = 8;
+const DOCTOR_DASHBOARD_PROFILE_FIELDS = 'name email studentId profileImage allergies medicalHistory bloodType dateOfBirth gender';
+const DOCTOR_DASHBOARD_ACTIVE_STATUSES = ['Pending', 'Confirmed', 'Ready', 'In Progress'];
+
+function toDashboardStudentProfile(student) {
+  if (!student || typeof student !== 'object') return null;
+
+  return {
+    _id: student._id,
+    name: student.name || '',
+    email: student.email || '',
+    studentId: student.studentId || '',
+    profileImage: student.profileImage || '',
+    allergies: Array.isArray(student.allergies) ? student.allergies : [],
+    medicalHistory: Array.isArray(student.medicalHistory) ? student.medicalHistory : [],
+    bloodType: student.bloodType || null,
+    dateOfBirth: student.dateOfBirth || null,
+    gender: student.gender || null
+  };
+}
+
+function toDashboardAppointment(appointment) {
+  const studentProfile = toDashboardStudentProfile(appointment.studentId);
+
+  return {
+    ...appointment,
+    studentName: appointment.studentName || studentProfile?.name || 'Student',
+    studentProfile
+  };
+}
+
+function buildPatientRecords(appointments = [], todayBoundary) {
+  const patientMap = new Map();
+
+  appointments.forEach((appointment) => {
+    const student = toDashboardStudentProfile(appointment.studentId);
+    if (!student?._id) return;
+
+    const key = student._id.toString();
+    const existing = patientMap.get(key) || {
+      _id: student._id,
+      name: student.name || appointment.studentName || 'Student',
+      email: student.email || '',
+      studentId: student.studentId || '',
+      profileImage: student.profileImage || '',
+      allergies: student.allergies,
+      medicalHistory: student.medicalHistory,
+      bloodType: student.bloodType,
+      dateOfBirth: student.dateOfBirth,
+      gender: student.gender,
+      totalVisits: 0,
+      lastVisit: null,
+      nextVisit: null,
+      recentAppointments: []
+    };
+
+    existing.totalVisits += 1;
+    existing.recentAppointments.push({
+      _id: appointment._id,
+      date: appointment.date,
+      time: appointment.time,
+      type: appointment.type,
+      status: appointment.status,
+      symptoms: appointment.symptoms || '',
+      notes: appointment.notes || '',
+      diagnosis: appointment.diagnosis || ''
+    });
+
+    const appointmentDate = new Date(appointment.date);
+    const isPastOrToday = appointmentDate < todayBoundary;
+    const isUpcoming = appointmentDate >= todayBoundary && DOCTOR_DASHBOARD_ACTIVE_STATUSES.includes(appointment.status);
+
+    if (isPastOrToday && !existing.lastVisit) {
+      existing.lastVisit = appointment.date;
+    }
+
+    if (isUpcoming) {
+      if (!existing.nextVisit || appointmentDate < new Date(existing.nextVisit)) {
+        existing.nextVisit = appointment.date;
+      }
+    }
+
+    patientMap.set(key, existing);
+  });
+
+  return [...patientMap.values()].map((patient) => ({
+    ...patient,
+    recentAppointments: patient.recentAppointments.slice(0, 3)
+  }));
+}
 
 function normalizeTrendDate(value) {
   const date = value instanceof Date ? new Date(value) : new Date(value);
@@ -275,13 +364,16 @@ const getDoctorDashboard = async (req, res) => {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+    const twoWeeksFromToday = new Date(today);
+    twoWeeksFromToday.setDate(twoWeeksFromToday.getDate() + 14);
 
     const [
       todayAppointments,
+      upcomingAppointments,
+      patientHistory,
       queuePatients,
       pendingPrescriptions,
       completedToday,
-      totalPatients,
       activeSchedules
     ] = await Promise.all([
       Appointment.find({
@@ -289,7 +381,28 @@ const getDoctorDashboard = async (req, res) => {
         date: { $gte: today, $lt: tomorrow },
         status: { $in: ['Confirmed', 'Ready', 'In Progress'] }
       })
-        .sort({ time: 1 }),
+        .select('studentId studentName date time type status symptoms notes diagnosis')
+        .populate('studentId', DOCTOR_DASHBOARD_PROFILE_FIELDS)
+        .sort({ time: 1 })
+        .lean(),
+
+      Appointment.find({
+        doctorId: req.user.id,
+        date: { $gte: tomorrow, $lt: twoWeeksFromToday },
+        status: { $in: DOCTOR_DASHBOARD_ACTIVE_STATUSES }
+      })
+        .select('studentId studentName date time type status symptoms notes diagnosis')
+        .populate('studentId', DOCTOR_DASHBOARD_PROFILE_FIELDS)
+        .sort({ date: 1, time: 1 })
+        .lean(),
+
+      Appointment.find({
+        doctorId: req.user.id
+      })
+        .select('studentId studentName date time type status symptoms notes diagnosis')
+        .populate('studentId', DOCTOR_DASHBOARD_PROFILE_FIELDS)
+        .sort({ date: -1, time: -1 })
+        .lean(),
 
       Appointment.countDocuments({
         doctorId: req.user.id,
@@ -305,18 +418,20 @@ const getDoctorDashboard = async (req, res) => {
         status: 'Completed'
       }),
 
-      Appointment.distinct('studentId', { doctorId: req.user.id }).then((patients) => patients.length),
-
       Availability.countDocuments({ providerId: req.user.id, status: 'Active' })
     ]);
 
+    const patientRecords = buildPatientRecords(patientHistory, tomorrow);
+
     res.json({
-      todayAppointments,
+      todayAppointments: todayAppointments.map(toDashboardAppointment),
+      upcomingAppointments: upcomingAppointments.map(toDashboardAppointment),
+      patientRecords,
       stats: {
         queue: queuePatients,
         pendingPrescriptions,
         completedToday,
-        totalPatients,
+        totalPatients: patientRecords.length,
         activeSchedules
       }
     });
