@@ -1,7 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft,
   ShoppingCart,
   ShieldCheck,
   Info,
@@ -104,26 +103,15 @@ const MedicineDetail = () => {
 
   return (
     <div className="pharmacy-shell pb-20">
-      <div className="px-6 pt-28">
-        <div className="max-w-7xl mx-auto pharmacy-hero flex items-center justify-between">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-[#e6f0f4] rounded-full transition-colors text-secondary-text"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <div className="flex items-center gap-4">
-            <Link to="/student/pharmacy/checkout" className="relative p-2 hover:bg-[#e6f0f4] rounded-full transition-colors text-secondary-text">
-              <ShoppingCart className="w-6 h-6" />
-              <span className="absolute top-0 right-0 min-w-5 h-5 px-1 bg-accent-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-                {cartCount}
-              </span>
-            </Link>
-          </div>
+      <div className="max-w-7xl mx-auto px-6 pt-28 pb-10">
+        <div className="mb-6 flex justify-end">
+          <Link to="/student/pharmacy/checkout" className="relative p-3 bg-white/90 border border-[#d9e7ec] rounded-full text-secondary-text shadow-sm hover:text-accent-primary hover:border-[#bfe0e7] transition-colors">
+            <ShoppingCart className="w-6 h-6" />
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-accent-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+              {cartCount}
+            </span>
+          </Link>
         </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
             <div className="aspect-square pharmacy-panel overflow-hidden relative group">
