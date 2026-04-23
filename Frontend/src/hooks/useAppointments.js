@@ -130,11 +130,20 @@ export function useAppointments(
   /**
    * Reschedule an existing appointment
    */
-  const rescheduleAppointment = useCallback(async (appointmentId, newDate, newTime) => {
+  const rescheduleAppointment = useCallback(async (appointmentId, payloadOrDate, maybeTime) => {
+    const payload = typeof payloadOrDate === 'object' && payloadOrDate !== null
+      ? payloadOrDate
+      : { date: payloadOrDate, time: maybeTime };
+
     try {
       const updated = await apiFetch(`/appointments/${appointmentId}/reschedule`, {
         method: 'PUT',
-        body: JSON.stringify({ date: newDate, time: newTime })
+        body: JSON.stringify({
+          date: payload.date,
+          time: payload.time,
+          type: payload.type,
+          availabilityId: payload.availabilityId
+        })
       });
 
       // Optimistic update

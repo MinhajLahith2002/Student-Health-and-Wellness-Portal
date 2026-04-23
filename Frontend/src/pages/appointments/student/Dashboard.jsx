@@ -17,7 +17,7 @@ import { motion } from 'motion/react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useAppointments } from '../../../hooks/useAppointments';
 import { useSocket } from '../../../hooks/useSocket';
-import { getLiveProviderAvailability } from '../../../lib/providers';
+import { getLiveProviderAvailability, getProviderAvailability } from '../../../lib/providers';
 import { AppointmentStatusBadge } from '../../../components/AppointmentStatusBadge';
 import ErrorBoundary from '../../../components/ErrorBoundary';
 import {
@@ -26,11 +26,6 @@ import {
 } from '../../../lib/appointments';
 import { cn } from '../../../lib/utils';
 
-const TIME_OPTIONS = [
-  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-  '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM',
-  '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM'
-];
 function formatDateLabel(value) {
   return new Date(value).toLocaleDateString([], {
     month: 'short',
@@ -57,6 +52,33 @@ function formatTimeLabel(timeValue) {
   const suffix = hours >= 12 ? 'PM' : 'AM';
   const hours12 = hours % 12 || 12;
   return `${String(hours12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${suffix}`;
+}
+
+function toMinutes(timeValue) {
+  if (!timeValue) return null;
+
+  const match = `${timeValue}`.trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+
+  if (meridiem) {
+    if (hours === 12) hours = 0;
+    if (meridiem === 'PM') hours += 12;
+  }
+
+  return (hours * 60) + minutes;
+}
+
+function to24HourTime(timeValue) {
+  const minutes = toMinutes(timeValue);
+  if (minutes === null) return timeValue;
+
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }
 
 function getTodayValue() {
@@ -111,6 +133,50 @@ function getRevisitPath(appointment) {
     : '/student/appointments/find';
 }
 
+function supportsConsultationType(entry, type) {
+  return (
+    !Array.isArray(entry?.consultationTypes)
+    || entry.consultationTypes.length === 0
+    || entry.consultationTypes.includes(type)
+  );
+}
+
+function buildEntrySlots(entry) {
+  if (!entry?.startTime || !entry?.endTime || !entry?.slotDuration) {
+    return [];
+  }
+
+  const startMinutes = toMinutes(entry.startTime);
+  const endMinutes = toMinutes(entry.endTime);
+  if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+    return [];
+  }
+
+  const blockedRanges = Array.isArray(entry.breaks)
+    ? entry.breaks
+        .map((item) => ({
+          start: toMinutes(item?.startTime),
+          end: toMinutes(item?.endTime)
+        }))
+        .filter((item) => item.start !== null && item.end !== null && item.end > item.start)
+    : [];
+
+  const slots = [];
+  for (let minute = startMinutes; minute + entry.slotDuration <= endMinutes; minute += entry.slotDuration) {
+    const overlapsBreak = blockedRanges.some((range) => (
+      minute < range.end && minute + entry.slotDuration > range.start
+    ));
+
+    if (!overlapsBreak) {
+      const hours = Math.floor(minute / 60);
+      const mins = minute % 60;
+      slots.push(`${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`);
+    }
+  }
+
+  return slots;
+}
+
 function SummaryCard({ label, value, hint, icon, tone }) {
   const CardIcon = icon;
 
@@ -136,7 +202,12 @@ function AppointmentCard({
   onDraftChange,
   onReschedule,
   onCancel,
-  onCheckIn
+  onCheckIn,
+  manageAvailability,
+  manageAvailabilityLoading,
+  manageAvailabilityError,
+  manageAvailableSlots,
+  matchingEntriesForSelectedSlot
 }) {
   const isManageOpen = manageOpenId === appointment._id;
   const hasPastManageSelection = isManageOpen && isPastSelection(manageDraft.date, manageDraft.time);
@@ -285,8 +356,18 @@ function AppointmentCard({
               value={manageDraft.time}
               onChange={(event) => onDraftChange({ time: event.target.value })}
               className={cn('px-4 py-4 bg-white rounded-2xl outline-none', hasPastManageSelection && 'ring-2 ring-red-300')}
+              disabled={manageAvailabilityLoading || manageAvailableSlots.length === 0}
             >
-              {TIME_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              <option value="">
+                {manageAvailabilityLoading
+                  ? 'Loading live slots...'
+                  : manageAvailableSlots.length > 0
+                    ? 'Choose a live slot'
+                    : 'No live slots available'}
+              </option>
+              {manageAvailableSlots.map((option) => (
+                <option key={option} value={option}>{formatTimeLabel(option)}</option>
+              ))}
             </select>
             <select
               value={manageDraft.type}
@@ -303,7 +384,58 @@ function AppointmentCard({
             onChange={(event) => onDraftChange({ cancellationReason: event.target.value })}
             className="w-full px-4 py-4 bg-white rounded-2xl outline-none resize-none"
             placeholder="Optional cancellation reason"
-          />
+            />
+
+          {manageAvailabilityError && (
+            <p className="text-sm text-red-600">{manageAvailabilityError}</p>
+          )}
+
+          {!manageAvailabilityLoading && manageDraft.date && manageAvailableSlots.length === 0 && (
+            <p className="text-sm text-secondary-text">
+              No published slots currently support this consultation type on the selected date.
+            </p>
+          )}
+
+          {matchingEntriesForSelectedSlot.length > 1 && (
+            <div className="space-y-3">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-secondary-text font-bold">
+                Published schedule block for this slot
+              </p>
+              <div className="grid gap-3">
+                {matchingEntriesForSelectedSlot.map((entry) => {
+                  const selected = manageDraft.availabilityId === entry._id;
+
+                  return (
+                    <button
+                      key={entry._id}
+                      type="button"
+                      onClick={() => onDraftChange({ availabilityId: entry._id })}
+                      className={cn(
+                        'rounded-2xl border-2 px-4 py-4 text-left transition-all',
+                        selected ? 'border-accent-primary bg-accent-primary/10' : 'border-border-gray bg-white hover:border-accent-primary/40'
+                      )}
+                    >
+                      <p className="font-semibold text-primary-text">{entry.title || 'Published schedule block'}</p>
+                      <p className="text-sm text-secondary-text mt-1">
+                        {entry.startTime} to {entry.endTime} · {(entry.consultationTypes || []).join(', ') || 'All consultation types'}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {manageAvailability?.entries?.length > 0 && (
+            <div className="rounded-2xl bg-white px-4 py-4">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-secondary-text font-bold mb-2">
+                Published doctor schedule
+              </p>
+              <p className="text-sm text-secondary-text">
+                Rescheduling is limited to live slots from the doctor&apos;s active availability on the selected date and consultation type.
+              </p>
+            </div>
+          )}
 
           {hasPastManageSelection && (
             <p className="text-sm text-red-600">Please choose a future date and time.</p>
@@ -351,10 +483,15 @@ export default function AppointmentDashboard() {
   const [manageDraft, setManageDraft] = useState({
     id: '',
     date: '',
-    time: '10:00 AM',
+    time: '',
     type: 'Video Call',
+    availabilityId: '',
+    doctorId: '',
     cancellationReason: ''
   });
+  const [manageAvailability, setManageAvailability] = useState(null);
+  const [manageAvailabilityLoading, setManageAvailabilityLoading] = useState(false);
+  const [manageAvailabilityError, setManageAvailabilityError] = useState('');
 
   // PHASE 3: Use new useAppointments hook (replaces localStorage)
   const {
@@ -515,15 +652,103 @@ export default function AppointmentDashboard() {
     return upcomingAppointments;
   }, [activeTab, upcomingAppointments]);
 
+  const manageAvailabilityEntries = useMemo(() => (
+    Array.isArray(manageAvailability?.entries) ? manageAvailability.entries : []
+  ), [manageAvailability]);
+
+  const manageMatchingEntries = useMemo(() => (
+    manageAvailabilityEntries.filter((entry) => supportsConsultationType(entry, manageDraft.type))
+  ), [manageAvailabilityEntries, manageDraft.type]);
+
+  const manageAvailableSlots = useMemo(() => {
+    const availableSlots = Array.isArray(manageAvailability?.availableSlots) ? manageAvailability.availableSlots : [];
+    return availableSlots.filter((slot) => (
+      manageMatchingEntries.some((entry) => buildEntrySlots(entry).includes(to24HourTime(slot)))
+    ));
+  }, [manageAvailability, manageMatchingEntries]);
+
+  const matchingEntriesForSelectedSlot = useMemo(() => (
+    manageMatchingEntries.filter((entry) => buildEntrySlots(entry).includes(to24HourTime(manageDraft.time)))
+  ), [manageDraft.time, manageMatchingEntries]);
+
+  useEffect(() => {
+    if (!manageOpenId || !manageDraft.doctorId || !manageDraft.date) {
+      setManageAvailability(null);
+      setManageAvailabilityError('');
+      setManageAvailabilityLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    (async () => {
+      try {
+        setManageAvailabilityLoading(true);
+        setManageAvailabilityError('');
+        const availability = await getProviderAvailability(manageDraft.doctorId, manageDraft.date);
+        if (!active) return;
+        setManageAvailability(availability);
+      } catch (err) {
+        if (!active) return;
+        setManageAvailability(null);
+        setManageAvailabilityError(err.message || 'Failed to load live availability for rescheduling.');
+      } finally {
+        if (active) setManageAvailabilityLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [manageDraft.date, manageDraft.doctorId, manageOpenId]);
+
+  useEffect(() => {
+    if (!manageOpenId || manageAvailabilityLoading || !manageAvailability) return;
+
+    const normalizedTime = to24HourTime(manageDraft.time);
+    const slotStillValid = manageAvailableSlots.includes(normalizedTime);
+
+    if (!slotStillValid && manageDraft.time) {
+      setManageDraft((current) => ({ ...current, time: '', availabilityId: '' }));
+      return;
+    }
+
+    if (!normalizedTime) {
+      setManageDraft((current) => (current.availabilityId ? { ...current, availabilityId: '' } : current));
+      return;
+    }
+
+    if (matchingEntriesForSelectedSlot.length === 1) {
+      const nextId = matchingEntriesForSelectedSlot[0]._id;
+      setManageDraft((current) => (current.availabilityId === nextId ? current : { ...current, availabilityId: nextId }));
+      return;
+    }
+
+    if (matchingEntriesForSelectedSlot.length === 0) {
+      setManageDraft((current) => (current.availabilityId ? { ...current, availabilityId: '' } : current));
+      return;
+    }
+
+    setManageDraft((current) => (
+      matchingEntriesForSelectedSlot.some((entry) => entry._id === current.availabilityId)
+        ? current
+        : { ...current, availabilityId: '' }
+    ));
+  }, [manageAvailability, manageAvailabilityLoading, manageAvailableSlots, manageDraft.time, manageOpenId, matchingEntriesForSelectedSlot]);
+
   function openManagePanel(appointment) {
     setManageOpenId(appointment._id);
     setManageDraft({
       id: appointment._id,
       date: toDateInputValue(appointment.date),
-      time: formatTimeLabel(appointment.time),
+      time: to24HourTime(appointment.time),
       type: appointment.type,
+      availabilityId: appointment.availabilityId || '',
+      doctorId: appointment.doctorId?._id || appointment.doctorId || '',
       cancellationReason: appointment.cancellationReason || ''
     });
+    setManageAvailability(null);
+    setManageAvailabilityError('');
     setStatusMessage('');
   }
 
@@ -532,14 +757,22 @@ export default function AppointmentDashboard() {
     setManageDraft({
       id: '',
       date: '',
-      time: '10:00 AM',
+      time: '',
       type: 'Video Call',
+      availabilityId: '',
+      doctorId: '',
       cancellationReason: ''
     });
+    setManageAvailability(null);
+    setManageAvailabilityError('');
   }
 
   function updateManageDraft(patch) {
-    setManageDraft((current) => ({ ...current, ...patch }));
+    setManageDraft((current) => ({
+      ...current,
+      ...patch,
+      ...(patch.date !== undefined || patch.time !== undefined || patch.type !== undefined ? { availabilityId: '' } : {})
+    }));
     setStatusMessage('');
   }
 
@@ -574,11 +807,26 @@ export default function AppointmentDashboard() {
       return;
     }
 
+    if (!manageAvailableSlots.includes(to24HourTime(manageDraft.time))) {
+      alert('Choose a currently available live slot before rescheduling.');
+      return;
+    }
+
+    if (matchingEntriesForSelectedSlot.length > 1 && !manageDraft.availabilityId) {
+      alert('Choose which published schedule block this slot belongs to before rescheduling.');
+      return;
+    }
+
     try {
       setActionState(id);
       setStatusMessage('');
       // PHASE 3: Use new hook method with API call
-      await rescheduleAppointment(id, manageDraft.date, manageDraft.time);
+      await rescheduleAppointment(id, {
+        date: manageDraft.date,
+        time: to24HourTime(manageDraft.time),
+        type: manageDraft.type,
+        availabilityId: manageDraft.availabilityId || undefined
+      });
       closeManagePanel();
       setStatusMessage('Appointment rescheduled successfully.');
       // Hook automatically updates state
@@ -853,6 +1101,11 @@ export default function AppointmentDashboard() {
                       onReschedule={handleRescheduleAppointment}
                       onCancel={handleCancelAppointment}
                       onCheckIn={handleCheckIn}
+                      manageAvailability={manageAvailability}
+                      manageAvailabilityLoading={manageAvailabilityLoading}
+                      manageAvailabilityError={manageAvailabilityError}
+                      manageAvailableSlots={manageAvailableSlots}
+                      matchingEntriesForSelectedSlot={matchingEntriesForSelectedSlot}
                     />
                   ))
                 )}
