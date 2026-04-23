@@ -103,23 +103,17 @@ const MedicineDetail = () => {
 
   return (
     <div className="pharmacy-shell pb-20">
-      <div className="max-w-7xl mx-auto px-6 pt-28 pb-10">
-        <div className="mb-6 flex justify-end">
-          <Link to="/student/pharmacy/checkout" className="relative p-3 bg-white/90 border border-[#d9e7ec] rounded-full text-secondary-text shadow-sm hover:text-accent-primary hover:border-[#bfe0e7] transition-colors">
-            <ShoppingCart className="w-6 h-6" />
-            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-accent-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-              {cartCount}
-            </span>
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-            <div className="aspect-square pharmacy-panel overflow-hidden relative group">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 sm:pt-32 pb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1fr)] gap-8 lg:gap-12 items-start">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5 lg:sticky lg:top-28">
+            <div className="relative overflow-hidden rounded-[2rem] border border-[#dbe7ee] bg-white shadow-[0_18px_44px_rgba(10,40,60,0.08)] group">
+              <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,#eef8fb_0%,rgba(238,248,251,0)_100%)]" />
+              <div className="relative aspect-[4/3] min-h-[22rem] bg-[#f8fcfd] flex items-center justify-center">
               {medicine.image || medicine.imageUrl ? (
                 <img
                   src={getProductImage(medicine)}
                   alt={medicine.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-700"
                   referrerPolicy="no-referrer"
                   onError={(event) => {
                     const fallbackImage = getProductFallbackImage(medicine);
@@ -137,17 +131,18 @@ const MedicineDetail = () => {
                 </div>
               )}
               {medicine.requiresPrescription && (
-                <div className="absolute top-6 left-6 px-4 py-2 bg-amber-100/90 backdrop-blur-sm text-amber-700 text-xs font-bold rounded-full flex items-center shadow-sm">
+                <div className="absolute top-5 left-5 px-4 py-2 bg-amber-100/95 backdrop-blur-sm text-amber-700 text-xs font-bold rounded-full flex items-center shadow-sm">
                   <ShieldCheck className="w-4 h-4 mr-2" /> Prescription Required
                 </div>
               )}
+              </div>
             </div>
 
             {Array.isArray(medicine.genericAlternatives) && medicine.genericAlternatives.length > 0 && (
-              <motion.div whileHover={{ scale: 1.01 }} className="bg-[#e8f7f5] border border-emerald-100 rounded-2xl p-6 flex items-center justify-between gap-4">
+              <motion.div whileHover={{ scale: 1.01 }} className="bg-[#e8f7f5] border border-emerald-100 rounded-2xl p-5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-accent-primary shadow-sm">
-                    <CheckCircle2 className="w-6 h-6" />
+                  <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center text-accent-primary shadow-sm shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -172,55 +167,75 @@ const MedicineDetail = () => {
             )}
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-            <div>
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className="px-3 py-1 bg-[#e6f0f4] text-secondary-text text-[10px] font-bold rounded-full uppercase tracking-widest">
-                  {medicine.category}
-                </span>
-                <div className={cn(
-                  'flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider',
-                  medicine.stock > 20 ? 'bg-[#e8f7f5] text-emerald-700' : medicine.stock > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
-                )}>
-                  <div className={cn('w-1.5 h-1.5 rounded-full', medicine.stock > 20 ? 'bg-accent-green' : medicine.stock > 0 ? 'bg-amber-500' : 'bg-rose-500')} />
-                  {medicine.stock > 20 ? 'In Stock' : medicine.stock > 0 ? `Only ${medicine.stock} left` : 'Out of Stock'}
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+            <section className="rounded-[2rem] border border-[#dbe7ee] bg-white/92 p-6 sm:p-8 shadow-[0_18px_44px_rgba(10,40,60,0.07)]">
+              <div className="flex items-start justify-between gap-5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-4 flex-wrap">
+                    <span className="px-3 py-1.5 bg-[#e6f0f4] text-secondary-text text-[10px] font-bold rounded-full uppercase tracking-widest">
+                      {medicine.category}
+                    </span>
+                    <div className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
+                      medicine.stock > 20 ? 'bg-[#e8f7f5] text-emerald-700' : medicine.stock > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+                    )}>
+                      <div className={cn('w-1.5 h-1.5 rounded-full', medicine.stock > 20 ? 'bg-accent-green' : medicine.stock > 0 ? 'bg-amber-500' : 'bg-rose-500')} />
+                      {medicine.stock > 20 ? 'In Stock' : medicine.stock > 0 ? `Only ${medicine.stock} left` : 'Out of Stock'}
+                    </div>
+                  </div>
+                  <h1 className="text-4xl sm:text-5xl font-bold text-primary-text leading-tight mb-3">{medicine.name}</h1>
+                  <p className="text-base sm:text-lg text-secondary-text">{[medicine.strength, medicine.manufacturer].filter(Boolean).join(' | ')}</p>
+                </div>
+                <Link to="/student/pharmacy/checkout" className="relative p-3 bg-[#eff7fa] border border-[#d9e7ec] rounded-2xl text-secondary-text hover:text-accent-primary hover:border-[#bfe0e7] transition-colors shrink-0">
+                  <ShoppingCart className="w-6 h-6" />
+                  <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 bg-accent-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                    {cartCount}
+                  </span>
+                </Link>
+              </div>
+
+              <div className="mt-8 flex items-end justify-between gap-5 border-t border-[#e4eef3] pt-6">
+                <div>
+                  <p className="text-xs font-bold text-secondary-text/80 uppercase tracking-[0.22em] mb-2">Price</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-5xl font-bold text-primary-text">${Number(medicine.price || 0).toFixed(2)}</span>
+                    <span className="text-secondary-text/80 text-sm">per pack</span>
+                  </div>
+                </div>
+                <div className="hidden sm:block text-right">
+                  <p className="text-xs font-bold text-secondary-text/80 uppercase tracking-[0.22em] mb-2">Available</p>
+                  <p className="text-2xl font-bold text-accent-primary">{medicine.stock}</p>
                 </div>
               </div>
-              <h1 className="text-4xl font-bold text-primary-text mb-2">{medicine.name}</h1>
-              <p className="text-lg text-secondary-text">{[medicine.strength, medicine.manufacturer].filter(Boolean).join(' | ')}</p>
-              <div className="mt-6 flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-primary-text">${medicine.price}</span>
-                <span className="text-secondary-text/80 text-sm">per pack</span>
-              </div>
-            </div>
+            </section>
 
-            <div className="pharmacy-panel p-6 space-y-6">
-              <div className="flex items-center justify-between gap-6 flex-wrap">
+            <div className="pharmacy-panel p-5 sm:p-6 space-y-6">
+              <div className="flex items-center justify-between gap-5 flex-wrap">
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-secondary-text/80 uppercase tracking-wider">Quantity</p>
-                  <div className="flex items-center gap-4 bg-[#eff6f9] p-1 rounded-xl w-fit">
+                  <p className="text-xs font-bold text-secondary-text/80 uppercase tracking-[0.22em]">Quantity</p>
+                  <div className="flex items-center gap-4 bg-[#eff6f9] p-1.5 rounded-2xl w-fit">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-secondary-text hover:text-accent-primary shadow-sm transition-colors"
+                      className="w-11 h-11 flex items-center justify-center bg-white rounded-xl text-secondary-text hover:text-accent-primary shadow-sm transition-colors"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-8 text-center font-bold text-primary-text">{quantity}</span>
+                    <span className="w-10 text-center font-bold text-xl text-primary-text">{quantity}</span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-secondary-text hover:text-accent-primary shadow-sm transition-colors"
+                      className="w-11 h-11 flex items-center justify-center bg-white rounded-xl text-secondary-text hover:text-accent-primary shadow-sm transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-secondary-text/80 uppercase tracking-wider">Subtotal</p>
-                  <p className="text-2xl font-bold text-accent-primary">${subtotal.toFixed(2)}</p>
+                  <p className="text-xs font-bold text-secondary-text/80 uppercase tracking-[0.22em] mb-1">Subtotal</p>
+                  <p className="text-3xl font-bold text-accent-primary">${subtotal.toFixed(2)}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   onClick={() => {
                     addCurrentMedicineToCart();
@@ -254,14 +269,14 @@ const MedicineDetail = () => {
               )}
             </div>
 
-            <div className="space-y-4">
-              <div className="flex border-b border-slate-200 overflow-x-auto">
+            <div className="rounded-[2rem] border border-[#dbe7ee] bg-white shadow-[0_14px_34px_rgba(10,40,60,0.07)] overflow-hidden">
+              <div className="flex border-b border-slate-200 overflow-x-auto px-4 sm:px-6">
                 {['usage', 'sideEffects', 'storage'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={cn(
-                      'px-6 py-4 text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap',
+                      'px-4 sm:px-6 py-4 text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap',
                       activeTab === tab ? 'text-accent-primary' : 'text-secondary-text/80 hover:text-secondary-text'
                     )}
                   >
@@ -270,7 +285,7 @@ const MedicineDetail = () => {
                   </button>
                 ))}
               </div>
-              <div className="pharmacy-panel p-6 min-h-[200px]">
+              <div className="p-6 min-h-[180px]">
                 <AnimatePresence mode="wait">
                   <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
                     {activeTab === 'usage' && (
