@@ -12,6 +12,11 @@ const createPrescriptionOrder = async (prescription) => {
     return null;
   }
 
+  const specialInstructions = [
+    prescription.pharmacistNotes || 'Prescription approved for pharmacy preparation.',
+    prescription.deliveryInstructions
+  ].filter(Boolean).join(' ');
+
   return Order.create({
     studentId: prescription.studentId._id,
     studentName: prescription.studentName || prescription.studentId.name,
@@ -22,8 +27,8 @@ const createPrescriptionOrder = async (prescription) => {
     deliveryFee: 0,
     total: 0,
     paymentMethod: 'Cash on Delivery',
-    address: 'Delivery address pending - confirm with student before dispatch',
-    specialInstructions: prescription.pharmacistNotes || 'Prescription approved for pharmacy preparation.',
+    address: prescription.deliveryAddress || 'Delivery address pending - confirm with student before dispatch',
+    specialInstructions,
     prescriptionId: prescription._id,
     orderType: 'Prescription',
     status: 'Pending'
@@ -58,6 +63,11 @@ const createOrder = async (req, res) => {
     const { items, address, paymentMethod, specialInstructions, prescriptionId } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'At least one order item is required' });
+    }
+
+    const deliveryAddress = String(address || '').trim();
+    if (deliveryAddress.length < 8) {
+      return res.status(400).json({ message: 'Delivery address is required' });
     }
 
     let subtotal = 0;
@@ -126,7 +136,7 @@ const createOrder = async (req, res) => {
       deliveryFee,
       total,
       paymentMethod,
-      address,
+      address: deliveryAddress,
       specialInstructions,
       prescriptionId,
       orderType: prescriptionId ? 'Prescription' : 'Direct',

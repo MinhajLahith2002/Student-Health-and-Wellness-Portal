@@ -61,6 +61,19 @@ const uploadPrescription = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    const deliveryAddress = String(req.body.deliveryAddress || '').trim();
+    const deliveryInstructions = String(req.body.deliveryInstructions || '').trim();
+
+    if (deliveryAddress.length < 8) {
+      if (req.file.path) {
+        await unlink(req.file.path).catch(() => {});
+      }
+
+      return res.status(400).json({
+        message: 'Delivery address is required for prescription orders.'
+      });
+    }
+
     const isImageFile = req.file.mimetype?.startsWith('image/');
     const isPdfFile = req.file.mimetype === 'application/pdf';
 
@@ -90,7 +103,9 @@ const uploadPrescription = async (req, res) => {
       imageUrl,
       fileMimeType: req.file.mimetype,
       imagePublicId,
-      notes: req.body.notes
+      notes: req.body.notes,
+      deliveryAddress,
+      deliveryInstructions
     });
 
     res.status(201).json(prescription);
@@ -165,8 +180,11 @@ const verifyPrescription = async (req, res) => {
           deliveryFee: 0,
           total: 0,
           paymentMethod: 'Cash on Delivery',
-          address: 'Delivery address pending - confirm with student before dispatch',
-          specialInstructions: pharmacistNotes || 'Prescription approved for pharmacy preparation.',
+          address: prescription.deliveryAddress || 'Delivery address pending - confirm with student before dispatch',
+          specialInstructions: [
+            pharmacistNotes || 'Prescription approved for pharmacy preparation.',
+            prescription.deliveryInstructions
+          ].filter(Boolean).join(' '),
           prescriptionId: prescription._id,
           orderType: 'Prescription',
           status: 'Pending'
