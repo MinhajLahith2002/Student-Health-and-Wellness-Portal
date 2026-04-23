@@ -58,6 +58,12 @@ function getPrescriptionStatusColor(status) {
   }
 }
 
+function getEntityId(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  return value._id || value.id || '';
+}
+
 const OrderHistory = () => {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('Orders');
@@ -108,6 +114,9 @@ const OrderHistory = () => {
     const query = searchQuery.trim().toLowerCase();
 
     return orders.filter((order) => {
+      const orderType = order.orderType || (order.prescriptionId ? 'Prescription' : 'Direct');
+      if (orderType !== 'Direct') return false;
+
       const matchesTab =
         activeTab === 'All' ||
         (activeTab === 'Ongoing' && !['Delivered', 'Cancelled'].includes(order.status)) ||
@@ -265,7 +274,11 @@ const OrderHistory = () => {
                       </motion.div>
                     );
                   })
-                : filteredPrescriptions.map((prescription) => (
+                : filteredPrescriptions.map((prescription) => {
+                    const linkedOrder = orders.find((order) => getEntityId(order.prescriptionId) === prescription._id);
+                    const prescriptionTitle = linkedOrder ? `Order ${linkedOrder.orderId || linkedOrder._id}` : 'Prescription';
+
+                    return (
                     <motion.div
                       layout
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -287,7 +300,7 @@ const OrderHistory = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2 flex-wrap">
-                              <h3 className="text-xl font-bold text-primary-text truncate">Prescription</h3>
+                              <h3 className="text-xl font-bold text-primary-text truncate">{prescriptionTitle}</h3>
                               <span className={cn('px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border', getPrescriptionStatusColor(prescription.status))}>
                                 {prescription.status}
                               </span>
@@ -310,13 +323,13 @@ const OrderHistory = () => {
                           {prescription.status === 'Approved' ? (
                             <div className="space-y-3 w-full">
                               <p className="text-xs font-bold text-accent-primary uppercase tracking-widest text-center md:text-right">
-                                Approved for pharmacy use
+                                {linkedOrder ? 'Approved and order created' : 'Approved - waiting for pharmacy order'}
                               </p>
                               <Link
-                                to="/student/pharmacy/products"
+                                to={linkedOrder ? `/student/pharmacy/order/${linkedOrder._id}` : `/student/pharmacy/prescription/${prescription._id}/track`}
                                 className="w-full px-8 py-4 bg-accent-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#105f72] transition-all shadow-lg shadow-cyan-100"
                               >
-                                Browse Medicines <ChevronRight className="w-4 h-4" />
+                                Track Order <ChevronRight className="w-4 h-4" />
                               </Link>
                             </div>
                           ) : prescription.status === 'Rejected' ? (
@@ -337,7 +350,8 @@ const OrderHistory = () => {
                         </div>
                       </div>
                     </motion.div>
-                  ))}
+                    );
+                  })}
             </AnimatePresence>
 
             {(viewMode === 'Orders' ? filteredOrders : filteredPrescriptions).length === 0 && (

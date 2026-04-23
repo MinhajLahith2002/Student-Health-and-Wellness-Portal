@@ -19,7 +19,7 @@ import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
 
 const STATUS_TO_STEP = {
-  Pending: 0,
+  Pending: 1,
   Verified: 1,
   Packed: 2,
   Dispatched: 3,
@@ -27,8 +27,15 @@ const STATUS_TO_STEP = {
   Cancelled: -1
 };
 
-const TRACKING_STAGES = [
-  { id: 'verified', label: 'Prescription / Order Review', step: 1 },
+const DIRECT_TRACKING_STAGES = [
+  { id: 'verified', label: 'Live Order Review', step: 1 },
+  { id: 'packed', label: 'Packed', step: 2 },
+  { id: 'dispatched', label: 'Dispatched', step: 3 },
+  { id: 'delivered', label: 'Delivered', step: 4 }
+];
+
+const PRESCRIPTION_TRACKING_STAGES = [
+  { id: 'verified', label: 'Live Medicine Preparation', step: 1 },
   { id: 'packed', label: 'Packed', step: 2 },
   { id: 'dispatched', label: 'Dispatched', step: 3 },
   { id: 'delivered', label: 'Delivered', step: 4 }
@@ -72,12 +79,16 @@ function getOrderProgressMessage(order) {
     case 'Packed':
       return 'Your medicines are packed and waiting for dispatch.';
     case 'Verified':
-      return 'The pharmacist reviewed your order and moved it into processing.';
+      return order?.prescriptionId
+        ? 'The pharmacist is preparing your medicines from the approved prescription.'
+        : 'The pharmacist reviewed your order and moved it into processing.';
     case 'Cancelled':
       return order?.cancellationReason || 'This order was cancelled before delivery.';
     case 'Pending':
     default:
-      return 'Your order is waiting for pharmacist review.';
+      return order?.prescriptionId
+        ? 'Your approved prescription order is live and waiting for medicine preparation.'
+        : 'Your order is live and waiting for pharmacist review.';
   }
 }
 
@@ -114,12 +125,13 @@ const OrderTracking = () => {
 
   const currentStageIndex = useMemo(() => STATUS_TO_STEP[order?.status] ?? 0, [order?.status]);
   const isPrescriptionOrder = Boolean(order?.prescriptionId);
+  const trackingStages = isPrescriptionOrder ? PRESCRIPTION_TRACKING_STAGES : DIRECT_TRACKING_STAGES;
   const supportEmail = order?.studentId?.email || order?.studentEmail || '';
   const supportPhone = order?.studentId?.phone || order?.studentPhone || '';
   const progressWidth = useMemo(() => {
     if (!order || currentStageIndex <= 1) return 0;
-    return ((currentStageIndex - 1) / (TRACKING_STAGES.length - 1)) * 100;
-  }, [currentStageIndex, order]);
+    return ((currentStageIndex - 1) / (trackingStages.length - 1)) * 100;
+  }, [currentStageIndex, order, trackingStages.length]);
 
   if (loading) {
     return (
@@ -163,7 +175,7 @@ const OrderTracking = () => {
               <ChevronLeft className="w-6 h-6" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-primary-text">Track Order</h1>
+              <h1 className="text-xl font-bold text-primary-text">Live Order Tracking</h1>
               <p className="text-xs text-secondary-text font-bold uppercase tracking-wider">
                 Order {order.orderId || order._id}
               </p>
@@ -205,7 +217,7 @@ const OrderTracking = () => {
                 className="absolute top-6 left-0 h-1 bg-accent-green z-0 transition-all duration-700"
               />
 
-              {TRACKING_STAGES.map((stage) => {
+              {trackingStages.map((stage) => {
                 const isCompleted = currentStageIndex > stage.step;
                 const isCurrent = currentStageIndex === stage.step;
 

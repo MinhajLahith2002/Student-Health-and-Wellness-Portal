@@ -131,7 +131,7 @@ const verifyPrescription = async (req, res) => {
   try {
     const { status, pharmacistNotes, rejectionReason } = req.body;
     const prescription = await Prescription.findById(req.params.id)
-      .populate('studentId', 'name email');
+      .populate('studentId', 'name email phone');
 
     if (!prescription) {
       return res.status(404).json({ message: 'Prescription not found' });
@@ -150,6 +150,29 @@ const verifyPrescription = async (req, res) => {
     }
 
     await prescription.save();
+
+    if (status === 'Approved') {
+      const existingOrder = await Order.findOne({ prescriptionId: prescription._id });
+
+      if (!existingOrder) {
+        await Order.create({
+          studentId: prescription.studentId._id,
+          studentName: prescription.studentName || prescription.studentId.name,
+          studentEmail: prescription.studentId.email,
+          studentPhone: prescription.studentId.phone,
+          items: [],
+          subtotal: 0,
+          deliveryFee: 0,
+          total: 0,
+          paymentMethod: 'Cash on Delivery',
+          address: 'Delivery address pending - confirm with student before dispatch',
+          specialInstructions: pharmacistNotes || 'Prescription approved for pharmacy preparation.',
+          prescriptionId: prescription._id,
+          orderType: 'Prescription',
+          status: 'Pending'
+        });
+      }
+    }
 
     await Notification.create({
       title: `Prescription ${status}`,
