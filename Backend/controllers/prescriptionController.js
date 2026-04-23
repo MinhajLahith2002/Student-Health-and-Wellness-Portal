@@ -1,6 +1,7 @@
 // controllers/prescriptionController.js
 
 import { unlink } from 'fs/promises';
+import Appointment from '../models/Appointment.js';
 import Prescription from '../models/Prescription.js';
 import Order from '../models/Order.js';
 import User from '../models/User.js';
@@ -10,6 +11,21 @@ import cloudinaryService from '../utils/cloudinaryService.js';
 import { generatePrescriptionReview } from '../utils/prescriptionReviewService.js';
 
 const { uploadPrescription: uploadPrescriptionImage, isCloudinaryConfigured } = cloudinaryService;
+
+function hasValidMedicines(medicines) {
+  if (!Array.isArray(medicines) || medicines.length === 0) {
+    return false;
+  }
+
+  return medicines.every((medicine) => (
+    medicine
+    && typeof medicine === 'object'
+    && `${medicine.name || ''}`.trim()
+    && `${medicine.dosage || ''}`.trim()
+    && `${medicine.duration || ''}`.trim()
+    && `${medicine.instructions || ''}`.trim()
+  ));
+}
 
 // @desc    Get prescriptions
 // @route   GET /api/prescriptions
@@ -216,6 +232,28 @@ const createPrescription = async (req, res) => {
   try {
     const { appointmentId, studentId, medicines, notes } = req.body;
 
+    if (!appointmentId || !studentId) {
+      return res.status(400).json({ message: 'Appointment ID and student ID are required' });
+    }
+
+    if (!hasValidMedicines(medicines)) {
+      return res.status(400).json({ message: 'At least one valid medicine is required' });
+    }
+
+    const appointment = await Appointment.findById(appointmentId)
+      .select('doctorId studentId studentName');
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    if (appointment.doctorId?.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Unauthorized to prescribe for this appointment' });
+    }
+
+    if (appointment.studentId?.toString() !== `${studentId}`) {
+      return res.status(400).json({ message: 'Selected student does not match the appointment' });
+    }
+
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
@@ -224,7 +262,7 @@ const createPrescription = async (req, res) => {
     const prescription = await Prescription.create({
       appointmentId,
       studentId,
-      studentName: student.name,
+      studentName: appointment.studentName || student.name,
       doctorId: req.user.id,
       doctorName: req.user.name,
       medicines,
