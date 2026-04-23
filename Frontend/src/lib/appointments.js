@@ -173,6 +173,22 @@ export async function getPrescriptionHistory() {
   }
 }
 
+export async function getPrescriptionById(id) {
+  if (!id) {
+    const error = new Error('Prescription ID required');
+    error.status = 400;
+    throw error;
+  }
+
+  try {
+    const { apiFetch } = await import('./api.js');
+    return await apiFetch(`/prescriptions/${id}`);
+  } catch (err) {
+    console.error(`getPrescriptionById(${id}) error:`, err);
+    throw err;
+  }
+}
+
 export async function getDoctorDashboard() {
   // PHASE 3: API Integration - Get doctor dashboard from backend
   try {

@@ -173,6 +173,7 @@ function AppLayout() {
           <Route path="/student/appointments/:appointmentId/feedback" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><AppointmentFeedback /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/consultation/:id" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentConsultation /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/prescriptions" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentPrescriptions /></PageWrapper></ProtectedRoute>} />
+          <Route path="/student/prescriptions/:id" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentPrescriptions /></PageWrapper></ProtectedRoute>} />
 
           <Route path="/admin" element={<StaffLayout allowedRoles={['admin']} />}>
             <Route index element={<Navigate to="/admin/dashboard" replace />} />

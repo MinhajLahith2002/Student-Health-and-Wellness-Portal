@@ -12,10 +12,12 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { getPrescriptionHistory } from '../../../lib/appointments';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { getPrescriptionById, getPrescriptionHistory } from '../../../lib/appointments';
 
 const Prescriptions = () => {
+  const navigate = useNavigate();
+  const { id: prescriptionId } = useParams();
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [prescriptions, setPrescriptions] = useState([]);
@@ -42,6 +44,52 @@ const Prescriptions = () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!prescriptionId) {
+      setSelectedPrescription(null);
+      return;
+    }
+
+    const existing = prescriptions.find((prescription) => prescription._id === prescriptionId);
+    if (existing) {
+      setSelectedPrescription(existing);
+      return;
+    }
+
+    let active = true;
+
+    (async () => {
+      try {
+        const prescription = await getPrescriptionById(prescriptionId);
+        if (!active) return;
+
+        setPrescriptions((current) => (
+          current.some((entry) => entry._id === prescription._id)
+            ? current
+            : [prescription, ...current]
+        ));
+        setSelectedPrescription(prescription);
+      } catch (err) {
+        if (!active) return;
+        setError(err.message || 'Failed to load prescription details');
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [prescriptionId, prescriptions]);
+
+  function openPrescriptionDetails(prescription) {
+    setSelectedPrescription(prescription);
+    navigate(`/student/prescriptions/${prescription._id}`);
+  }
+
+  function closePrescriptionDetails() {
+    setSelectedPrescription(null);
+    navigate('/student/prescriptions');
+  }
 
   const filteredPrescriptions = useMemo(
     () =>
@@ -90,7 +138,7 @@ const Prescriptions = () => {
               key={prescription._id}
               whileHover={{ y: -4, scale: 1.01 }}
               className="student-surface p-8 hover:shadow-md transition-all group cursor-pointer"
-              onClick={() => setSelectedPrescription(prescription)}
+              onClick={() => openPrescriptionDetails(prescription)}
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 bg-accent-primary/10 text-accent-primary rounded-2xl flex items-center justify-center">
@@ -145,7 +193,7 @@ const Prescriptions = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedPrescription(null)}
+              onClick={closePrescriptionDetails}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
             <motion.div 
@@ -162,10 +210,10 @@ const Prescriptions = () => {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-primary-text">Prescription Details</h2>
-                      <p className="text-sm text-secondary-text font-medium">Issued by {selectedPrescription.doctorName} on {selectedPrescription.date}</p>
+                      <p className="text-sm text-secondary-text font-medium">Issued by {selectedPrescription.doctorName} on {new Date(selectedPrescription.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedPrescription(null)} className="p-2 hover:bg-secondary-bg rounded-full transition-all">
+                  <button onClick={closePrescriptionDetails} className="p-2 hover:bg-secondary-bg rounded-full transition-all">
                     <X className="w-6 h-6 text-secondary-text" />
                   </button>
                 </div>
