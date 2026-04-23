@@ -1,5 +1,6 @@
 // controllers/feedbackController.js
 
+import Appointment from '../models/Appointment.js';
 import Feedback from '../models/Feedback.js';
 import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
@@ -10,6 +11,49 @@ import AuditLog from '../models/AuditLog.js';
 const submitFeedback = async (req, res) => {
   try {
     const { module, item, rating, comment, isAnonymous } = req.body;
+    const normalizedComment = `${comment || ''}`.trim();
+
+    if (!module || !item) {
+      return res.status(400).json({ message: 'Module and item are required' });
+    }
+
+    if (!rating || rating < 1 || rating > 5 || !normalizedComment) {
+      return res.status(400).json({ message: 'Rating and comment are required' });
+    }
+
+    if (module === 'Doctor') {
+      const appointmentMatch = `${item}`.match(/^appointment:([a-f\d]{24})$/i);
+      if (!appointmentMatch) {
+        return res.status(400).json({ message: 'Appointment feedback must reference a valid appointment' });
+      }
+
+      if (req.user.role !== 'student') {
+        return res.status(403).json({ message: 'Only students can submit appointment feedback' });
+      }
+
+      const appointment = await Appointment.findById(appointmentMatch[1]).select('studentId status');
+      if (!appointment) {
+        return res.status(404).json({ message: 'Appointment not found' });
+      }
+
+      if (appointment.studentId?.toString() !== req.user.id) {
+        return res.status(403).json({ message: 'Unauthorized to submit feedback for this appointment' });
+      }
+
+      if (appointment.status !== 'Completed') {
+        return res.status(409).json({ message: 'Feedback is available only after the appointment is completed' });
+      }
+
+      const duplicateFeedback = await Feedback.findOne({
+        module,
+        item,
+        userId: req.user.id
+      });
+
+      if (duplicateFeedback) {
+        return res.status(409).json({ message: 'Feedback has already been submitted for this appointment' });
+      }
+    }
 
     const feedback = await Feedback.create({
       userId: req.user.id,
@@ -17,7 +61,7 @@ const submitFeedback = async (req, res) => {
       module,
       item,
       rating,
-      comment,
+      comment: normalizedComment,
       isAnonymous
     });
 
