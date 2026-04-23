@@ -18,6 +18,7 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
+import { getProductImage, getProductPlaceholderImage } from '../../../lib/pharmacyCart';
 
 const MEDICINE_CATEGORIES = ['Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins', 'First Aid', 'Personal Care', 'Hygiene', 'Wellness'];
 
@@ -210,7 +211,16 @@ const InventoryManagement = () => {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-slate-100 rounded-xl overflow-hidden shrink-0">
-                          <img src={med.image} alt={med.name} className="w-full h-full object-cover" />
+                          <img
+                            src={getProductImage(med)}
+                            alt={med.name}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                            onError={(event) => {
+                              event.currentTarget.onerror = null;
+                              event.currentTarget.src = getProductPlaceholderImage(med);
+                            }}
+                          />
                         </div>
                         <div>
                           <p className="font-bold text-slate-900">{med.name}</p>

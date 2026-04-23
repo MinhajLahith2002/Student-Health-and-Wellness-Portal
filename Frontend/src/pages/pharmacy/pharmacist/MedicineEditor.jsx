@@ -16,7 +16,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from '../../../hooks/useForm';
-import { apiFetch } from '../../../lib/api';
+import { apiFetch, resolveAssetUrl } from '../../../lib/api';
 import { cn } from '../../../lib/utils';
 
 const MEDICINE_CATEGORIES = ['Pain Relief', 'Antibiotics', 'Allergy', 'Cold & Flu', 'Vitamins', 'First Aid', 'Personal Care', 'Hygiene', 'Wellness'];
@@ -259,7 +259,7 @@ const MedicineEditor = () => {
               >
                 {values.image ? (
                   <>
-                    <img src={values.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={resolveAssetUrl(values.image)} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Upload className="w-10 h-10 text-white" />
                     </div>
