@@ -285,7 +285,7 @@ export default function DoctorDashboard() {
                         <Link to={`/doctor/consultation/${appointment._id}`} className="px-5 py-3 bg-accent-primary text-white rounded-2xl font-bold text-sm text-center">
                           Open Consultation
                         </Link>
-                        <Link to="/doctor/patients" className="px-5 py-3 bg-white text-primary-text rounded-2xl font-bold text-sm text-center border border-border-gray">
+                        <Link to={`/doctor/patients?patient=${appointment.studentProfile?._id || appointment.studentId?._id || appointment.studentId || ''}`} className="px-5 py-3 bg-white text-primary-text rounded-2xl font-bold text-sm text-center border border-border-gray">
                           Open Patient Record
                         </Link>
                       </div>

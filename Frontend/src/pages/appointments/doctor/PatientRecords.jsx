@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, AlertCircle, RefreshCw } from 'lucide-react';
 import { getDoctorPatientById, getDoctorPatients } from '../../../lib/appointments';
 import ErrorBoundary from '../../../components/ErrorBoundary';
@@ -16,12 +17,14 @@ function formatDateLabel(value) {
 
 export default function PatientRecords() {
   const { listenForAvailabilityUpdates } = useSocket();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [patients, setPatients] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [patientDetail, setPatientDetail] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const requestedPatientId = searchParams.get('patient') || '';
 
   // PHASE 3: Refetch patient list
   const fetchPatients = useCallback(async () => {
@@ -33,9 +36,24 @@ export default function PatientRecords() {
       if (!active) return;
       const items = Array.isArray(data?.patients) ? data.patients : [];
       setPatients(items);
-      if (items[0]) {
-        setSelectedPatientId(items[0]._id);
+
+      if (items.length === 0) {
+        setSelectedPatientId('');
+        setPatientDetail(null);
+        return;
       }
+
+      setSelectedPatientId((current) => {
+        if (requestedPatientId && items.some((patient) => patient._id === requestedPatientId)) {
+          return requestedPatientId;
+        }
+
+        if (current && items.some((patient) => patient._id === current)) {
+          return current;
+        }
+
+        return items[0]._id;
+      });
     } catch (err) {
       if (!active) return;
       setError(err.message || 'Failed to load patients');
@@ -46,12 +64,25 @@ export default function PatientRecords() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [requestedPatientId]);
 
   // PHASE 3: Auto-fetch on mount
   useEffect(() => {
     fetchPatients();
   }, [fetchPatients]);
+
+  useEffect(() => {
+    if (!selectedPatientId) {
+      if (requestedPatientId) {
+        setSearchParams({}, { replace: true });
+      }
+      return;
+    }
+
+    if (requestedPatientId !== selectedPatientId) {
+      setSearchParams({ patient: selectedPatientId }, { replace: true });
+    }
+  }, [requestedPatientId, selectedPatientId, setSearchParams]);
 
   useEffect(() => {
     const removeAvailabilityListener = listenForAvailabilityUpdates((payload) => {
