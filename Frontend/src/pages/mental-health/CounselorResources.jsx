@@ -21,6 +21,7 @@ const STATUS_OPTIONS = ['Published', 'Draft', 'Archived'];
 const FILTER_TYPE_OPTIONS = ['All', ...RESOURCE_TYPE_OPTIONS];
 const FILTER_STATUS_OPTIONS = ['All', ...STATUS_OPTIONS];
 
+
 function buildInitialForm(user) {
   return {
     title: '',
