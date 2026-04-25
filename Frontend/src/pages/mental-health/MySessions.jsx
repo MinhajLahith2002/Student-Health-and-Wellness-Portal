@@ -18,6 +18,7 @@ import DismissibleBanner from '../../components/DismissibleBanner';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
 
+
 const SESSION_FETCH_LIMIT = 100;
 const UPCOMING_DATE_FILTERS = [
   { value: 'all', label: 'All dates' },

@@ -16,6 +16,7 @@ function formatSlot(slot) {
   return `${new Date(slot.date).toLocaleDateString()} at ${slot.time}`;
 }
 
+
 function validateSearchQuery(value) {
   const trimmed = value.trim();
   if (!trimmed) return '';
