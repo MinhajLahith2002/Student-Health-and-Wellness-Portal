@@ -86,7 +86,6 @@ const moodOptions = [
   }
 ];
 
-
 const ALERT_MOODS = new Set(['Down', 'Stressed', 'Anxious']);
 const sampleNotes = [
   'I felt calmer after taking a short walk between classes.',

@@ -123,7 +123,6 @@ function getAllowedActions(session, viewerRole) {
     actions.canCancel = ['Confirmed', 'Ready'].includes(session.status) && isUpcoming;
     actions.canLeaveFeedback = session.status === 'Completed' && !session.feedbackSubmitted;
   }
-  
 
   if (viewerRole === 'counselor') {
     actions.canReschedule = ['Confirmed', 'Ready'].includes(session.status) && isUpcoming;

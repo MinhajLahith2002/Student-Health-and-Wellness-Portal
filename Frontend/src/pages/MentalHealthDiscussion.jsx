@@ -144,7 +144,6 @@ function SummaryCard({ label, value, hint }) {
   );
 }
 
-
 export default function MentalHealthDiscussion() {
   const cachedForumBootstrap = getCachedForumBootstrap();
   const [threads, setThreads] = useState(() => (

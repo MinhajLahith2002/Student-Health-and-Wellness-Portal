@@ -16,7 +16,6 @@ import {
 const READ_FILTER_OPTIONS = ['all', 'unread', 'read'];
 const TYPE_FILTER_OPTIONS = ['all', 'appointment', 'system', 'alert'];
 
-
 function getTypeLabel(type) {
   if (!type || type === 'all') return 'All counseling types';
   if (type === 'appointment') return 'Counseling updates';

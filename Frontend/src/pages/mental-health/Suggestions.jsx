@@ -14,7 +14,6 @@ import {
 } from '../../lib/mentalHealth';
 import { getResourceTypePresentation } from '../../lib/resourcePresentation';
 
-
 function buildSuggestionContext(stats) {
   const logs = Array.isArray(stats?.logs) ? stats.logs : [];
   const moodDistribution = stats?.moodDistribution && typeof stats.moodDistribution === 'object'

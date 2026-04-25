@@ -17,7 +17,6 @@ function mergeMessages(current, nextMessage) {
   ));
 }
 
-
 function formatChatTimestamp(value) {
   try {
     return new Date(value).toLocaleString([], {

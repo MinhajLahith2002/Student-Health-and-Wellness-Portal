@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Star } from 'lucide-react';
 import { getCounselingSessionById, submitCounselingFeedback } from '../../lib/counseling';
 
-
 export default function SessionFeedback() {
   const { sessionId } = useParams();
   const navigate = useNavigate();

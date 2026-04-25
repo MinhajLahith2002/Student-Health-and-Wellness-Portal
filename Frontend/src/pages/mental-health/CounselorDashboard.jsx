@@ -29,7 +29,6 @@ import DismissibleBanner from '../../components/DismissibleBanner';
 import CounselorSessionTrendChart from '../../components/mental-health/CounselorSessionTrendChart';
 import { cn } from '../../lib/utils';
 
-
 function getDefaultGroupByForRange(range) {
   if (range === '14d') return 'day';
   if (range === '12m') return 'month';

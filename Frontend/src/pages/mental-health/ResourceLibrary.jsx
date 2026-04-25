@@ -12,7 +12,6 @@ import {
 } from '../../lib/mentalHealth';
 import { getResourceTypePresentation } from '../../lib/resourcePresentation';
 
-
 export default function ResourceLibrary() {
   const location = useLocation();
   const isCounselorSavedView = location.pathname.startsWith('/counselor/resources');

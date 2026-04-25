@@ -37,7 +37,6 @@ function formatDelta(current, previous) {
   return `${diff > 0 ? '+' : ''}${diff}`;
 }
 
-
 function TrendSummary({ label, value, delta, tone = 'neutral' }) {
   const toneClass = tone === 'positive'
     ? 'bg-emerald-50 text-emerald-700'

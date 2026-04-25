@@ -8,7 +8,6 @@ import {
 } from '../../lib/counseling';
 import { cn } from '../../lib/utils';
 
-
 function formatDateValue(value) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
