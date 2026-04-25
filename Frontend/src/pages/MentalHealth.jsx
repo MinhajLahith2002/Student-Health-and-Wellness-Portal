@@ -29,6 +29,7 @@ import { getResourceTypePresentation } from '../lib/resourcePresentation';
 const DASHBOARD_UPCOMING_SESSION_LIMIT = 5;
 const ACTIVE_COUNSELING_SESSION_STATUSES = ['Confirmed', 'Ready', 'In Progress'];
 
+
 function asArray(value) {
   return Array.isArray(value) ? value.filter(Boolean) : [];
 }
