@@ -1,242 +1,209 @@
-import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  FileText, 
-  Download, 
-  Calendar, 
-  Filter, 
-  ChevronRight, 
-  Clock, 
-  CheckCircle2, 
-  Loader2,
-  Eye,
-  TrendingUp,
-  Users,
-  ShoppingBag,
-  Activity,
-  ArrowRight
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../../lib/utils';
+import React, { useState, useEffect } from 'react';
+import { BarChart3, Download, FileText, Loader2, RefreshCw, Users, Calendar, ShoppingBag, TrendingUp } from 'lucide-react';
+import { apiFetch } from '../../lib/api';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const REPORT_TYPES = [
-  { id: 'appointments', label: 'Appointments', icon: Calendar, description: 'Daily, weekly, and monthly appointment trends.' },
-  { id: 'prescriptions', label: 'Prescriptions', icon: FileText, description: 'Prescription upload and verification statistics.' },
-  { id: 'pharmacy', label: 'Pharmacy Orders', icon: ShoppingBag, description: 'Sales, inventory, and order fulfillment reports.' },
-  { id: 'users', label: 'User Signups', icon: Users, description: 'New user registration and platform growth.' },
-  { id: 'revenue', label: 'Revenue', icon: BarChart3, description: 'Financial reports and revenue distribution.' },
-  { id: 'activity', label: 'System Activity', icon: Activity, description: 'Audit logs and system performance metrics.' },
+  { id:'users',        label:'User Report',        icon:Users,      color:'#3A86A8', desc:'Users, roles, registration trends' },
+  { id:'appointments', label:'Appointments',        icon:Calendar,   color:'#2ECC71', desc:'Appointment stats & doctor utilization' },
+  { id:'pharmacy',     label:'Pharmacy Report',    icon:ShoppingBag,color:'#F39C12', desc:'Orders, inventory, prescription stats' },
+  { id:'system',       label:'System Overview',    icon:BarChart3,  color:'#9B59B6', desc:'Platform health & API usage' },
 ];
 
-const MOCK_SAVED_REPORTS = [
-  { id: 1, name: "Monthly Pharmacy Sales - Feb 2026", type: "Pharmacy Orders", date: "2026-02-28", size: "2.4 MB", format: "PDF" },
-  { id: 2, name: "Appointment Trends Q1", type: "Appointments", date: "2026-02-25", size: "1.1 MB", format: "CSV" },
-  { id: 3, name: "User Growth Analysis", type: "User Signups", date: "2026-02-20", size: "850 KB", format: "PDF" },
-  { id: 4, name: "Counseling Feedback Summary", type: "System Activity", date: "2026-02-15", size: "1.5 MB", format: "PDF" },
-];
+const AREA_DATA = [{name:'Jan',v:400},{name:'Feb',v:300},{name:'Mar',v:520},{name:'Apr',v:278},{name:'May',v:480},{name:'Jun',v:390},{name:'Jul',v:560}];
+const PIE_DATA  = [{name:'Students',value:68},{name:'Doctors',value:12},{name:'Pharmacists',value:8},{name:'Others',value:12}];
+const PIE_COLS  = ['#3A86A8','#2ECC71','#F39C12','#9B59B6'];
+
+const Tip = ({active,payload,label}) => {
+  if(!active||!payload?.length) return null;
+  return <div className="px-3 py-2 rounded-xl text-xs font-semibold" style={{background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)'}}><p style={{color:'var(--text2)'}}>{label}</p><p style={{color:'var(--primary)'}}>{payload[0].value}</p></div>;
+};
 
 const ReportsGenerator = () => {
-  const [selectedType, setSelectedType] = useState('appointments');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [selected, setSelected] = useState('users');
+  const [loading, setLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [stats, setStats] = useState(null);
 
-  const handleGenerate = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
-      setShowPreview(true);
-    }, 2000);
+  const loadStats = () => {
+    setLoading(true);
+    apiFetch('/dashboard/admin').then(d=>setStats(d?.stats||d)).catch(()=>{}).finally(()=>setLoading(false));
+  };
+
+  useEffect(()=>{ loadStats(); },[]);
+
+  const handleDownloadPDF = async () => {
+    setPdfLoading(true);
+    try {
+      // Show PDF header temporarily
+      const header = document.getElementById('pdf-header');
+      if (header) header.style.display = 'block';
+
+      if (!window.html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Failed to load PDF library'));
+          document.head.appendChild(script);
+        });
+      }
+
+      const element = document.getElementById('report-content');
+      const reportLabel = REPORT_TYPES.find(r=>r.id===selected)?.label || selected;
+      const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
+      const filename = `CampusHealth_${reportLabel.replace(/\s+/g,'_')}_${dateStr}.pdf`;
+
+      await window.html2pdf().set({
+        margin: [12, 12, 12, 12],
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: 'avoid-all' },
+      }).from(element).save();
+
+    } catch(err) {
+      console.error('PDF error:', err);
+      // Fallback: print dialog
+      window.print();
+    } finally {
+      const header = document.getElementById('pdf-header');
+      if (header) header.style.display = 'none';
+      setPdfLoading(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const rows = [
+      ['Metric','Value'],
+      ['Total Users', stats?.totalUsers||'N/A'],
+      ['Total Appointments', stats?.totalAppointments||'N/A'],
+      ['Pending Orders', stats?.pendingOrders||'N/A'],
+      ['Active Sessions', stats?.activeSessions||'N/A'],
+      ['Report Type', REPORT_TYPES.find(r=>r.id===selected)?.label||selected],
+      ['Generated At', new Date().toLocaleString()],
+    ];
+    const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`campushealth_report_${selected}.csv`; a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
     <>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Reports Generator</h1>
-            <p className="text-slate-500 mt-2 text-lg">Generate custom PDF or CSV reports on various platform metrics.</p>
+      <style>{`@media print { .no-print { display:none!important; } #report-content { padding:20px; } }`}</style>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+          <div><h1 className="page-title">Reports Generator</h1><p className="page-sub">Generate, view and export platform reports.</p></div>
+          <div className="flex gap-2">
+            <button onClick={loadStats} className="btn btn-secondary">
+              <RefreshCw className={`w-4 h-4 ${loading?'animate-spin':''}`}/>Refresh
+            </button>
+            <button onClick={handleExportCSV} className="btn btn-secondary">
+              <Download className="w-4 h-4"/>CSV
+            </button>
+            <button onClick={handleDownloadPDF} disabled={pdfLoading} className="btn btn-primary">
+              {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4"/>}
+              {pdfLoading ? 'Generating PDF...' : 'Download PDF'}
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Left: Configuration */}
-          <div className="lg:col-span-4 space-y-8">
-            <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm space-y-8">
-              <div className="space-y-4">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Report Type</label>
-                <div className="grid grid-cols-1 gap-3">
-                  {REPORT_TYPES.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => {
-                        setSelectedType(type.id);
-                        setShowPreview(false);
-                      }}
-                      className={cn(
-                        "p-4 rounded-2xl border-2 text-left transition-all flex items-center gap-4 group",
-                        selectedType === type.id 
-                          ? "border-blue-600 bg-blue-50/30" 
-                          : "border-slate-50 bg-slate-50 hover:border-blue-100 hover:bg-white"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                        selectedType === type.id ? "bg-blue-600 text-white" : "bg-white text-slate-400 group-hover:text-blue-600 shadow-sm"
-                      )}>
-                        <type.icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className={cn("text-sm font-bold", selectedType === type.id ? "text-blue-900" : "text-slate-900")}>{type.label}</p>
-                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">{type.description}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+        {/* Report type selector */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 no-print">
+          {REPORT_TYPES.map(r=>(
+            <button key={r.id} onClick={()=>setSelected(r.id)}
+              className="card p-4 text-left transition-all"
+              style={{borderColor:selected===r.id?'var(--primary)':'var(--border2)',background:selected===r.id?'var(--primary-s)':'var(--surface)'}}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{background:r.color+'18'}}>
+                <r.icon className="w-4 h-4" style={{color:r.color}}/>
               </div>
+              <p className="text-sm font-bold" style={{color:selected===r.id?'var(--primary)':'var(--text)'}}>{r.label}</p>
+              <p className="text-xs mt-1" style={{color:'var(--text3)'}}>{r.desc}</p>
+            </button>
+          ))}
+        </div>
 
-              <div className="space-y-4">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date Range</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {["Today", "This Week", "This Month", "Custom"].map(r => (
-                    <label key={r} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all border-2 border-transparent has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
-                      <input type="radio" name="range" defaultChecked={r === 'This Month'} className="hidden" />
-                      <span className="text-xs font-bold text-slate-600">{r}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Format</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {["PDF Report", "CSV Data"].map(f => (
-                    <label key={f} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all border-2 border-transparent has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50">
-                      <input type="radio" name="format" defaultChecked={f === 'PDF Report'} className="hidden" />
-                      <span className="text-xs font-bold text-slate-600">{f}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <button 
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="w-full py-5 bg-blue-600 text-white rounded-[24px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50"
-              >
-                {isGenerating ? <Loader2 className="w-6 h-6 animate-spin" /> : <BarChart3 className="w-6 h-6" />}
-                {isGenerating ? 'Generating...' : 'Generate Report'}
-              </button>
-            </div>
+        {/* Report Content (captured for PDF) */}
+        <div id="report-content" className="space-y-6" style={{background:'var(--bg)'}}>
+          {/* PDF header - hidden by default, shown during PDF generation */}
+          <div id="pdf-header" style={{display:'none',marginBottom:16,paddingBottom:12,borderBottom:'2px solid #e2e8f0'}}>
+            <h2 style={{fontSize:20,fontWeight:'bold',marginBottom:4,color:'#1e293b'}}>
+              CampusHealth Portal — {REPORT_TYPES.find(r=>r.id===selected)?.label}
+            </h2>
+            <p style={{fontSize:12,color:'#64748b'}}>Generated: {new Date().toLocaleString()}</p>
           </div>
 
-          {/* Right: Preview & Saved */}
-          <div className="lg:col-span-8 space-y-10">
-            <AnimatePresence mode="wait">
-              {showPreview ? (
-                <motion.div
-                  key="preview"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden"
-                >
-                  <div className="p-10 border-b border-slate-50 flex justify-between items-center">
-                    <div>
-                      <h3 className="text-2xl font-bold text-slate-900">Report Preview</h3>
-                      <p className="text-sm text-slate-500 mt-1">Generated for {REPORT_TYPES.find(t => t.id === selectedType)?.label}</p>
+          {loading ? (
+            <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin" style={{color:'var(--primary)'}}/></div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  {k:'totalUsers',l:'Total Users',c:'#3A86A8',icon:Users},
+                  {k:'totalAppointments',l:'Appointments',c:'#2ECC71',icon:Calendar},
+                  {k:'pendingOrders',l:'Pending Orders',c:'#F39C12',icon:ShoppingBag},
+                  {k:'activeSessions',l:'Active Sessions',c:'#9B59B6',icon:TrendingUp},
+                ].map(s=>(
+                  <div key={s.k} className="card-stat">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{background:s.c+'18'}}>
+                      <s.icon className="w-4 h-4" style={{color:s.c}}/>
                     </div>
-                    <button className="px-6 py-3 bg-emerald-600 text-white rounded-full font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-2">
-                      <Download className="w-4 h-4" />
-                      Download PDF
-                    </button>
-                  </div>
-                  <div className="p-10 bg-slate-50/50">
-                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-10 max-w-2xl mx-auto min-h-[500px] flex flex-col">
-                      <div className="flex justify-between items-start mb-12">
-                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
-                          <BarChart3 className="w-6 h-6" />
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">CampusHealth Report</p>
-                          <p className="text-sm font-bold text-slate-900 mt-1">Ref: CH-2026-02-28</p>
-                        </div>
-                      </div>
-                      
-                      <h2 className="text-3xl font-bold text-slate-900 mb-2">
-                        {REPORT_TYPES.find(t => t.id === selectedType)?.label} Summary
-                      </h2>
-                      <p className="text-slate-500 font-medium mb-10">Period: Feb 1, 2026 - Feb 28, 2026</p>
-
-                      <div className="grid grid-cols-2 gap-6 mb-12">
-                        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Volume</p>
-                          <p className="text-2xl font-bold text-slate-900 mt-1">1,284</p>
-                        </div>
-                        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Growth Rate</p>
-                          <p className="text-2xl font-bold text-emerald-600 mt-1">+12.5%</p>
-                        </div>
-                      </div>
-
-                      <div className="flex-1 space-y-4">
-                        <div className="h-2 bg-slate-100 rounded-full w-full"></div>
-                        <div className="h-2 bg-slate-100 rounded-full w-3/4"></div>
-                        <div className="h-2 bg-slate-100 rounded-full w-5/6"></div>
-                        <div className="h-2 bg-slate-100 rounded-full w-1/2"></div>
-                      </div>
-
-                      <div className="mt-12 pt-8 border-t border-slate-50 flex justify-between items-center">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Generated by Admin User</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Feb 28, 2026</p>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <div className="bg-white rounded-[40px] border border-slate-100 border-dashed p-32 text-center">
-                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8">
-                    <BarChart3 className="w-12 h-12 text-slate-200" />
-                  </div>
-                  <h2 className="text-3xl font-bold text-slate-900 mb-4">Ready to Generate</h2>
-                  <p className="text-slate-500 max-w-sm mx-auto text-lg">
-                    Configure your report on the left and click generate to see a preview.
-                  </p>
-                </div>
-              )}
-            </AnimatePresence>
-
-            <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-10 border-b border-slate-50 flex justify-between items-center">
-                <h3 className="text-2xl font-bold text-slate-900">Saved Reports</h3>
-                <button className="text-sm font-bold text-blue-600 hover:underline">Manage All</button>
-              </div>
-              <div className="divide-y divide-slate-50">
-                {MOCK_SAVED_REPORTS.map((report) => (
-                  <div key={report.id} className="p-8 flex items-center justify-between hover:bg-slate-50 transition-colors group">
-                    <div className="flex items-center gap-6">
-                      <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
-                        <FileText className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900">{report.name}</h4>
-                        <p className="text-xs text-slate-500 font-medium mt-1">
-                          {report.type} • {report.format} • {report.size} • {report.date}
-                        </p>
-                      </div>
-                    </div>
-                    <button className="p-3 bg-slate-50 text-slate-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all">
-                      <Download className="w-5 h-5" />
-                    </button>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{color:'var(--text3)'}}>{s.l}</p>
+                    <p className="text-2xl font-black" style={{color:s.c,letterSpacing:'-0.04em'}}>{stats?.[s.k]?.toLocaleString()||'—'}</p>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 card p-6">
+                  <h3 className="font-bold mb-4" style={{color:'var(--text)'}}>Platform Growth (7 months)</h3>
+                  <div style={{height:200}}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={AREA_DATA}>
+                        <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--primary)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/></linearGradient></defs>
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'var(--text3)',fontSize:11}}/>
+                        <YAxis axisLine={false} tickLine={false} tick={{fill:'var(--text3)',fontSize:11}}/>
+                        <Tooltip content={<Tip/>}/>
+                        <Area type="monotone" dataKey="v" stroke="var(--primary)" strokeWidth={2} fillOpacity={1} fill="url(#rg)"/>
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="card p-6">
+                  <h3 className="font-bold mb-4" style={{color:'var(--text)'}}>User Distribution</h3>
+                  <div style={{height:200}}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={PIE_DATA} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                          {PIE_DATA.map((_,i)=><Cell key={i} fill={PIE_COLS[i]}/>)}
+                        </Pie>
+                        <Tooltip contentStyle={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12}}/>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-1.5 mt-3">
+                    {PIE_DATA.map((d,i)=>(
+                      <div key={d.name} className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{background:PIE_COLS[i]}}/>
+                          <span className="text-xs" style={{color:'var(--text2)'}}>{d.name}</span>
+                        </div>
+                        <span className="text-xs font-bold" style={{color:'var(--text)'}}>{d.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
   );
 };
-
 export default ReportsGenerator;

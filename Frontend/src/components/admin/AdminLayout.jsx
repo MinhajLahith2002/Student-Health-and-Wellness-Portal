@@ -1,84 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import { motion } from 'motion/react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { ChevronRight } from 'lucide-react';
 
-const ROLE_BREADCRUMB = {
-  admin: 'Admin',
-  doctor: 'Doctor Portal',
-  pharmacist: 'Pharmacist Portal',
-  counselor: 'Counselor Portal',
-};
+const ROLE_ROOT = { admin:'Admin', doctor:'Doctor Portal', pharmacist:'Pharmacist Portal' };
 
 const AdminLayout = ({ children }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
-  const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+  const loc = useLocation();
   const { user } = useAuth();
-  const breadcrumbRoot = ROLE_BREADCRUMB[user?.role] || 'Admin';
-  const footerLabel = user?.role === 'admin' ? 'Admin Portal' : breadcrumbRoot;
-
-  useEffect(() => {
-    const handleResize = () => {
-      const nextIsDesktop = window.innerWidth >= 1024;
-      setIsDesktop(nextIsDesktop);
-      if (nextIsDesktop) {
-        setIsMobileSidebarOpen(false);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const crumbs = loc.pathname.split('/').filter(Boolean).slice(1);
 
   return (
-    <div className="min-h-screen bg-[#FCFCFC] flex">
-      {/* Sidebar */}
-      <Sidebar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        isDesktop={isDesktop}
-        isMobileSidebarOpen={isMobileSidebarOpen}
-        setIsMobileSidebarOpen={setIsMobileSidebarOpen}
-      />
-
-      {/* Main Content */}
-      <main 
-        className={`flex-1 transition-all duration-300 flex flex-col min-h-screen ${user?.role === 'counselor' ? 'pharmacy-shell' : 'bg-[#FCFCFC]'}`}
-        style={{ marginLeft: isDesktop ? (isCollapsed ? '80px' : '280px') : '0px' }}
-      >
-        <TopBar onMenuToggle={() => setIsMobileSidebarOpen((current) => !current)} />
-        
-        <div className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:p-8 w-full">
-          {/* Breadcrumbs */}
-          <div className="flex flex-wrap items-center gap-2 mb-6 lg:mb-8 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">
-            <span>{breadcrumbRoot}</span>
-            {location.pathname.split('/').filter(Boolean).slice(1).map((path, i) => (
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <div className="flex flex-col min-h-screen transition-all duration-300" style={{ marginLeft: collapsed ? 68 : 256 }}>
+        <TopBar />
+        <main className="flex-1 p-6" style={{ backgroundImage: 'var(--mesh)' }}>
+          <div className="flex items-center gap-1.5 mb-6">
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text3)' }}>
+              {ROLE_ROOT[user?.role] || 'Admin'}
+            </span>
+            {crumbs.map((c, i) => (
               <React.Fragment key={i}>
-                <span className="text-slate-300">/</span>
-                <span className={i === location.pathname.split('/').filter(Boolean).slice(1).length - 1 ? "text-blue-600" : ""}>
-                  {path.replace(/-/g, ' ')}
+                <ChevronRight className="w-3 h-3" style={{ color: 'var(--text3)' }} />
+                <span className={`text-xs font-bold uppercase tracking-widest ${i === crumbs.length-1 ? 'grad-text' : ''}`}
+                  style={i !== crumbs.length-1 ? { color: 'var(--text3)' } : {}}>
+                  {c.replace(/-/g,' ')}
                 </span>
               </React.Fragment>
             ))}
           </div>
-
-          <div className="min-w-0">
+          <motion.div key={loc.pathname} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ duration:.25, ease:[.4,0,.2,1] }}>
             {children}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="px-4 py-5 sm:px-6 lg:p-8 border-t border-slate-50 text-center">
-          <p className="text-xs text-slate-400 font-medium">
-            © 2026 CampusHealth {footerLabel}. All rights reserved.
-          </p>
+          </motion.div>
+        </main>
+        <footer className="px-6 py-4 text-center" style={{ borderTop: '1px solid var(--border2)' }}>
+          <p className="text-xs" style={{ color: 'var(--text3)' }}>© 2026 CampusHealth Admin Portal. All rights reserved.</p>
         </footer>
-      </main>
+      </div>
     </div>
   );
 };
-
 export default AdminLayout;

@@ -1,376 +1,235 @@
-import React from 'react';
-import { 
-  Users, 
-  Calendar, 
-  ShoppingBag, 
-  MessageSquare, 
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  TrendingUp,
-  Clock,
-  AlertCircle,
-  CheckCircle2,
-  ChevronRight,
-  MoreVertical,
-  Package,
-  ClipboardList,
-  Stethoscope,
-  Video,
-  FileText,
-} from 'lucide-react';
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
+import React, { useState, useEffect } from 'react';
+import { Users, Calendar, ShoppingBag, MessageSquare, Activity, ArrowUpRight, ArrowDownRight, TrendingUp, Clock, AlertCircle, ChevronRight, MoreVertical, Package, ClipboardList, Video, Loader2 } from 'lucide-react';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
+import { apiFetch } from '../../lib/api';
 
-const MOCK_STATS = [
-  { label: "Total Users", value: "12,482", trend: "+12.5%", isUp: true, icon: Users, color: "blue" },
-  { label: "Appointments Today", value: "142", trend: "+8.2%", isUp: true, icon: Calendar, color: "emerald" },
-  { label: "Pending Orders", value: "28", trend: "-2.4%", isUp: false, icon: ShoppingBag, color: "amber" },
-  { label: "New Messages", value: "45", trend: "+15.3%", isUp: true, icon: MessageSquare, color: "indigo" },
-  { label: "Active Sessions", value: "1,204", trend: "+5.1%", isUp: true, icon: Activity, color: "rose" },
+const AREA_DATA = [
+  {name:'Jan',v:400},{name:'Feb',v:300},{name:'Mar',v:520},{name:'Apr',v:278},{name:'May',v:480},{name:'Jun',v:390},{name:'Jul',v:560}
 ];
-
-const APPOINTMENT_DATA = [
-  { name: 'Mon', appointments: 45 },
-  { name: 'Tue', appointments: 52 },
-  { name: 'Wed', appointments: 48 },
-  { name: 'Thu', appointments: 61 },
-  { name: 'Fri', appointments: 55 },
-  { name: 'Sat', appointments: 42 },
-  { name: 'Sun', appointments: 38 },
+const BAR_DATA = [
+  {name:'Mon',v:45},{name:'Tue',v:52},{name:'Wed',v:48},{name:'Thu',v:61},{name:'Fri',v:55},{name:'Sat',v:42},{name:'Sun',v:38}
 ];
-
-const USER_SIGNUP_DATA = [
-  { name: 'Jan', students: 400, doctors: 240 },
-  { name: 'Feb', students: 300, doctors: 139 },
-  { name: 'Mar', students: 200, doctors: 980 },
-  { name: 'Apr', students: 278, doctors: 390 },
-  { name: 'May', students: 189, doctors: 480 },
-  { name: 'Jun', students: 239, doctors: 380 },
-  { name: 'Jul', students: 349, doctors: 430 },
+const FALLBACK_STATS = [
+  {label:'Total Users',value:'—',trend:'+12.5%',up:true,icon:Users,color:'#3A86A8'},
+  {label:'Appointments Today',value:'—',trend:'+8.2%',up:true,icon:Calendar,color:'#2ECC71'},
+  {label:'Pending Orders',value:'—',trend:'-2.4%',up:false,icon:ShoppingBag,color:'#F39C12'},
+  {label:'New Messages',value:'—',trend:'+15.3%',up:true,icon:MessageSquare,color:'#9B59B6'},
+  {label:'Active Sessions',value:'—',trend:'+5.1%',up:true,icon:Activity,color:'#3498DB'},
 ];
-
-const REVENUE_DATA = [
-  { name: 'Week 1', revenue: 4000 },
-  { name: 'Week 2', revenue: 3000 },
-  { name: 'Week 3', revenue: 2000 },
-  { name: 'Week 4', revenue: 2780 },
-];
-
-const RECENT_ACTIVITY = [
-  { id: 1, user: "Dr. Sarah Smith", action: "joined the platform", time: "2 minutes ago", type: "user" },
-  { id: 2, user: "Order #8294", action: "has been shipped", time: "15 minutes ago", type: "order" },
-  { id: 3, user: "Mental Health Workshop", action: "created by Admin", time: "1 hour ago", type: "event" },
-  { id: 4, user: "John Doe", action: "submitted feedback", time: "2 hours ago", type: "feedback" },
-  { id: 5, user: "Server Backup", action: "completed successfully", time: "5 hours ago", type: "system" },
-];
-
 const ALERTS = [
-  { id: 1, title: "Low Stock: Paracetamol", level: "warning", time: "10m ago" },
-  { id: 2, title: "Server Load High (85%)", level: "error", time: "25m ago" },
-  { id: 3, title: "New Counselor Application", level: "info", time: "1h ago" },
+  {title:'Low Stock: Paracetamol',level:'warning',time:'10m ago'},
+  {title:'Server Load High (85%)',level:'error',time:'25m ago'},
+  {title:'New Counselor Application',level:'info',time:'1h ago'},
 ];
 
-const StatCard = ({ stat, index }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.1 }}
-    className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group"
-  >
-    <div className="flex justify-between items-start mb-4">
-      <div className={cn(
-        "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
-        stat.color === 'blue' ? "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white" :
-        stat.color === 'emerald' ? "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white" :
-        stat.color === 'amber' ? "bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white" :
-        stat.color === 'indigo' ? "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white" :
-        "bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white"
-      )}>
-        <stat.icon className="w-6 h-6" />
-      </div>
-      <div className={cn(
-        "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full",
-        stat.isUp ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-      )}>
-        {stat.isUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-        {stat.trend}
-      </div>
-    </div>
-    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-    <h3 className="text-3xl font-bold text-slate-900 mt-2">{stat.value}</h3>
-  </motion.div>
-);
-
-// ─── Pharmacist Welcome Dashboard ───────────────────────────────────────────
-const PharmacistDashboardContent = ({ user }) => (
-  <div className="space-y-8">
-    <div>
-      <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Pharmacist Dashboard</h1>
-      <p className="text-slate-500 mt-2 text-lg">Welcome, {user?.name}. Manage prescriptions, orders and inventory.</p>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {[
-        { label: 'Pending Prescriptions', icon: ClipboardList, to: '/admin/pharmacist/prescriptions', color: 'emerald' },
-        { label: 'Orders to Process',     icon: ShoppingBag,   to: '/admin/pharmacist/orders',        color: 'blue' },
-        { label: 'Inventory Management',  icon: Package,       to: '/admin/pharmacist/inventory',     color: 'amber' },
-      ].map((item, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group cursor-pointer"
-        >
-          <Link to={item.to} className="flex flex-col gap-4">
-            <div className={cn(
-              'w-14 h-14 rounded-xl flex items-center justify-center',
-              item.color === 'emerald' ? 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white' :
-              item.color === 'blue'    ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' :
-                                        'bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white',
-              'transition-colors'
-            )}>
-              <item.icon className="w-7 h-7" />
-            </div>
-            <p className="text-lg font-bold text-slate-900">{item.label}</p>
-            <p className="text-sm text-slate-500 flex items-center gap-1">Go to section <ChevronRight className="w-4 h-4" /></p>
-          </Link>
-        </motion.div>
-      ))}
-    </div>
-  </div>
-);
-
-// ─── Doctor Welcome Dashboard ────────────────────────────────────────────────
-const DoctorDashboardContent = ({ user }) => (
-  <div className="space-y-8">
-    <div>
-      <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Doctor Portal</h1>
-      <p className="text-slate-500 mt-2 text-lg">Welcome, Dr. {user?.name}. Here's your workspace.</p>
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {[
-        { label: 'Today\'s Appointments', icon: Calendar,    to: '/admin/doctor/appointments', color: 'blue' },
-        { label: 'Patient Records',        icon: Users,       to: '/admin/doctor/patients',     color: 'indigo' },
-        { label: 'Consultation Room',      icon: Video,       to: '/admin/doctor/consultation', color: 'emerald' },
-      ].map((item, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-          className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group cursor-pointer"
-        >
-          <Link to={item.to} className="flex flex-col gap-4">
-            <div className={cn(
-              'w-14 h-14 rounded-xl flex items-center justify-center',
-              item.color === 'blue'   ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white' :
-              item.color === 'indigo' ? 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white' :
-                                       'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white',
-              'transition-colors'
-            )}>
-              <item.icon className="w-7 h-7" />
-            </div>
-            <p className="text-lg font-bold text-slate-900">{item.label}</p>
-            <p className="text-sm text-slate-500 flex items-center gap-1">Go to section <ChevronRight className="w-4 h-4" /></p>
-          </Link>
-        </motion.div>
-      ))}
-    </div>
-  </div>
-);
-
-// ─── Main Dashboard component ────────────────────────────────────────────────
-const AdminDashboard = () => {
-  const { user } = useAuth();
-
-  return (
-    <>
-      {user?.role === 'pharmacist' ? (
-        <PharmacistDashboardContent user={user} />
-      ) : user?.role === 'doctor' ? (
-        <DoctorDashboardContent user={user} />
-      ) : (
-        <div className="space-y-10">
-          {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <h1 className="text-4xl font-bold text-slate-900 tracking-tight">Super Dashboard</h1>
-              <p className="text-slate-500 mt-2 text-lg">Welcome back, {user?.name || 'Admin'}. Here's what's happening today.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="px-4 py-2 bg-white border border-slate-100 rounded-xl flex items-center gap-2 shadow-sm">
-                <Clock className="w-4 h-4 text-slate-400" />
-                <span className="text-sm font-bold text-slate-600">Last updated: Just now</span>
-              </div>
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Generate Report
-              </button>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {MOCK_STATS.map((stat, i) => (
-              <StatCard key={i} stat={stat} index={i} />
-            ))}
-          </div>
-
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Chart */}
-            <div className="lg:col-span-2 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Platform Growth</h3>
-                  <p className="text-sm text-slate-500 mt-1">User signups over the last 7 months</p>
-                </div>
-                <select className="px-4 py-2 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-600/20">
-                  <option>Last 7 months</option>
-                  <option>Last 12 months</option>
-                  <option>All time</option>
-                </select>
-              </div>
-              <div className="h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={USER_SIGNUP_DATA}>
-                    <defs>
-                      <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.1}/>
-                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }} />
-                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                    <Area type="monotone" dataKey="students" stroke="#2563EB" strokeWidth={3} fillOpacity={1} fill="url(#colorStudents)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Secondary Chart */}
-            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Appointments</h3>
-                  <p className="text-sm text-slate-500 mt-1">Daily trend this week</p>
-                </div>
-                <button className="p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                  <MoreVertical className="w-5 h-5 text-slate-400" />
-                </button>
-              </div>
-              <div className="h-[350px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={APPOINTMENT_DATA}>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }} dy={10} />
-                    <Tooltip cursor={{ fill: '#F8FAFC' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                    <Bar dataKey="appointments" fill="#2563EB" radius={[6, 6, 0, 0]} barSize={30} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Section: Activity & Alerts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Recent Activity */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-slate-900">Recent Activity</h3>
-                <button className="text-sm font-bold text-blue-600 hover:underline">View All</button>
-              </div>
-              <div className="divide-y divide-slate-50">
-                {RECENT_ACTIVITY.map((activity) => (
-                  <div key={activity.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors group">
-                    <div className="flex items-center gap-4">
-                      <div className={cn(
-                        'w-10 h-10 rounded-xl flex items-center justify-center',
-                        activity.type === 'user'  ? 'bg-blue-50 text-blue-600' :
-                        activity.type === 'order' ? 'bg-emerald-50 text-emerald-600' :
-                        activity.type === 'event' ? 'bg-indigo-50 text-indigo-600' :
-                        'bg-slate-50 text-slate-600'
-                      )}>
-                        {activity.type === 'user'  ? <Users className="w-5 h-5" /> :
-                         activity.type === 'order' ? <ShoppingBag className="w-5 h-5" /> :
-                         activity.type === 'event' ? <Calendar className="w-5 h-5" /> :
-                         <Activity className="w-5 h-5" />}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">
-                          <span className="text-blue-600">{activity.user}</span> {activity.action}
-                        </p>
-                        <p className="text-xs text-slate-400 font-medium mt-0.5">{activity.time}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Critical Alerts */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-slate-900">Critical Alerts</h3>
-                <span className="px-2 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-full uppercase tracking-widest">
-                  {ALERTS.length} Active
-                </span>
-              </div>
-              <div className="p-6 space-y-4">
-                {ALERTS.map((alert) => (
-                  <div key={alert.id} className={cn(
-                    'p-4 rounded-xl border flex items-start gap-3',
-                    alert.level === 'error'   ? 'bg-rose-50 border-rose-100' :
-                    alert.level === 'warning' ? 'bg-amber-50 border-amber-100' :
-                    'bg-blue-50 border-blue-100'
-                  )}>
-                    <AlertCircle className={cn(
-                      'w-5 h-5 shrink-0 mt-0.5',
-                      alert.level === 'error'   ? 'text-rose-600' :
-                      alert.level === 'warning' ? 'text-amber-600' :
-                      'text-blue-600'
-                    )} />
-                    <div className="flex-1">
-                      <p className={cn(
-                        'text-sm font-bold',
-                        alert.level === 'error'   ? 'text-rose-900' :
-                        alert.level === 'warning' ? 'text-amber-900' :
-                        'text-blue-900'
-                      )}>{alert.title}</p>
-                      <p className="text-xs text-slate-500 mt-1 font-medium">{alert.time}</p>
-                    </div>
-                  </div>
-                ))}
-                <button className="w-full py-4 mt-4 bg-slate-50 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">
-                  View All Alerts
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+const Tip = ({active,payload,label}) => {
+  if(!active||!payload?.length) return null;
+  return <div className="px-3 py-2 rounded-xl text-xs font-semibold" style={{background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',boxShadow:'var(--shadow-md)'}}><p style={{color:'var(--text2)'}}>{label}</p><p style={{color:'var(--primary)'}}>{payload[0].value}</p></div>;
 };
 
+const PharmacistDash = ({user}) => (
+  <div className="space-y-6">
+    <div><h1 className="page-title">Pharmacist Dashboard</h1><p className="page-sub">Welcome, {user?.name}.</p></div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {[{label:'Pending Prescriptions',icon:ClipboardList,to:'/pharmacist/prescriptions',color:'#2ECC71'},{label:'Orders to Process',icon:ShoppingBag,to:'/pharmacist/orders',color:'#3A86A8'},{label:'Inventory',icon:Package,to:'/pharmacist/inventory',color:'#F39C12'}].map((item,i)=>(
+        <motion.div key={i} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:i*.08}}>
+          <Link to={item.to} className="card block p-6">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{background:item.color+'18'}}><item.icon className="w-6 h-6" style={{color:item.color}}/></div>
+            <p className="font-bold" style={{color:'var(--text)'}}>{item.label}</p>
+            <p className="text-sm mt-1 flex items-center gap-1" style={{color:'var(--text3)'}}>Go to section<ChevronRight className="w-3 h-3"/></p>
+          </Link>
+        </motion.div>
+      ))}
+    </div>
+  </div>
+);
+
+const DoctorDash = ({user}) => (
+  <div className="space-y-6">
+    <div><h1 className="page-title">Doctor Portal</h1><p className="page-sub">Welcome, Dr. {user?.name}.</p></div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {[{label:"Today's Appointments",icon:Calendar,to:'/doctor/appointments',color:'#3A86A8'},{label:'Patient Records',icon:Users,to:'/doctor/patients',color:'#9B59B6'},{label:'Consultation Room',icon:Video,to:'/doctor/consultation',color:'#2ECC71'}].map((item,i)=>(
+        <motion.div key={i} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:i*.08}}>
+          <Link to={item.to} className="card block p-6">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{background:item.color+'18'}}><item.icon className="w-6 h-6" style={{color:item.color}}/></div>
+            <p className="font-bold" style={{color:'var(--text)'}}>{item.label}</p>
+            <p className="text-sm mt-1 flex items-center gap-1" style={{color:'var(--text3)'}}>Go to section<ChevronRight className="w-3 h-3"/></p>
+          </Link>
+        </motion.div>
+      ))}
+    </div>
+  </div>
+);
+
+const AdminDashboard = () => {
+  const {user} = useAuth();
+  const [stats, setStats] = useState(FALLBACK_STATS);
+  const [activity, setActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(()=>{
+    if(user?.role!=='admin') { setLoading(false); return; }
+    (async()=>{
+      try {
+        const data = await apiFetch('/dashboard/admin');
+        if(data?.stats) {
+          setStats([
+            {label:'Total Users',value:data.stats.totalUsers?.toLocaleString()||'—',trend:'+12.5%',up:true,icon:Users,color:'#3A86A8'},
+            {label:'Appointments Today',value:data.stats.todayAppointments?.toString()||'—',trend:'+8.2%',up:true,icon:Calendar,color:'#2ECC71'},
+            {label:'Pending Orders',value:data.stats.pendingOrders?.toString()||'—',trend:'-2.4%',up:false,icon:ShoppingBag,color:'#F39C12'},
+            {label:'New Messages',value:data.stats.newMessages?.toString()||'—',trend:'+15.3%',up:true,icon:MessageSquare,color:'#9B59B6'},
+            {label:'Active Sessions',value:data.stats.activeSessions?.toString()||'—',trend:'+5.1%',up:true,icon:Activity,color:'#3498DB'},
+          ]);
+        }
+        if(data?.recentActivity) setActivity(data.recentActivity);
+      } catch(e){ /* use fallback */ }
+      finally { setLoading(false); }
+    })();
+  },[user]);
+
+  if(user?.role==='pharmacist') return <PharmacistDash user={user}/>;
+  if(user?.role==='doctor') return <DoctorDash user={user}/>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="page-title">Super <span className="grad-text">Dashboard</span></h1>
+          <p className="page-sub">Welcome back, {user?.name||'Admin'}. Here's what's happening.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium" style={{background:'var(--surface)',border:'1px solid var(--border)',color:'var(--text2)'}}>
+            <Clock className="w-4 h-4"/>Updated just now
+          </div>
+          <Link to="/admin/reports" className="btn btn-primary"><TrendingUp className="w-4 h-4"/>Generate Report</Link>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {stats.map((s,i)=>(
+          <motion.div key={i} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:i*.07}} className="card-stat">
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:s.color+'18'}}>
+                <s.icon className="w-5 h-5" style={{color:s.color}}/>
+              </div>
+              <span className={s.up?'trend-up':'trend-dn'}>
+                {s.up?<ArrowUpRight className="w-3 h-3"/>:<ArrowDownRight className="w-3 h-3"/>}{s.trend}
+              </span>
+            </div>
+            <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{color:'var(--text3)'}}>{s.label}</p>
+            {loading?<div className="h-8 w-16 rounded animate-pulse" style={{background:'var(--surface2)'}}/>
+            :<p className="text-2xl font-extrabold" style={{color:'var(--text)',letterSpacing:'-0.04em'}}>{s.value}</p>}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 card p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="font-bold" style={{color:'var(--text)',letterSpacing:'-0.02em'}}>Platform Growth</h3>
+              <p className="text-xs mt-0.5" style={{color:'var(--text3)'}}>User signups over 7 months</p>
+            </div>
+            <select className="input text-xs py-1.5 px-3" style={{width:'auto'}}>
+              <option>Last 7 months</option><option>Last 12 months</option>
+            </select>
+          </div>
+          <div style={{height:220}}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={AREA_DATA}>
+                <defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--primary)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/></linearGradient></defs>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'var(--text3)',fontSize:11,fontWeight:600}} dy={8}/>
+                <YAxis axisLine={false} tickLine={false} tick={{fill:'var(--text3)',fontSize:11,fontWeight:600}}/>
+                <Tooltip content={<Tip/>}/>
+                <Area type="monotone" dataKey="v" stroke="var(--primary)" strokeWidth={2} fillOpacity={1} fill="url(#grad)"/>
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="card p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="font-bold" style={{color:'var(--text)',letterSpacing:'-0.02em'}}>Appointments</h3>
+              <p className="text-xs mt-0.5" style={{color:'var(--text3)'}}>This week</p>
+            </div>
+            <button className="icon-btn"><MoreVertical className="w-4 h-4"/></button>
+          </div>
+          <div style={{height:220}}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={BAR_DATA}>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'var(--text3)',fontSize:11,fontWeight:600}} dy={8}/>
+                <Tooltip content={<Tip/>} cursor={{fill:'var(--surface2)'}}/>
+                <Bar dataKey="v" fill="var(--primary)" radius={[6,6,0,0]} maxBarSize={28}/>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 card overflow-hidden">
+          <div className="p-5 flex justify-between items-center" style={{borderBottom:'1px solid var(--border2)'}}>
+            <h3 className="font-bold" style={{color:'var(--text)'}}>Recent Activity</h3>
+            <button className="text-xs font-bold" style={{color:'var(--primary)'}}>View All</button>
+          </div>
+          {activity.length>0 ? activity.slice(0,5).map((a,i)=>(
+            <div key={i} className="px-5 py-4 flex items-center justify-between transition-colors"
+              style={{borderBottom:i<4?'1px solid var(--border2)':'none'}}
+              onMouseEnter={e=>e.currentTarget.style.background='var(--surface2)'}
+              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'var(--primary-s)'}}><Activity className="w-3.5 h-3.5" style={{color:'var(--primary)'}}/></div>
+                <div>
+                  <p className="text-sm font-medium" style={{color:'var(--text)'}}>{a.description||a.action}</p>
+                  <p className="text-xs mt-0.5" style={{color:'var(--text3)'}}>{a.time||new Date(a.createdAt).toLocaleString()}</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4" style={{color:'var(--text3)'}}/>
+            </div>
+          )) : (
+            [['Dr. Sarah Smith','joined the platform','2m ago'],['Order #8294','has been shipped','15m ago'],['Mental Health Workshop','created by Admin','1h ago'],['John Doe','submitted feedback','2h ago'],['Server Backup','completed successfully','5h ago']].map(([u,a,t],i,arr)=>(
+              <div key={i} className="px-5 py-4 flex items-center justify-between transition-colors"
+                style={{borderBottom:i<arr.length-1?'1px solid var(--border2)':'none'}}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--surface2)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:'var(--primary-s)'}}><Activity className="w-3.5 h-3.5" style={{color:'var(--primary)'}}/></div>
+                  <div>
+                    <p className="text-sm font-medium" style={{color:'var(--text)'}}><span style={{color:'var(--primary)'}}>{u}</span> {a}</p>
+                    <p className="text-xs mt-0.5" style={{color:'var(--text3)'}}>{t}</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4" style={{color:'var(--text3)'}}/>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="card overflow-hidden">
+          <div className="p-5 flex justify-between items-center" style={{borderBottom:'1px solid var(--border2)'}}>
+            <h3 className="font-bold" style={{color:'var(--text)'}}>Alerts</h3>
+            <span className="badge badge-danger">{ALERTS.length} Active</span>
+          </div>
+          <div className="p-4 space-y-3">
+            {ALERTS.map((a,i)=>(
+              <div key={i} className="flex items-start gap-3 p-3 rounded-xl"
+                style={{background:a.level==='error'?'var(--danger-s)':a.level==='warning'?'var(--warning-s)':'var(--primary-s)',border:`1px solid ${a.level==='error'?'var(--danger)':a.level==='warning'?'var(--warning)':'var(--primary)'}22`}}>
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{color:a.level==='error'?'var(--danger)':a.level==='warning'?'var(--warning)':'var(--primary)'}}/>
+                <div>
+                  <p className="text-sm font-semibold" style={{color:'var(--text)'}}>{a.title}</p>
+                  <p className="text-xs mt-0.5" style={{color:'var(--text3)'}}>{a.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 export default AdminDashboard;

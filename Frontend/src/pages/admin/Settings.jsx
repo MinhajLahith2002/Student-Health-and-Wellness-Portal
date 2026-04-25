@@ -1,271 +1,154 @@
-import React, { useState } from 'react';
-import { 
-  Settings, 
-  Shield, 
-  Bell, 
-  Globe, 
-  Mail, 
-  Database, 
-  Smartphone, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  Save, 
-  RefreshCw,
-  ChevronRight,
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  Smartphone as PhoneIcon,
-  Cloud,
-  Key
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Shield, Bell, Globe, Save, Loader2, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/api';
 
-import { useForm } from '../../hooks/useForm';
+const Toast = ({ message, type, onClose }) => (
+  <motion.div initial={{opacity:0,y:40}} animate={{opacity:1,y:0}} exit={{opacity:0,y:40}} className={cn('toast',type==='success'?'toast-success':'toast-error')}>
+    {type==='success'?<CheckCircle2 className="w-5 h-5"/>:<AlertTriangle className="w-5 h-5"/>}
+    {message}<button onClick={onClose}><XCircle className="w-4 h-4 ml-2 opacity-70"/></button>
+  </motion.div>
+);
 
 const SystemSettings = () => {
-  const [activeSection, setActiveSection] = useState("General");
-  const [isSaving, setIsSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [settings, setSettings] = useState({
+    siteName: 'CampusHealth Portal', maintenanceMode: false,
+    emailNotifications: true, pushNotifications: true,
+    maxFileSize: 10, allowedFileTypes: 'image/jpeg,image/png,application/pdf',
+    sessionTimeout: 30, rateLimitMax: 100,
+  });
 
-  const validate = (values) => {
-    const errors = {};
-    if (activeSection === 'General') {
-      if (!values.platformName) errors.platformName = "Platform Name is required";
-      if (!values.supportEmail) {
-        errors.supportEmail = "Support Email is required";
-      } else if (!/\S+@\S+\.\S+/.test(values.supportEmail)) {
-        errors.supportEmail = "Invalid email format";
-      }
-    }
-    return errors;
+  const showToast = (message, type='success') => { setToast({message,type}); setTimeout(()=>setToast(null),3000); };
+
+  useEffect(()=>{
+    (async()=>{
+      try {
+        const data = await apiFetch('/admin/settings');
+        if(data) setSettings(prev=>({...prev,...data}));
+      } catch(err){ /* use defaults */ }
+      finally { setLoading(false); }
+    })();
+  },[]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiFetch('/admin/settings',{method:'PUT',body:JSON.stringify(settings)});
+      showToast('Settings saved successfully!');
+    } catch(err){ showToast(err.message||'Failed to save settings','error'); }
+    finally{ setSaving(false); }
   };
 
-  const {
-    values,
-    errors,
-    touched,
-    handleChange,
-    handleBlur,
-    handleSubmit
-  } = useForm({
-    platformName: 'CampusHealth',
-    supportEmail: 'support@campushealth.edu',
-    language: 'English (US)',
-    timezone: '(GMT-05:00) Eastern Time (US & Canada)'
-  }, validate);
+  const toggle = (key) => setSettings(s=>({...s,[key]:!s[key]}));
+  const update = (key,val) => setSettings(s=>({...s,[key]:val}));
 
-  const sections = [
-    { id: "General", icon: Globe, label: "General Settings", description: "Platform name, timezone, and language." },
-    { id: "Security", icon: Shield, label: "Security & Auth", description: "Password policies, 2FA, and session management." },
-    { id: "Notifications", icon: Bell, label: "Notification Config", description: "Email templates, push settings, and SMS gateway." },
-    { id: "Database", icon: Database, label: "Data & Storage", description: "Backup schedules, retention policies, and storage limits." },
-    { id: "API", icon: Key, label: "API & Integrations", description: "Third-party keys, webhooks, and external services." },
-  ];
+  const Toggle = ({k,label,desc}) => (
+    <div className="flex items-center justify-between py-4" style={{borderBottom:'1px solid var(--border2)'}}>
+      <div>
+        <p className="text-sm font-bold" style={{color:'var(--text)'}}>{label}</p>
+        <p className="text-xs mt-0.5" style={{color:'var(--text3)'}}>{desc}</p>
+      </div>
+      <button onClick={()=>toggle(k)} className="w-12 h-6 rounded-full transition-all relative shrink-0"
+        style={{background:settings[k]?'var(--primary)':'var(--border)'}}>
+        <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all" style={{left:settings[k]?'calc(100% - 1.375rem)':'2px'}}/>
+      </button>
+    </div>
+  );
 
-  const handleSave = () => {
-    handleSubmit(async (data) => {
-      setIsSaving(true);
-      console.log("Saving Settings:", data);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setIsSaving(false);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    });
-  };
+  if(loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{color:'var(--primary)'}}/></div>;
 
   return (
     <>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">System Settings</h1>
-            <p className="text-slate-500 mt-2 text-lg">Configure global platform parameters and security policies.</p>
-          </div>
-          <button 
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-8 py-4 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2 disabled:opacity-50"
-          >
-            {isSaving ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            {isSaving ? 'Saving Changes...' : 'Save All Changes'}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div><h1 className="page-title">System Settings</h1><p className="page-sub">Configure platform settings and preferences.</p></div>
+          <button onClick={handleSave} disabled={saving} className="btn btn-primary">
+            {saving?<Loader2 className="w-4 h-4 animate-spin"/>:<Save className="w-4 h-4"/>}
+            {saving?'Saving...':'Save Settings'}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Left: Navigation */}
-          <div className="lg:col-span-4 space-y-4">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={cn(
-                  "w-full p-6 rounded-[32px] border-2 text-left transition-all flex items-center gap-6 group",
-                  activeSection === section.id 
-                    ? "border-blue-600 bg-blue-50/30" 
-                    : "border-white bg-white hover:border-blue-100 shadow-sm"
-                )}
-              >
-                <div className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
-                  activeSection === section.id ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : "bg-slate-50 text-slate-400 group-hover:text-blue-600"
-                )}>
-                  <section.icon className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className={cn("text-sm font-bold", activeSection === section.id ? "text-blue-900" : "text-slate-900")}>{section.label}</p>
-                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">{section.description}</p>
-                </div>
-                <ChevronRight className={cn(
-                  "w-5 h-5 ml-auto transition-transform",
-                  activeSection === section.id ? "text-blue-600 translate-x-1" : "text-slate-300"
-                )} />
-              </button>
-            ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* General */}
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'var(--primary-s)'}}>
+                <Globe className="w-5 h-5" style={{color:'var(--primary)'}}/>
+              </div>
+              <h3 className="font-bold" style={{color:'var(--text)'}}>General</h3>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>Site Name</label>
+                <input value={settings.siteName} onChange={e=>update('siteName',e.target.value)} className="input"/>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>Session Timeout (minutes)</label>
+                <input type="number" value={settings.sessionTimeout} onChange={e=>update('sessionTimeout',+e.target.value)} className="input"/>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>Rate Limit (requests/window)</label>
+                <input type="number" value={settings.rateLimitMax} onChange={e=>update('rateLimitMax',+e.target.value)} className="input"/>
+              </div>
+              <Toggle k="maintenanceMode" label="Maintenance Mode" desc="Temporarily disable the platform for maintenance"/>
+            </div>
           </div>
 
-          {/* Right: Content */}
-          <div className="lg:col-span-8">
-            <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-10 border-b border-slate-50">
-                <h3 className="text-2xl font-bold text-slate-900">{activeSection} Settings</h3>
+          {/* Notifications */}
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'var(--primary-s)'}}>
+                <Bell className="w-5 h-5" style={{color:'var(--primary)'}}/>
               </div>
-              
-              <div className="p-10 space-y-10">
-                {activeSection === 'General' && (
-                  <div className="space-y-8">
-                    <div className="grid grid-cols-2 gap-8">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Platform Name</label>
-                        <input 
-                          name="platformName"
-                          value={values.platformName}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          type="text" 
-                          className={cn(
-                            "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900 text-xl",
-                            errors.platformName && touched.platformName && "border-rose-500 bg-rose-50/10"
-                          )}
-                        />
-                        {errors.platformName && touched.platformName && (
-                          <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.platformName}</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Support Email</label>
-                        <input 
-                          name="supportEmail"
-                          value={values.supportEmail}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          type="email" 
-                          className={cn(
-                            "w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-900 text-xl",
-                            errors.supportEmail && touched.supportEmail && "border-rose-500 bg-rose-50/10"
-                          )}
-                        />
-                        {errors.supportEmail && touched.supportEmail && (
-                          <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.supportEmail}</p>
-                        )}
-                      </div>
-                    </div>
+              <h3 className="font-bold" style={{color:'var(--text)'}}>Notifications</h3>
+            </div>
+            <Toggle k="emailNotifications" label="Email Notifications" desc="Send email notifications to users"/>
+            <Toggle k="pushNotifications" label="Push Notifications" desc="Enable push notifications on mobile devices"/>
+          </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Default Language</label>
-                      <select className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600">
-                        <option>English (US)</option>
-                        <option>English (UK)</option>
-                        <option>Spanish</option>
-                        <option>French</option>
-                      </select>
-                    </div>
-
-                    <div className="p-8 bg-blue-50 rounded-[32px] border border-blue-100">
-                      <div className="flex items-center gap-4 mb-4">
-                        <Globe className="w-6 h-6 text-blue-600" />
-                        <h4 className="text-sm font-bold text-blue-900 uppercase tracking-widest">Timezone & Locale</h4>
-                      </div>
-                      <p className="text-xs text-blue-700 font-medium mb-6">Set the global timezone for all system events and notifications.</p>
-                      <select className="w-full px-4 py-3 bg-white border-none rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-bold text-slate-600 shadow-sm">
-                        <option>(GMT-05:00) Eastern Time (US & Canada)</option>
-                        <option>(GMT-08:00) Pacific Time (US & Canada)</option>
-                        <option>(GMT+00:00) UTC</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {activeSection === 'Security' && (
-                  <div className="space-y-8">
-                    <div className="space-y-6">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Password Policy</h4>
-                      <div className="space-y-4">
-                        {[
-                          "Require at least 10 characters",
-                          "Require special characters",
-                          "Require numbers",
-                          "Require uppercase letters"
-                        ].map(policy => (
-                          <label key={policy} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all">
-                            <span className="text-sm font-bold text-slate-700">{policy}</span>
-                            <input type="checkbox" defaultChecked className="w-5 h-5 rounded text-blue-600 focus:ring-blue-600 border-slate-300" />
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="p-8 bg-rose-50 rounded-[32px] border border-rose-100">
-                      <div className="flex items-center gap-4 mb-4">
-                        <Lock className="w-6 h-6 text-rose-600" />
-                        <h4 className="text-sm font-bold text-rose-900 uppercase tracking-widest">Two-Factor Authentication</h4>
-                      </div>
-                      <p className="text-xs text-rose-700 font-medium mb-6">Enforce 2FA for all administrative accounts to enhance security.</p>
-                      <button className="px-6 py-3 bg-rose-600 text-white rounded-full font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-100">
-                        Enforce 2FA Globally
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Other sections would follow a similar pattern */}
-                {activeSection !== 'General' && activeSection !== 'Security' && (
-                  <div className="py-20 text-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Settings className="w-10 h-10 text-slate-200" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">{activeSection} Configuration</h3>
-                    <p className="text-slate-500">This section is currently being updated with new parameters.</p>
-                  </div>
-                )}
+          {/* Security */}
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'var(--primary-s)'}}>
+                <Shield className="w-5 h-5" style={{color:'var(--primary)'}}/>
+              </div>
+              <h3 className="font-bold" style={{color:'var(--text)'}}>File Uploads</h3>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>Max File Size (MB)</label>
+                <input type="number" value={settings.maxFileSize} onChange={e=>update('maxFileSize',+e.target.value)} className="input"/>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>Allowed File Types</label>
+                <input value={settings.allowedFileTypes} onChange={e=>update('allowedFileTypes',e.target.value)} className="input" placeholder="image/jpeg,image/png,..."/>
               </div>
             </div>
+          </div>
+
+          {/* Info card */}
+          <div className="card p-6" style={{background:'var(--primary-s)',borderColor:'var(--primary)22'}}>
+            <div className="flex items-center gap-3 mb-4">
+              <Settings className="w-5 h-5" style={{color:'var(--primary)'}}/>
+              <h3 className="font-bold" style={{color:'var(--primary)'}}>System Info</h3>
+            </div>
+            {[['Platform','CampusHealth Portal v2.0'],['Environment',process.env.NODE_ENV||'development'],['API Status','Connected'],['Database','MongoDB Atlas']].map(([k,v])=>(
+              <div key={k} className="flex justify-between py-2" style={{borderBottom:'1px solid var(--border2)'}}>
+                <span className="text-xs font-bold uppercase" style={{color:'var(--text3)'}}>{k}</span>
+                <span className="text-xs font-bold" style={{color:'var(--primary)'}}>{v}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-
-      {/* Success Toast Placeholder */}
       <AnimatePresence>
-        {showSuccess && (
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100]"
-          >
-            <div className="bg-emerald-600 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="font-bold">Settings saved successfully!</span>
-            </div>
-          </motion.div>
-        )}
+        {toast&&<Toast message={toast.message} type={toast.type} onClose={()=>setToast(null)}/>}
       </AnimatePresence>
     </>
   );
 };
-
 export default SystemSettings;

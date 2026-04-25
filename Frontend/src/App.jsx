@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -57,22 +57,12 @@ import CounselingSessionPage from './pages/mental-health/CounselingSessionPage';
 import SessionFeedback from './pages/mental-health/SessionFeedback';
 import CounselorDashboard from './pages/mental-health/CounselorDashboard';
 import CounselorProfileSettings from './pages/mental-health/CounselorProfileSettings';
-import CounselorSessionsWorkspace from './pages/mental-health/CounselorSessionsWorkspace';
-import CounselorNotes from './pages/mental-health/CounselorNotes';
-import CounselorResources from './pages/mental-health/CounselorResources';
-import CounselorNotifications from './pages/mental-health/CounselorNotifications';
-import CounselorHelpCenter from './pages/mental-health/CounselorHelpCenter';
 import AdminLayout from './components/admin/AdminLayout';
 import { useAuth } from './hooks/useAuth';
-import ErrorBoundary from './components/ErrorBoundary';
 
 function PageWrapper({ children }) {
   const location = useLocation();
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
-
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
   return (
     <motion.div
       key={location.pathname}
@@ -86,148 +76,126 @@ function PageWrapper({ children }) {
   );
 }
 
-function StaffLayout({ allowedRoles }) {
-  return (
-    <ProtectedRoute allowedRoles={allowedRoles}>
-      <AdminLayout>
-        <PageWrapper>
-          <Outlet />
-        </PageWrapper>
-      </AdminLayout>
-    </ProtectedRoute>
-  );
+// ✅ FIX: AdminWrapped WITHOUT PageWrapper - no AnimatePresence conflict
+function AdminWrapped({ children }) {
+  return <AdminLayout>{children}</AdminLayout>;
 }
 
 function HomeEntry() {
   const { user, isAuthenticated, booting, redirectPathForRole } = useAuth();
-
   if (booting) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-primary-bg">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-primary"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2" style={{ borderColor: 'var(--primary)' }}></div>
       </div>
     );
   }
-
-  if (isAuthenticated && user?.role) {
-    if (user.role === 'student') {
-      return <LandingPage />;
-    }
-
+  if (isAuthenticated && user?.role && user.role !== 'student') {
     return <Navigate to={redirectPathForRole(user.role)} replace />;
   }
-
   return <LandingPage />;
 }
 
 function AppLayout() {
   const location = useLocation();
   const isAdminOrStaffRoute =
-    location.pathname.startsWith('/admin')
-    || location.pathname.startsWith('/pharmacist')
-    || location.pathname.startsWith('/doctor')
-    || location.pathname.startsWith('/counselor');
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/pharmacist') ||
+    location.pathname.startsWith('/doctor') ||
+    location.pathname.startsWith('/counselor');
 
   return (
     <>
       {!isAdminOrStaffRoute && <Navbar />}
-      <ErrorBoundary resetKey={location.pathname}>
-        <Routes>
-          <Route path="/" element={<PageWrapper><HomeEntry /></PageWrapper>} />
-          <Route path="/login" element={<PageWrapper><AuthPage /></PageWrapper>} />
-          <Route path="/register" element={<PageWrapper><AuthPage /></PageWrapper>} />
 
-          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentDashboard /></PageWrapper></ProtectedRoute>} />
+      {/* ✅ FIX: Admin routes outside AnimatePresence - prevents unmount on navigate */}
+      {isAdminOrStaffRoute && (
+        <Routes location={location} key={location.pathname}>
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/dashboard"     element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><AdminDashboard /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/users"         element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><UserDirectory /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><NotificationsHub /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/resources"     element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><HealthResources /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/faq"           element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><FAQManager /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/events"        element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><EventManager /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/feedback"      element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><FeedbackManager /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/reports"       element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><ReportsGenerator /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/audit"         element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><AuditLogs /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/admin/settings"      element={<ProtectedRoute allowedRoles={['admin']}><AdminWrapped><SystemSettings /></AdminWrapped></ProtectedRoute>} />
 
-          <Route path="/mental-health" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MentalHealthHub /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/forum" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MentalHealthDiscussion /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/mood" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MoodTracker /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/suggestions" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><Suggestions /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/resources" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><ResourceLibrary /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/resources/:resourceId" element={<ProtectedRoute allowedRoles={['student', 'counselor']}><PageWrapper><ResourceDetail /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/counselors" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><CounselorDirectory /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/counselors/:counselorId" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><CounselorProfile /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/book/:counselorId" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><BookSession /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/sessions" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MySessions /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/sessions/:sessionId" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><CounselingSessionPage /></PageWrapper></ProtectedRoute>} />
-          <Route path="/mental-health/sessions/:sessionId/feedback" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><SessionFeedback /></PageWrapper></ProtectedRoute>} />
+          <Route path="/pharmacist" element={<Navigate to="/pharmacist/dashboard" replace />} />
+          <Route path="/pharmacist/dashboard"          element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><PharmacistDashboard /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/pharmacist/inventory"          element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><InventoryManagement /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/pharmacist/medicines/new"      element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><MedicineEditor /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/pharmacist/medicines/edit/:id" element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><MedicineEditor /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/pharmacist/prescriptions"      element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><PrescriptionProcessing /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/pharmacist/orders"             element={<ProtectedRoute allowedRoles={['pharmacist']}><AdminWrapped><OrderManagement /></AdminWrapped></ProtectedRoute>} />
 
-          <Route path="/pharmacy" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PharmacyDashboard /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PharmacyDashboard /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/search" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MedicineSearch /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/medicine/:id" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MedicineDetail /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/upload-prescription" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PrescriptionUpload /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/checkout" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><Checkout /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/order/:orderId" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><OrderTracking /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/orders" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><OrderHistory /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/first-aid" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><FirstAidGuide /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/locator" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PharmacyLocator /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/pharmacy/products" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><HealthProducts /></PageWrapper></ProtectedRoute>} />
+          <Route path="/doctor" element={<Navigate to="/doctor/dashboard" replace />} />
+          <Route path="/doctor/dashboard"        element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><DoctorAppointmentDashboard /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/doctor/appointments"     element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><DoctorAppointmentDashboard /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/doctor/availability"     element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><ManageAvailability /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/doctor/consultation/:id" element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><ConsultationRoom /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/doctor/patients"         element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><PatientRecords /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/doctor/prescriptions"    element={<ProtectedRoute allowedRoles={['doctor']}><AdminWrapped><StudentPrescriptions /></AdminWrapped></ProtectedRoute>} />
 
-          <Route path="/student/appointments" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><AppointmentDashboard /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/appointments/find" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><FindDoctor /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/appointments/doctors/:doctorId" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><DoctorProfile /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/appointments/book" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><BookingFlow /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/appointments/book/:doctorId" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><BookingFlow /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/appointments/:appointmentId/queue" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><QueueStatus /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/appointments/:appointmentId/feedback" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><AppointmentFeedback /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/consultation/:id" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentConsultation /></PageWrapper></ProtectedRoute>} />
-          <Route path="/student/prescriptions" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentPrescriptions /></PageWrapper></ProtectedRoute>} />
-
-          <Route path="/admin" element={<StaffLayout allowedRoles={['admin']} />}>
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<UserDirectory />} />
-            <Route path="notifications" element={<NotificationsHub />} />
-            <Route path="resources" element={<HealthResources />} />
-            <Route path="faq" element={<FAQManager />} />
-            <Route path="events" element={<EventManager />} />
-            <Route path="feedback" element={<FeedbackManager />} />
-            <Route path="reports" element={<ReportsGenerator />} />
-            <Route path="audit" element={<AuditLogs />} />
-            <Route path="settings" element={<SystemSettings />} />
-          </Route>
-
-          <Route path="/pharmacist" element={<StaffLayout allowedRoles={['pharmacist']} />}>
-            <Route index element={<Navigate to="/pharmacist/dashboard" replace />} />
-            <Route path="dashboard" element={<PharmacistDashboard />} />
-            <Route path="inventory" element={<InventoryManagement />} />
-            <Route path="medicines/new" element={<MedicineEditor />} />
-            <Route path="medicines/edit/:id" element={<MedicineEditor />} />
-            <Route path="prescriptions" element={<PrescriptionProcessing />} />
-            <Route path="orders" element={<OrderManagement />} />
-          </Route>
-
-          <Route path="/doctor" element={<StaffLayout allowedRoles={['doctor']} />}>
-            <Route index element={<Navigate to="/doctor/dashboard" replace />} />
-            <Route path="dashboard" element={<DoctorAppointmentDashboard />} />
-            <Route path="appointments" element={<DoctorAppointmentDashboard />} />
-            <Route path="availability" element={<ManageAvailability />} />
-            <Route path="consultation/:id" element={<ConsultationRoom />} />
-            <Route path="patients" element={<PatientRecords />} />
-            <Route path="prescriptions" element={<StudentPrescriptions />} />
-          </Route>
-
-          <Route path="/counselor" element={<StaffLayout allowedRoles={['counselor']} />}>
-            <Route index element={<Navigate to="/counselor/dashboard" replace />} />
-            <Route path="dashboard" element={<CounselorDashboard />} />
-            <Route path="sessions" element={<CounselorSessionsWorkspace />} />
-            <Route path="sessions/:sessionId" element={<CounselingSessionPage />} />
-            <Route path="profile" element={<CounselorProfileSettings />} />
-            <Route path="profile-settings" element={<CounselorProfileSettings />} />
-            <Route path="help-center" element={<CounselorHelpCenter />} />
-            <Route path="notes" element={<CounselorNotes />} />
-            <Route path="resources" element={<CounselorResources />} />
-            <Route path="resources/saved" element={<ResourceLibrary />} />
-            <Route path="resources/:resourceId" element={<ResourceDetail />} />
-            <Route path="notifications" element={<CounselorNotifications />} />
-          </Route>
+          <Route path="/counselor" element={<Navigate to="/counselor/dashboard" replace />} />
+          <Route path="/counselor/dashboard"           element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorDashboard /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/sessions"            element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><MySessions /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/sessions/:sessionId" element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselingSessionPage /></AdminWrapped></ProtectedRoute>} />
+          <Route path="/counselor/profile"             element={<ProtectedRoute allowedRoles={['counselor']}><AdminWrapped><CounselorProfileSettings /></AdminWrapped></ProtectedRoute>} />
 
           <Route path="/admin/pharmacist/*" element={<Navigate to="/pharmacist" replace />} />
-          <Route path="/admin/doctor/*" element={<Navigate to="/doctor" replace />} />
-          <Route path="/admin/counselor/*" element={<Navigate to="/counselor" replace />} />
+          <Route path="/admin/doctor/*"     element={<Navigate to="/doctor" replace />} />
+          <Route path="/admin/counselor/*"  element={<Navigate to="/counselor" replace />} />
         </Routes>
-      </ErrorBoundary>
+      )}
+
+      {/* Student/Public routes with AnimatePresence */}
+      {!isAdminOrStaffRoute && (
+        <AnimatePresence mode="wait" initial={false}>
+          <Routes location={location} key={location.pathname}>
+            <Route path="/"          element={<PageWrapper><HomeEntry /></PageWrapper>} />
+            <Route path="/login"     element={<PageWrapper><AuthPage /></PageWrapper>} />
+            <Route path="/register"  element={<PageWrapper><AuthPage /></PageWrapper>} />
+            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentDashboard /></PageWrapper></ProtectedRoute>} />
+
+            <Route path="/mental-health"                              element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MentalHealthHub /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/forum"                        element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MentalHealthDiscussion /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/mood"                         element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MoodTracker /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/suggestions"                  element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><Suggestions /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/resources"                    element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><ResourceLibrary /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/resources/:resourceId"        element={<ProtectedRoute allowedRoles={['student','counselor']}><PageWrapper><ResourceDetail /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/counselors"                   element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><CounselorDirectory /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/counselors/:counselorId"      element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><CounselorProfile /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/book/:counselorId"            element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><BookSession /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/sessions"                     element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MySessions /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/sessions/:sessionId"          element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><CounselingSessionPage /></PageWrapper></ProtectedRoute>} />
+            <Route path="/mental-health/sessions/:sessionId/feedback" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><SessionFeedback /></PageWrapper></ProtectedRoute>} />
+
+            <Route path="/pharmacy"                               element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PharmacyDashboard /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/search"               element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MedicineSearch /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/medicine/:id"         element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><MedicineDetail /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/upload-prescription"  element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PrescriptionUpload /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/checkout"             element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><Checkout /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/order/:orderId"       element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><OrderTracking /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/orders"               element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><OrderHistory /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/first-aid"            element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><FirstAidGuide /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/locator"              element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PharmacyLocator /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/pharmacy/products"             element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><HealthProducts /></PageWrapper></ProtectedRoute>} />
+
+            <Route path="/student/appointments"                        element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><AppointmentDashboard /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/appointments/find"                   element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><FindDoctor /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/appointments/doctors/:doctorId"      element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><DoctorProfile /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/appointments/book"                   element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><BookingFlow /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/appointments/book/:doctorId"         element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><BookingFlow /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/appointments/:appointmentId/queue"   element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><QueueStatus /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/appointments/:appointmentId/feedback" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><AppointmentFeedback /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/consultation/:id"                    element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentConsultation /></PageWrapper></ProtectedRoute>} />
+            <Route path="/student/prescriptions"                       element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><StudentPrescriptions /></PageWrapper></ProtectedRoute>} />
+          </Routes>
+        </AnimatePresence>
+      )}
     </>
   );
 }

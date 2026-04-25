@@ -1,338 +1,304 @@
-import React, { useState } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Plus, 
-  MoreVertical, 
-  Edit2, 
-  ShieldAlert, 
-  Trash2, 
-  ChevronLeft, 
-  ChevronRight,
-  UserPlus,
-  Mail,
-  Calendar,
-  Shield,
-  CheckCircle2,
-  XCircle,
-  ExternalLink
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Edit2, Trash2, ChevronLeft, ChevronRight, UserPlus, XCircle, CheckCircle2, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
-
-const MOCK_USERS = [
-  { id: 1, name: "John Doe", email: "john@example.com", role: "Student", status: "Active", lastActive: "2 mins ago", avatar: "JD" },
-  { id: 2, name: "Dr. Sarah Smith", email: "sarah@example.com", role: "Doctor", status: "Active", lastActive: "15 mins ago", avatar: "SS" },
-  { id: 3, name: "Michael Chen", email: "michael@example.com", role: "Counselor", status: "Suspended", lastActive: "2 days ago", avatar: "MC" },
-  { id: 4, name: "Emily Wilson", email: "emily@example.com", role: "Pharmacist", status: "Active", lastActive: "1 hour ago", avatar: "EW" },
-  { id: 5, name: "Robert Brown", email: "robert@example.com", role: "Student", status: "Active", lastActive: "5 mins ago", avatar: "RB" },
-  { id: 6, name: "Lisa Garcia", email: "lisa@example.com", role: "Doctor", status: "Active", lastActive: "10 mins ago", avatar: "LG" },
-  { id: 7, name: "David Miller", email: "david@example.com", role: "Admin", status: "Active", lastActive: "Just now", avatar: "DM" },
-];
-
+import { apiFetch } from '../../lib/api';
 import { useForm } from '../../hooks/useForm';
 
-const UserDirectory = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRole, setSelectedRole] = useState("All Roles");
-  const [showAddModal, setShowAddModal] = useState(false);
+const ROLES = ['All Roles', 'student', 'doctor', 'counselor', 'pharmacist', 'admin'];
+const PER_PAGE = 10;
 
-  const roles = ["All Roles", "Student", "Doctor", "Counselor", "Pharmacist", "Admin"];
+const Toast = ({ message, type, onClose }) => (
+  <motion.div initial={{ opacity:0,y:40 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0,y:40 }}
+    className={cn('toast', type==='success'?'toast-success':'toast-error')}>
+    {type==='success'?<CheckCircle2 className="w-5 h-5"/>:<AlertTriangle className="w-5 h-5"/>}
+    {message}
+    <button onClick={onClose}><XCircle className="w-4 h-4 ml-2 opacity-70"/></button>
+  </motion.div>
+);
 
-  const validate = (values) => {
-    const errors = {};
-    if (!values.name) errors.name = "Full Name is required";
-    if (!values.email) {
-      errors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(values.email)) {
-      errors.email = "Invalid email format";
-    }
-    if (!values.role) errors.role = "User role is required";
-    return errors;
+const ConfirmModal = ({ user, onConfirm, onCancel, loading }) => (
+  <div className="modal-bg">
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={onCancel} className="absolute inset-0"/>
+    <motion.div initial={{opacity:0,scale:.95,y:20}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:.95,y:20}}
+      className="modal-box max-w-sm text-center">
+      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{background:'var(--danger-s)'}}>
+        <Trash2 className="w-8 h-8" style={{color:'var(--danger)'}}/>
+      </div>
+      <h3 className="text-xl font-bold mb-2" style={{color:'var(--text)'}}>Delete User?</h3>
+      <p className="mb-8 text-sm" style={{color:'var(--text2)'}}>Delete <span className="font-bold" style={{color:'var(--text)'}}>{user?.name}</span>? This cannot be undone.</p>
+      <div className="flex gap-3">
+        <button onClick={onCancel} className="btn btn-secondary flex-1">Cancel</button>
+        <button onClick={onConfirm} disabled={loading} className="btn btn-danger flex-1">
+          {loading?<Loader2 className="w-4 h-4 animate-spin"/>:<Trash2 className="w-4 h-4"/>}
+          {loading?'Deleting...':'Delete'}
+        </button>
+      </div>
+    </motion.div>
+  </div>
+);
+
+const UserModal = ({ editUser, onClose, onSaved }) => {
+  const isEdit = !!editUser;
+  const [apiError, setApiError] = useState('');
+  const validate = (v) => {
+    const e = {};
+    if (!v.name?.trim()) e.name = 'Name required';
+    if (!v.email) e.email = 'Email required';
+    else if (!/\S+@\S+\.\S+/.test(v.email)) e.email = 'Invalid email';
+    if (!isEdit && !v.password) e.password = 'Password required';
+    return e;
   };
+  const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit, setFieldValue } =
+    useForm({ name:editUser?.name||'', email:editUser?.email||'', password:'', role:editUser?.role||'student' }, validate);
 
-  const {
-    values,
-    errors,
-    touched,
-    isSubmitting,
-    handleChange,
-    handleBlur,
-    handleSubmit,
-    resetForm
-  } = useForm({
-    name: '',
-    email: '',
-    role: 'Student'
-  }, validate);
-
-  const filteredUsers = MOCK_USERS.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = selectedRole === "All Roles" || user.role === selectedRole;
-    return matchesSearch && matchesRole;
-  });
-
-  const handleCreateUser = async (data) => {
-    // Simulate API call
-    console.log("Creating user:", data);
-    // In a real app, this would be an axios.post
-    resetForm();
-    setShowAddModal(false);
+  const onSubmit = async (data) => {
+    setApiError('');
+    try {
+      let result;
+      if (isEdit) {
+        const body = { name:data.name, email:data.email, role:data.role };
+        if (data.password) body.password = data.password;
+        result = await apiFetch(`/users/${editUser._id||editUser.id}`, { method:'PUT', body:JSON.stringify(body) });
+      } else {
+        // Try all possible endpoints for user creation
+        const endpoints = ['/users', '/admin/users', '/auth/register', '/register'];
+        let lastErr = null;
+        for (const ep of endpoints) {
+          try {
+            result = await apiFetch(ep, { method: 'POST', body: JSON.stringify(data) });
+            lastErr = null;
+            break;
+          } catch(e) {
+            lastErr = e;
+            if (!e.message?.includes('404') && !e.message?.includes('Not Found')) throw e;
+          }
+        }
+        if (lastErr) throw lastErr;
+      }
+      onSaved(result, isEdit);
+    } catch (err) { setApiError(err.message||'Something went wrong'); }
   };
 
   return (
-    <>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="modal-bg">
+      <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={onClose} className="absolute inset-0"/>
+      <motion.div initial={{opacity:0,scale:.95,y:20}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:.95,y:20}} className="modal-box">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold" style={{color:'var(--text)'}}>{isEdit?'Edit User':'Add New User'}</h2>
+          <button onClick={onClose} className="icon-btn"><XCircle className="w-5 h-5"/></button>
+        </div>
+        {apiError && <div className="mb-4 p-3 rounded-xl text-sm font-bold flex gap-2" style={{background:'var(--danger-s)',color:'var(--danger)'}}><AlertTriangle className="w-4 h-4 shrink-0 mt-0.5"/>{apiError}</div>}
+        <form onSubmit={(e)=>{e.preventDefault();handleSubmit(onSubmit)}} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>Full Name</label>
+              <input name="name" value={values.name} onChange={handleChange} onBlur={handleBlur} placeholder="John Doe" className={cn('input',errors.name&&touched.name&&'error')}/>
+              {errors.name&&touched.name&&<p className="text-xs mt-1" style={{color:'var(--danger)'}}>{errors.name}</p>}
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>Email</label>
+              <input name="email" value={values.email} onChange={handleChange} onBlur={handleBlur} type="email" placeholder="john@email.com" className={cn('input',errors.email&&touched.email&&'error')}/>
+              {errors.email&&touched.email&&<p className="text-xs mt-1" style={{color:'var(--danger)'}}>{errors.email}</p>}
+            </div>
+          </div>
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">User Directory</h1>
-            <p className="text-slate-500 mt-2 text-lg">Manage all platform users and their permissions.</p>
+            <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>{isEdit?'New Password (blank = keep)':'Password'}</label>
+            <input name="password" value={values.password} onChange={handleChange} onBlur={handleBlur} type="password" placeholder={isEdit?'Leave blank to keep':'Enter password'} className={cn('input',errors.password&&touched.password&&'error')}/>
+            {errors.password&&touched.password&&<p className="text-xs mt-1" style={{color:'var(--danger)'}}>{errors.password}</p>}
           </div>
-          <button 
-            onClick={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-            className="px-8 py-4 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center gap-2"
-          >
-            <UserPlus className="w-5 h-5" />
-            Add New User
-          </button>
-        </div>
-
-        {/* Filters & Search */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-600/20 transition-all outline-none"
-            />
-          </div>
-          <div className="flex gap-4 w-full md:w-auto">
-            <div className="relative w-full md:w-48">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <select 
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-600/20 appearance-none"
-              >
-                {roles.map(role => <option key={role} value={role}>{role}</option>)}
-              </select>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest block mb-1.5" style={{color:'var(--text3)'}}>Role</label>
+            <div className="grid grid-cols-3 gap-2">
+              {ROLES.slice(1).map(role=>(
+                <label key={role} className="flex items-center justify-center p-3 rounded-xl cursor-pointer border-2 transition-all text-xs font-bold capitalize"
+                  style={{background:values.role===role?'var(--primary-s)':'var(--surface2)',borderColor:values.role===role?'var(--primary)':'transparent',color:values.role===role?'var(--primary)':'var(--text2)'}}>
+                  <input type="radio" name="role" value={role} checked={values.role===role} onChange={()=>setFieldValue('role',role)} className="hidden"/>
+                  {role}
+                </label>
+              ))}
             </div>
           </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="btn btn-secondary flex-1">Cancel</button>
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary flex-1">
+              {isSubmitting&&<Loader2 className="w-4 h-4 animate-spin"/>}
+              {isSubmitting?'Saving...':isEdit?'Save Changes':'Create User'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  );
+};
+
+const UserDirectory = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [role, setRole] = useState('All Roles');
+  const [page, setPage] = useState(1);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type='success') => { setToast({message,type}); setTimeout(()=>setToast(null),3500); };
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      let data;
+      const endpoints = ['/users', '/admin/users', '/auth/users'];
+      for (const ep of endpoints) {
+        try { data = await apiFetch(ep); break; }
+        catch(e) { if (!e.message?.includes('404') && !e.message?.includes('Not Found')) throw e; }
+      }
+      setUsers(Array.isArray(data)?data:(data?.users||[]));
+    } catch (err) { showToast(err.message||'Failed to load users','error'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(()=>{ fetchUsers(); },[]);
+
+  const filtered = users.filter(u=>{
+    const s = u.name?.toLowerCase().includes(search.toLowerCase())||u.email?.toLowerCase().includes(search.toLowerCase());
+    const r = role==='All Roles'||u.role===role;
+    return s&&r;
+  });
+
+  const totalPages = Math.max(1,Math.ceil(filtered.length/PER_PAGE));
+  const paginated = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
+
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      await apiFetch(`/users/${deleteTarget._id||deleteTarget.id}`,{method:'DELETE'});
+      setUsers(prev=>prev.filter(u=>(u._id||u.id)!==(deleteTarget._id||deleteTarget.id)));
+      showToast(`${deleteTarget.name} deleted`);
+      setDeleteTarget(null);
+    } catch(err){ showToast(err.message||'Failed to delete','error'); }
+    finally{ setDeleteLoading(false); }
+  };
+
+  const handleSaved = (result, isEdit) => {
+    if(isEdit){ setUsers(prev=>prev.map(u=>(u._id||u.id)===(result._id||result.id)?result:u)); showToast('User updated'); setEditUser(null); }
+    else { setUsers(prev=>[result,...prev]); showToast('User created'); setShowAdd(false); }
+  };
+
+  const roleBadge = (r) => ({admin:'badge-primary',doctor:'badge-success',counselor:'badge-muted',pharmacist:'badge-warning',student:'badge-muted'}[r]||'badge-muted');
+
+  return (
+    <>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="page-title">User Directory</h1>
+            <p className="page-sub">Manage all platform users and their permissions.</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={fetchUsers} className="icon-btn" title="Refresh" style={{width:44,height:44,borderRadius:10,border:'1px solid var(--border)',background:'var(--surface)'}}>
+              <RefreshCw className={cn('w-4 h-4',loading&&'animate-spin')}/>
+            </button>
+            <button onClick={()=>setShowAdd(true)} className="btn btn-primary">
+              <UserPlus className="w-4 h-4"/>Add User
+            </button>
+          </div>
         </div>
 
-        {/* User Table */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="mobile-table-scroll">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">User</th>
-                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Role</th>
-                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Status</th>
-                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Last Active</th>
-                  <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
-                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
-                          {user.avatar}
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">{user.name}</p>
-                          <p className="text-xs text-slate-500 font-medium">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className={cn(
-                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                        user.role === 'Admin' ? "bg-blue-50 text-blue-600" :
-                        user.role === 'Doctor' ? "bg-emerald-50 text-emerald-600" :
-                        user.role === 'Counselor' ? "bg-purple-50 text-purple-600" :
-                        user.role === 'Pharmacist' ? "bg-amber-50 text-amber-600" :
-                        "bg-slate-100 text-slate-600"
-                      )}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full",
-                          user.status === 'Active' ? "bg-emerald-500" : "bg-rose-500"
-                        )} />
-                        <span className={cn(
-                          "text-xs font-bold",
-                          user.status === 'Active' ? "text-emerald-600" : "text-rose-600"
-                        )}>
-                          {user.status}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <p className="text-xs text-slate-500 font-medium">{user.lastActive}</p>
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
-                          <ShieldAlert className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+        <div className="card p-4 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{color:'var(--text3)'}}/>
+            <input type="text" placeholder="Search by name or email..." value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} className="input" style={{paddingLeft:36}}/>
+          </div>
+          <div className="relative w-full md:w-44">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{color:'var(--text3)'}}/>
+            <select value={role} onChange={e=>{setRole(e.target.value);setPage(1)}} className="input appearance-none" style={{paddingLeft:36}}>
+              {ROLES.map(r=><option key={r}>{r}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="card overflow-hidden">
+          {loading ? (
+            <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin" style={{color:'var(--primary)'}}/></div>
+          ) : paginated.length===0 ? (
+            <div className="flex flex-col items-center py-20" style={{color:'var(--text3)'}}>
+              <Search className="w-10 h-10 mb-4 opacity-30"/><p className="font-bold">No users found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="tbl">
+                <thead><tr>
+                  {['User','Role','Status','Actions'].map(h=>(
+                    <th key={h} className={h==='Actions'?'text-right':''}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {paginated.map(u=>{
+                    const initials = u.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()||'?';
+                    return (
+                      <tr key={u._id||u.id}>
+                        <td>
+                          <div className="flex items-center gap-3">
+                            {u.profileImage
+                              ? <img src={u.profileImage} alt={u.name} className="w-9 h-9 rounded-lg object-cover"/>
+                              : <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{background:'var(--grad)'}}>{initials}</div>
+                            }
+                            <div>
+                              <p className="text-sm font-bold" style={{color:'var(--text)'}}>{u.name}</p>
+                              <p className="text-xs" style={{color:'var(--text3)'}}>{u.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td><span className={cn('badge capitalize',roleBadge(u.role))}>{u.role}</span></td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full" style={{background:u.isVerified?'var(--success)':'var(--warning)'}}/>
+                            <span className="text-xs font-bold" style={{color:u.isVerified?'var(--success)':'var(--warning)'}}>{u.isVerified?'Verified':'Unverified'}</span>
+                          </div>
+                        </td>
+                        <td className="text-right">
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" style={{opacity:1}}>
+                            <button onClick={()=>setEditUser(u)} className="icon-btn primary"><Edit2 className="w-4 h-4"/></button>
+                            <button onClick={()=>setDeleteTarget(u)} className="icon-btn danger"><Trash2 className="w-4 h-4"/></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {!loading&&filtered.length>0&&(
+            <div className="p-4 flex items-center justify-between" style={{borderTop:'1px solid var(--border2)'}}>
+              <p className="text-xs font-bold" style={{color:'var(--text3)'}}>
+                {Math.min((page-1)*PER_PAGE+1,filtered.length)}–{Math.min(page*PER_PAGE,filtered.length)} of {filtered.length}
+              </p>
+              <div className="flex gap-1">
+                <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} className="icon-btn"><ChevronLeft className="w-4 h-4"/></button>
+                {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                  <button key={p} onClick={()=>setPage(p)} className="w-8 h-8 rounded-lg text-xs font-bold transition-colors"
+                    style={{background:page===p?'var(--primary)':'transparent',color:page===p?'white':'var(--text2)'}}>
+                    {p}
+                  </button>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="p-6 border-t border-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-              Showing 1 to {filteredUsers.length} of {MOCK_USERS.length} entries
-            </p>
-            <div className="flex items-center gap-2">
-              <button className="p-2 text-slate-400 hover:text-blue-600 disabled:opacity-50" disabled>
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button className="w-8 h-8 bg-blue-600 text-white rounded-lg text-xs font-bold">1</button>
-              <button className="w-8 h-8 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold transition-colors">2</button>
-              <button className="p-2 text-slate-400 hover:text-blue-600">
-                <ChevronRight className="w-5 h-5" />
-              </button>
+                <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} className="icon-btn"><ChevronRight className="w-4 h-4"/></button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Add User Modal Placeholder */}
       <AnimatePresence>
-        {showAddModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAddModal(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-xl bg-white rounded-[32px] shadow-2xl overflow-hidden"
-            >
-              <div className="p-10">
-                <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Add New User</h2>
-                  <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                    <XCircle className="w-6 h-6 text-slate-400" />
-                  </button>
-                </div>
-
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSubmit(handleCreateUser);
-                }} className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Full Name</label>
-                      <input 
-                        name="name"
-                        value={values.name}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        type="text" 
-                        className={cn(
-                          "w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium",
-                          errors.name && touched.name && "border-rose-500 bg-rose-50/10"
-                        )}
-                        placeholder="e.g. John Doe" 
-                      />
-                      {errors.name && touched.name && (
-                        <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.name}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Address</label>
-                      <input 
-                        name="email"
-                        value={values.email}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        type="email" 
-                        className={cn(
-                          "w-full px-4 py-3 bg-slate-50 border border-transparent rounded-xl focus:ring-2 focus:ring-blue-600/20 transition-all outline-none font-medium",
-                          errors.email && touched.email && "border-rose-500 bg-rose-50/10"
-                        )}
-                        placeholder="e.g. john@example.com" 
-                      />
-                      {errors.email && touched.email && (
-                        <p className="text-[10px] font-bold text-rose-500 mt-1 uppercase tracking-wider">{errors.email}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Assign Role</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {roles.slice(1).map(role => (
-                        <label key={role} className={cn(
-                          "relative flex items-center justify-center p-4 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-all border-2 border-transparent",
-                          values.role === role && "border-blue-600 bg-blue-50"
-                        )}>
-                          <input 
-                            type="radio" 
-                            name="role" 
-                            value={role}
-                            checked={values.role === role}
-                            onChange={handleChange}
-                            className="hidden" 
-                          />
-                          <span className={cn(
-                            "text-xs font-bold",
-                            values.role === role ? "text-blue-600" : "text-slate-600"
-                          )}>{role}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-6 flex gap-4">
-                    <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all">Cancel</button>
-                    <button 
-                      type="submit" 
-                      disabled={isSubmitting}
-                      className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
-                    >
-                      {isSubmitting ? 'Creating...' : 'Create User'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          </div>
-        )}
+        {showAdd&&<UserModal editUser={null} onClose={()=>setShowAdd(false)} onSaved={handleSaved}/>}
+        {editUser&&<UserModal editUser={editUser} onClose={()=>setEditUser(null)} onSaved={handleSaved}/>}
+        {deleteTarget&&<ConfirmModal user={deleteTarget} onConfirm={handleDelete} onCancel={()=>setDeleteTarget(null)} loading={deleteLoading}/>}
+        {toast&&<Toast message={toast.message} type={toast.type} onClose={()=>setToast(null)}/>}
       </AnimatePresence>
     </>
   );
 };
-
 export default UserDirectory;
