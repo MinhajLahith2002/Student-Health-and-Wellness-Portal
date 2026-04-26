@@ -26,6 +26,7 @@ const PRESCRIPTION_STAGES = [
 ];
 
 const ORDER_STATUS_STEP = {
+  'Pricing Pending': 1,
   Pending: 2,
   Verified: 2,
   Packed: 3,
@@ -51,6 +52,7 @@ function getStatusText(prescription, linkedOrder) {
   if (linkedOrder?.status === 'Delivered') return 'Delivered';
   if (linkedOrder?.status === 'Dispatched') return 'Out for delivery';
   if (linkedOrder?.status === 'Packed') return 'Packed and waiting for dispatch';
+  if (linkedOrder?.status === 'Pricing Pending') return 'Approved. Pharmacy is checking medicine availability and final price.';
   if (linkedOrder) return 'Order created and waiting for pharmacy processing';
   if (prescription?.status === 'Approved') return 'Approved and waiting for medicine preparation';
   if (prescription?.status === 'Rejected') return prescription.rejectionReason || 'Prescription rejected';

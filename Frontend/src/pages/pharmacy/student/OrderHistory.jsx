@@ -253,7 +253,9 @@ const OrderHistory = () => {
                           <div className="flex flex-col items-end gap-4">
                             <div className="text-right">
                               <p className="text-xs font-bold text-secondary-text/80 uppercase tracking-wider mb-1">Total Amount</p>
-                              <p className="text-2xl font-bold text-primary-text">${Number(order.total || 0).toFixed(2)}</p>
+                              <p className="text-2xl font-bold text-primary-text">
+                                {order.status === 'Pricing Pending' ? 'Pending' : `$${Number(order.total || 0).toFixed(2)}`}
+                              </p>
                             </div>
                             <div className="flex gap-3 w-full md:w-auto">
                               <button
@@ -325,6 +327,14 @@ const OrderHistory = () => {
                               <p className="text-xs font-bold text-accent-primary uppercase tracking-widest text-center md:text-right">
                                 {linkedOrder ? 'Approved and order created' : 'Approved - waiting for pharmacy order'}
                               </p>
+                              {linkedOrder && (
+                                <div className="text-center md:text-right">
+                                  <p className="text-xs font-bold text-secondary-text/80 uppercase tracking-wider mb-1">Total Amount</p>
+                                  <p className="text-2xl font-bold text-primary-text">
+                                    {linkedOrder.status === 'Pricing Pending' ? 'Price Pending' : `$${Number(linkedOrder.total || 0).toFixed(2)}`}
+                                  </p>
+                                </div>
+                              )}
                               <Link
                                 to={linkedOrder ? `/student/pharmacy/order/${linkedOrder._id}` : `/student/pharmacy/prescription/${prescription._id}/track`}
                                 className="w-full px-8 py-4 bg-accent-primary text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#105f72] transition-all shadow-lg shadow-cyan-100"

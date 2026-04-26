@@ -442,6 +442,166 @@ const seedData = {
       storage: 'Keep in protective case.',
       image: 'https://images.unsplash.com/photo-1584622781464-111162447959?auto=format&fit=crop&q=80&w=400',
       isActive: true
+    },
+    {
+      name: 'Saline Nasal Spray',
+      strength: '100ml',
+      manufacturer: 'NeilMed',
+      price: 9.75,
+      stock: 70,
+      reorderLevel: 15,
+      requiresPrescription: false,
+      category: 'Cold & Flu',
+      description: 'Gentle saline spray for nasal dryness and congestion relief.',
+      usage: 'Spray into each nostril as needed.',
+      sideEffects: 'Mild nasal irritation may occur.',
+      storage: 'Store at room temperature and keep cap closed.',
+      image: 'https://images.unsplash.com/photo-1585435557343-3b092031a831?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Cough Syrup DM',
+      strength: '120ml',
+      manufacturer: 'Robitussin',
+      price: 11.25,
+      stock: 55,
+      reorderLevel: 12,
+      requiresPrescription: false,
+      category: 'Cold & Flu',
+      description: 'Cough suppressant syrup for temporary relief from dry cough.',
+      usage: 'Take as directed on the label or by a clinician.',
+      sideEffects: 'Drowsiness, dizziness, or mild stomach upset.',
+      storage: 'Store below 30C away from direct sunlight.',
+      image: 'https://images.unsplash.com/photo-1588776814546-daab30f310ce?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Oral Rehydration Salts',
+      strength: '20.5g sachets',
+      manufacturer: 'UNICEF Supply',
+      price: 3.50,
+      stock: 180,
+      reorderLevel: 30,
+      requiresPrescription: false,
+      category: 'Wellness',
+      description: 'Electrolyte powder for dehydration support after vomiting, diarrhea, or heavy sweating.',
+      usage: 'Dissolve one sachet in clean water as directed.',
+      sideEffects: 'May cause nausea if mixed incorrectly.',
+      storage: 'Keep sachets sealed in a cool, dry place.',
+      image: 'https://images.unsplash.com/photo-1603398938378-e54eab446dde?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Antacid Chewable Tablets',
+      strength: '500mg',
+      manufacturer: 'Tums',
+      price: 6.25,
+      stock: 95,
+      reorderLevel: 20,
+      requiresPrescription: false,
+      category: 'Wellness',
+      description: 'Chewable tablets for occasional heartburn and acid indigestion.',
+      usage: 'Chew 1-2 tablets as needed after meals.',
+      sideEffects: 'Constipation or mild stomach discomfort.',
+      storage: 'Store tightly closed at room temperature.',
+      image: 'https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Hydrocortisone Cream',
+      strength: '1% 15g',
+      manufacturer: 'Cortizone',
+      price: 8.99,
+      stock: 40,
+      reorderLevel: 10,
+      requiresPrescription: false,
+      category: 'Personal Care',
+      description: 'Topical cream for temporary relief of minor skin irritation and itching.',
+      usage: 'Apply a thin layer to affected area 1-2 times daily.',
+      sideEffects: 'Skin dryness, burning, or irritation.',
+      storage: 'Store below 25C and keep tube closed.',
+      image: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Antiseptic Wound Spray',
+      strength: '50ml',
+      manufacturer: 'Betadine',
+      price: 10.50,
+      stock: 65,
+      reorderLevel: 15,
+      requiresPrescription: false,
+      category: 'First Aid',
+      description: 'Antiseptic spray for cleaning minor cuts, grazes, and wounds.',
+      usage: 'Spray onto cleaned wound area as needed.',
+      sideEffects: 'Temporary stinging or skin discoloration.',
+      storage: 'Store away from heat and flame.',
+      image: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Adhesive Bandages',
+      strength: 'Assorted 40 Pack',
+      manufacturer: 'Band-Aid',
+      price: 5.75,
+      stock: 150,
+      reorderLevel: 25,
+      requiresPrescription: false,
+      category: 'First Aid',
+      description: 'Assorted sterile adhesive bandages for minor cuts and scrapes.',
+      usage: 'Clean wound, dry skin, and apply bandage.',
+      sideEffects: 'Possible adhesive sensitivity.',
+      storage: 'Store in a dry, clean place.',
+      image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Azithromycin',
+      strength: '500mg',
+      manufacturer: 'Sandoz',
+      price: 18.90,
+      stock: 35,
+      reorderLevel: 10,
+      requiresPrescription: true,
+      category: 'Antibiotics',
+      description: 'Macrolide antibiotic used for selected bacterial infections when prescribed.',
+      usage: 'Take exactly as prescribed by a doctor.',
+      sideEffects: 'Nausea, diarrhea, abdominal pain, or headache.',
+      storage: 'Store at room temperature away from moisture.',
+      image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Loratadine',
+      strength: '10mg',
+      manufacturer: 'Claritin',
+      price: 9.40,
+      stock: 75,
+      reorderLevel: 15,
+      requiresPrescription: false,
+      category: 'Allergy',
+      description: 'Non-drowsy antihistamine for seasonal allergy symptoms.',
+      usage: 'Take one tablet daily as needed.',
+      sideEffects: 'Headache, dry mouth, or tiredness.',
+      storage: 'Store at room temperature.',
+      image: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?auto=format&fit=crop&q=80&w=400',
+      isActive: true
+    },
+    {
+      name: 'Disposable Gloves',
+      strength: 'Nitrile 100 Pack',
+      manufacturer: 'Medline',
+      price: 16.75,
+      stock: 90,
+      reorderLevel: 20,
+      requiresPrescription: false,
+      category: 'Hygiene',
+      description: 'Powder-free nitrile gloves for first aid and hygiene use.',
+      usage: 'Wear during cleaning, first aid, or handling potentially contaminated items.',
+      sideEffects: 'Possible skin sensitivity in some users.',
+      storage: 'Store in a cool, dry place away from sunlight.',
+      image: 'https://images.unsplash.com/photo-1583947581924-860bda6a26df?auto=format&fit=crop&q=80&w=400',
+      isActive: true
     }
   ],
 
@@ -1174,6 +1334,22 @@ const seedDatabase = async (models) => {
         safeSeedLog('Sample prescription created for John Doe');
       }
 
+      const demoPrescriptionImageUrl = '/assets/demo-prescription.svg';
+
+      if (secondStudent) {
+        const existingDemoPrescription = await Prescription.findOne({
+          studentId: secondStudent._id,
+          notes: 'Demo pharmacy prescription for pharmacist review.'
+        });
+
+        if (existingDemoPrescription && !existingDemoPrescription.imageUrl) {
+          existingDemoPrescription.imageUrl = demoPrescriptionImageUrl;
+          existingDemoPrescription.fileMimeType = 'image/svg+xml';
+          await existingDemoPrescription.save();
+          safeSeedLog('Demo pharmacy prescription image synced for Jane Smith');
+        }
+      }
+
       if (secondStudent && !await Prescription.findOne({
         studentId: secondStudent._id,
         notes: 'Demo pharmacy prescription for pharmacist review.'
@@ -1193,6 +1369,8 @@ const seedDatabase = async (models) => {
               instructions: 'Demo prescription for pharmacy verification testing.'
             }
           ],
+          imageUrl: demoPrescriptionImageUrl,
+          fileMimeType: 'image/svg+xml',
           notes: 'Demo pharmacy prescription for pharmacist review.'
         });
         safeSeedLog('Demo pharmacy prescription created for Jane Smith');
