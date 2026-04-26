@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+Backend/node_modules/
+Frontend/node_modules/
+
+# Backend test files and results
+Backend/jest.config.js
+Backend/tests/
+Backend/coverage/
+Backend/.nyc_output/
+
+# Frontend Cypress test files and results
+Frontend/cypress.config.js
+Frontend/cypress/
+Frontend/coverage/
+Frontend/.nyc_output/
+
+# Test coverage and reports
+coverage/
+test-results/
+junit.xml
+
+# Local logs and run output
+logs/
+*.log
+logs/cypress-*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
