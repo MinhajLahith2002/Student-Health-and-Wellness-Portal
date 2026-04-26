@@ -19,6 +19,7 @@ import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
 
 const STATUS_TO_STEP = {
+  'Pricing Pending': 0,
   Pending: 1,
   Verified: 1,
   Packed: 2,
@@ -35,7 +36,8 @@ const DIRECT_TRACKING_STAGES = [
 ];
 
 const PRESCRIPTION_TRACKING_STAGES = [
-  { id: 'verified', label: 'Live Medicine Preparation', step: 1 },
+  { id: 'pricing', label: 'Pricing Review', step: 0 },
+  { id: 'verified', label: 'Medicine Preparation', step: 1 },
   { id: 'packed', label: 'Packed', step: 2 },
   { id: 'dispatched', label: 'Dispatched', step: 3 },
   { id: 'delivered', label: 'Delivered', step: 4 }
@@ -59,6 +61,8 @@ function formatOrderDate(value) {
 
 function getStatusPillClass(status) {
   switch (status) {
+    case 'Pricing Pending':
+      return 'bg-amber-50 text-amber-700 border-amber-100';
     case 'Delivered':
       return 'bg-emerald-50 text-emerald-700 border-emerald-100';
     case 'Cancelled':
@@ -72,6 +76,8 @@ function getStatusPillClass(status) {
 
 function getOrderProgressMessage(order) {
   switch (order?.status) {
+    case 'Pricing Pending':
+      return 'The pharmacist is checking medicine availability and price before confirming this prescription order.';
     case 'Delivered':
       return order?.deliveredAt ? `Delivered on ${formatOrderDate(order.deliveredAt)}` : 'Delivered successfully';
     case 'Dispatched':
@@ -292,6 +298,19 @@ const OrderTracking = () => {
                     </div>
                   </div>
                 ))}
+                {(order.items || []).length === 0 && (
+                  <div className="p-6 bg-amber-50 border border-amber-100">
+                    <div className="flex gap-4">
+                      <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-amber-950">Pricing not confirmed yet</p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          Pharmacy is checking whether the prescribed medicines are available and what the final amount should be.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="p-6 bg-[#eff6f9] flex justify-between items-center">
                 <span className="font-bold text-secondary-text">Total Amount</span>

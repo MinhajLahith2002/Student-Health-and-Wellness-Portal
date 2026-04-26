@@ -6,15 +6,22 @@ import Prescription from '../models/Prescription.js';
 import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import emailService from '../utils/emailService.js';
+import { buildPrescriptionOrderPricing } from '../utils/prescriptionOrderBuilder.js';
 
 const createPrescriptionOrder = async (prescription) => {
   if (!prescription?.studentId?.email) {
     return null;
   }
 
+  const pricing = await buildPrescriptionOrderPricing(prescription);
+  const pricingInstructions = pricing.pricingNotes.length
+    ? `Pricing review needed: ${pricing.pricingNotes.join(' ')}`
+    : '';
+
   const specialInstructions = [
     prescription.pharmacistNotes || 'Prescription approved for pharmacy preparation.',
-    prescription.deliveryInstructions
+    prescription.deliveryInstructions,
+    pricingInstructions
   ].filter(Boolean).join(' ');
 
   return Order.create({
@@ -22,16 +29,16 @@ const createPrescriptionOrder = async (prescription) => {
     studentName: prescription.studentName || prescription.studentId.name,
     studentEmail: prescription.studentId.email,
     studentPhone: prescription.studentId.phone,
-    items: [],
-    subtotal: 0,
-    deliveryFee: 0,
-    total: 0,
+    items: pricing.items,
+    subtotal: pricing.subtotal,
+    deliveryFee: pricing.deliveryFee,
+    total: pricing.total,
     paymentMethod: 'Cash on Delivery',
     address: prescription.deliveryAddress || 'Delivery address pending - confirm with student before dispatch',
     specialInstructions,
     prescriptionId: prescription._id,
     orderType: 'Prescription',
-    status: 'Pending'
+    status: pricing.items.length > 0 ? 'Pending' : 'Pricing Pending'
   });
 };
 
@@ -45,12 +52,32 @@ const ensureApprovedPrescriptionOrders = async (studentId = null) => {
   if (approvedPrescriptions.length === 0) return;
 
   const prescriptionIds = approvedPrescriptions.map((prescription) => prescription._id);
-  const existingOrders = await Order.find({ prescriptionId: { $in: prescriptionIds } }).select('prescriptionId');
+  const existingOrders = await Order.find({ prescriptionId: { $in: prescriptionIds } });
   const orderedPrescriptionIds = new Set(existingOrders.map((order) => order.prescriptionId?.toString()).filter(Boolean));
 
   for (const prescription of approvedPrescriptions) {
+    const existingOrder = existingOrders.find((order) => order.prescriptionId?.toString() === prescription._id.toString());
+
     if (!orderedPrescriptionIds.has(prescription._id.toString())) {
       await createPrescriptionOrder(prescription);
+    } else if (existingOrder && (existingOrder.items || []).length === 0 && Number(existingOrder.total || 0) === 0) {
+      const pricing = await buildPrescriptionOrderPricing(prescription);
+      const pricingInstructions = pricing.pricingNotes.length
+        ? `Pricing review needed: ${pricing.pricingNotes.join(' ')}`
+        : '';
+
+      existingOrder.items = pricing.items;
+      existingOrder.subtotal = pricing.subtotal;
+      existingOrder.deliveryFee = pricing.deliveryFee;
+      existingOrder.total = pricing.total;
+      existingOrder.status = pricing.items.length > 0 ? 'Pending' : 'Pricing Pending';
+      if (pricingInstructions && !String(existingOrder.specialInstructions || '').includes(pricingInstructions)) {
+        existingOrder.specialInstructions = [
+          existingOrder.specialInstructions,
+          pricingInstructions
+        ].filter(Boolean).join(' ');
+      }
+      await existingOrder.save();
     }
   }
 };
@@ -156,6 +183,99 @@ const createOrder = async (req, res) => {
   }
 };
 
+// @desc    Resolve prescription order pricing
+// @route   PUT /api/orders/:id/pricing
+// @access  Private/Pharmacist
+const resolveOrderPricing = async (req, res) => {
+  try {
+    const { items, deliveryFee = 2.5, pricingNotes = '' } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'At least one priced medicine item is required' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.orderType !== 'Prescription') {
+      return res.status(400).json({ message: 'Only prescription orders can be manually priced' });
+    }
+
+    if (order.status !== 'Pricing Pending') {
+      return res.status(400).json({ message: 'Only pricing pending orders can be manually priced' });
+    }
+
+    const orderItems = [];
+    let subtotal = 0;
+
+    for (const item of items) {
+      const quantity = Number(item.quantity);
+      const unitPrice = Number(item.price);
+
+      if (!item?.medicineId || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
+        return res.status(400).json({ message: 'Each item must include medicineId, quantity, and price' });
+      }
+
+      const medicine = await Medicine.findById(item.medicineId);
+      if (!medicine || !medicine.isActive) {
+        return res.status(404).json({ message: `Medicine not found or inactive: ${item.medicineId}` });
+      }
+
+      if (medicine.stock < quantity) {
+        return res.status(400).json({ message: `Only ${medicine.stock} ${medicine.name} available in stock` });
+      }
+
+      orderItems.push({
+        medicineId: medicine._id,
+        name: medicine.name,
+        price: unitPrice,
+        quantity,
+        requiresPrescription: medicine.requiresPrescription
+      });
+      subtotal += unitPrice * quantity;
+    }
+
+    for (const item of orderItems) {
+      await Medicine.findByIdAndUpdate(item.medicineId, {
+        $inc: { stock: -item.quantity }
+      });
+    }
+
+    const parsedDeliveryFee = Number(deliveryFee);
+    const safeDeliveryFee = Number.isFinite(parsedDeliveryFee) && parsedDeliveryFee >= 0 ? parsedDeliveryFee : 0;
+
+    order.items = orderItems;
+    order.subtotal = subtotal;
+    order.deliveryFee = safeDeliveryFee;
+    order.total = subtotal + safeDeliveryFee;
+    order.status = 'Pending';
+    order.specialInstructions = [
+      order.specialInstructions,
+      pricingNotes ? `Pricing note: ${pricingNotes}` : ''
+    ].filter(Boolean).join(' ');
+
+    await order.save();
+
+    await AuditLog.create({
+      userId: req.user.id,
+      userName: req.user.name,
+      action: 'Prescription Order Priced',
+      module: 'Pharmacy',
+      details: `Order ID: ${order._id} priced at ${order.total}`,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      level: 'success',
+      timestamp: Date.now()
+    });
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Get user orders
 // @route   GET /api/orders
 // @access  Private
@@ -227,6 +347,12 @@ const updateOrderStatus = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (status !== 'Cancelled' && order.status === 'Pricing Pending') {
+      return res.status(400).json({
+        message: 'Resolve prescription medicine pricing before moving this order into fulfillment.'
+      });
     }
 
     order.status = status;
@@ -303,6 +429,7 @@ const getAllOrders = async (req, res) => {
 
 export default {
   createOrder,
+  resolveOrderPricing,
   getOrders,
   getOrderById,
   updateOrderStatus,
