@@ -3,6 +3,7 @@ import { Search, Upload, Package, ShieldAlert, MapPin, ShoppingBag, ArrowRight, 
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../../lib/api';
+import { getProductImage, getProductPlaceholderImage } from '../../../lib/pharmacyCart';
 
 const QuickActionCard = ({ icon, title, description, to }) => (
   <Link to={to} className="block">
@@ -163,10 +164,14 @@ const PharmacyDashboard = () => {
               <motion.div key={med._id} whileHover={{ y: -4 }} className="pharmacy-card rounded-2xl overflow-hidden group">
                 <div className="aspect-[4/3] bg-[#edf6f8] relative overflow-hidden">
                   <img
-                    src={med.image}
+                    src={getProductImage(med)}
                     alt={med.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = getProductPlaceholderImage(med);
+                    }}
                   />
                   {med.requiresPrescription && (
                     <div className="absolute top-2 right-2 px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md flex items-center">

@@ -55,6 +55,14 @@ const prescriptionSchema = new Schema({
     type: String,
     maxlength: 1000
   },
+  deliveryAddress: {
+    type: String,
+    maxlength: 500
+  },
+  deliveryInstructions: {
+    type: String,
+    maxlength: 500
+  },
   status: {
     type: String,
     enum: ['Pending', 'Approved', 'Rejected', 'Filled', 'Picked Up'],

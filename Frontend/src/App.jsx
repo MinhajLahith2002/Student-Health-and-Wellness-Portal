@@ -37,6 +37,7 @@ import PrescriptionUpload from './pages/pharmacy/student/PrescriptionUpload';
 import Checkout from './pages/pharmacy/student/Checkout';
 import OrderTracking from './pages/pharmacy/student/OrderTracking';
 import OrderHistory from './pages/pharmacy/student/OrderHistory';
+import PrescriptionTracking from './pages/pharmacy/student/PrescriptionTracking';
 import FirstAidGuide from './pages/pharmacy/student/FirstAid';
 import PharmacyLocator from './pages/pharmacy/student/PharmacyLocator';
 import HealthProducts from './pages/pharmacy/student/HealthProducts';
@@ -159,6 +160,7 @@ function AppLayout() {
           <Route path="/student/pharmacy/upload-prescription" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PrescriptionUpload /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/pharmacy/checkout" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><Checkout /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/pharmacy/order/:orderId" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><OrderTracking /></PageWrapper></ProtectedRoute>} />
+          <Route path="/student/pharmacy/prescription/:prescriptionId/track" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PrescriptionTracking /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/pharmacy/orders" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><OrderHistory /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/pharmacy/first-aid" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><FirstAidGuide /></PageWrapper></ProtectedRoute>} />
           <Route path="/student/pharmacy/locator" element={<ProtectedRoute allowedRoles={['student']}><PageWrapper><PharmacyLocator /></PageWrapper></ProtectedRoute>} />

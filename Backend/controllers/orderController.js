@@ -7,6 +7,54 @@ import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import emailService from '../utils/emailService.js';
 
+const createPrescriptionOrder = async (prescription) => {
+  if (!prescription?.studentId?.email) {
+    return null;
+  }
+
+  const specialInstructions = [
+    prescription.pharmacistNotes || 'Prescription approved for pharmacy preparation.',
+    prescription.deliveryInstructions
+  ].filter(Boolean).join(' ');
+
+  return Order.create({
+    studentId: prescription.studentId._id,
+    studentName: prescription.studentName || prescription.studentId.name,
+    studentEmail: prescription.studentId.email,
+    studentPhone: prescription.studentId.phone,
+    items: [],
+    subtotal: 0,
+    deliveryFee: 0,
+    total: 0,
+    paymentMethod: 'Cash on Delivery',
+    address: prescription.deliveryAddress || 'Delivery address pending - confirm with student before dispatch',
+    specialInstructions,
+    prescriptionId: prescription._id,
+    orderType: 'Prescription',
+    status: 'Pending'
+  });
+};
+
+const ensureApprovedPrescriptionOrders = async (studentId = null) => {
+  const prescriptionQuery = { status: 'Approved' };
+  if (studentId) prescriptionQuery.studentId = studentId;
+
+  const approvedPrescriptions = await Prescription.find(prescriptionQuery)
+    .populate('studentId', 'name email phone');
+
+  if (approvedPrescriptions.length === 0) return;
+
+  const prescriptionIds = approvedPrescriptions.map((prescription) => prescription._id);
+  const existingOrders = await Order.find({ prescriptionId: { $in: prescriptionIds } }).select('prescriptionId');
+  const orderedPrescriptionIds = new Set(existingOrders.map((order) => order.prescriptionId?.toString()).filter(Boolean));
+
+  for (const prescription of approvedPrescriptions) {
+    if (!orderedPrescriptionIds.has(prescription._id.toString())) {
+      await createPrescriptionOrder(prescription);
+    }
+  }
+};
+
 // @desc    Create order
 // @route   POST /api/orders
 // @access  Private
@@ -15,6 +63,11 @@ const createOrder = async (req, res) => {
     const { items, address, paymentMethod, specialInstructions, prescriptionId } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'At least one order item is required' });
+    }
+
+    const deliveryAddress = String(address || '').trim();
+    if (deliveryAddress.length < 8) {
+      return res.status(400).json({ message: 'Delivery address is required' });
     }
 
     let subtotal = 0;
@@ -83,9 +136,10 @@ const createOrder = async (req, res) => {
       deliveryFee,
       total,
       paymentMethod,
-      address,
+      address: deliveryAddress,
       specialInstructions,
       prescriptionId,
+      orderType: prescriptionId ? 'Prescription' : 'Direct',
       status: 'Pending'
     });
 
@@ -110,12 +164,15 @@ const getOrders = async (req, res) => {
     const { status, page = 1, limit = 20 } = req.query;
     const query = { studentId: req.user.id };
 
+    await ensureApprovedPrescriptionOrders(req.user.id);
+
     if (status && status !== 'All') query.status = status;
 
     const parsedPage = parseInt(page, 10);
     const parsedLimit = parseInt(limit, 10);
 
     const orders = await Order.find(query)
+      .populate('prescriptionId')
       .sort({ createdAt: -1 })
       .limit(parsedLimit)
       .skip((parsedPage - 1) * parsedLimit);
@@ -217,6 +274,8 @@ const getAllOrders = async (req, res) => {
     const { status, page = 1, limit = 20 } = req.query;
     const query = {};
 
+    await ensureApprovedPrescriptionOrders();
+
     if (status && status !== 'All') query.status = status;
 
     const parsedPage = parseInt(page, 10);
@@ -224,6 +283,7 @@ const getAllOrders = async (req, res) => {
 
     const orders = await Order.find(query)
       .populate('studentId', 'name email')
+      .populate('prescriptionId')
       .sort({ createdAt: -1 })
       .limit(parsedLimit)
       .skip((parsedPage - 1) * parsedLimit);

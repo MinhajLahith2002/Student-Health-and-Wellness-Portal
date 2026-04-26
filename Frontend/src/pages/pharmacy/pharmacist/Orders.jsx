@@ -13,24 +13,35 @@ import {
   MessageSquare,
   ChevronLeft,
   User,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '../../../lib/utils';
 import { apiFetch } from '../../../lib/api';
 
 const OrderManagement = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('New');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [orderTypeFilter, setOrderTypeFilter] = useState('Direct');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState('');
 
   const tabs = ['New', 'Processing', 'Dispatched', 'Delivered'];
+
+  useEffect(() => {
+    const requestedType = searchParams.get('type');
+    if (['Direct', 'Prescription'].includes(requestedType)) {
+      setOrderTypeFilter(requestedType);
+      setSelectedOrder(null);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let active = true;
@@ -81,6 +92,8 @@ const OrderManagement = () => {
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       const status = order.status || '';
+      const orderType = order.orderType || (order.prescriptionId ? 'Prescription' : 'Direct');
+      const matchesType = orderTypeFilter === 'All' || orderType === orderTypeFilter;
       const matchesTab =
         (activeTab === 'New' && ['Pending', 'Verified'].includes(status)) ||
         (activeTab === 'Processing' && status === 'Packed') ||
@@ -93,14 +106,21 @@ const OrderManagement = () => {
         (order.orderId || order._id || '').toLowerCase().includes(query) ||
         (order.studentName || '').toLowerCase().includes(query);
 
-      return matchesTab && matchesSearch;
+      return matchesType && matchesTab && matchesSearch;
     });
-  }, [orders, activeTab, searchQuery]);
+  }, [orders, orderTypeFilter, activeTab, searchQuery]);
+
+  useEffect(() => {
+    if (!selectedOrder && filteredOrders.length > 0) {
+      setSelectedOrder(filteredOrders[0]._id);
+    }
+  }, [filteredOrders, selectedOrder]);
 
   const currentOrder = useMemo(
     () => orders.find((order) => order._id === selectedOrder),
     [orders, selectedOrder]
   );
+  const currentOrderType = currentOrder?.orderType || (currentOrder?.prescriptionId ? 'Prescription' : 'Direct');
 
   const refreshOrders = async (preferredId = selectedOrder) => {
     const data = await apiFetch('/orders/all?limit=200');
@@ -149,6 +169,23 @@ const OrderManagement = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl">
+              {['Direct', 'Prescription'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setOrderTypeFilter(type);
+                    setSelectedOrder(null);
+                  }}
+                  className={cn(
+                    'px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap',
+                    orderTypeFilter === type ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  )}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
@@ -221,13 +258,23 @@ const OrderManagement = () => {
                           "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
                           selectedOrder === order._id ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-400"
                         )}>
-                          <Package className="w-6 h-6" />
+                          {(order.orderType || (order.prescriptionId ? 'Prescription' : 'Direct')) === 'Prescription'
+                            ? <FileText className="w-6 h-6" />
+                            : <Package className="w-6 h-6" />}
                         </div>
                         <div>
                           <h3 className={cn("font-bold", selectedOrder === order._id ? "text-emerald-900" : "text-slate-900")}>
                             Order {order.orderId || order._id}
                           </h3>
                           <p className="text-xs text-slate-500">{order.studentName}</p>
+                          <span className={cn(
+                            'mt-2 inline-flex px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider border',
+                            (order.orderType || (order.prescriptionId ? 'Prescription' : 'Direct')) === 'Prescription'
+                              ? 'bg-blue-50 text-blue-700 border-blue-100'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                          )}>
+                            {(order.orderType || (order.prescriptionId ? 'Prescription' : 'Direct'))} order
+                          </span>
                         </div>
                       </div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -254,9 +301,11 @@ const OrderManagement = () => {
               {!loading && filteredOrders.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-[32px] border border-slate-200 border-dashed">
                   <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Package className="w-8 h-8 text-slate-200" />
+                    {orderTypeFilter === 'Prescription'
+                      ? <FileText className="w-8 h-8 text-slate-200" />
+                      : <Package className="w-8 h-8 text-slate-200" />}
                   </div>
-                  <p className="text-slate-500 font-medium">No {activeTab.toLowerCase()} orders</p>
+                  <p className="text-slate-500 font-medium">No {activeTab.toLowerCase()} {orderTypeFilter.toLowerCase()} orders</p>
                 </div>
               )}
             </div>
@@ -278,10 +327,20 @@ const OrderManagement = () => {
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
                         <div className="flex items-center gap-6">
                           <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center text-emerald-600">
-                            <Package className="w-10 h-10" />
+                            {currentOrderType === 'Prescription' ? <FileText className="w-10 h-10" /> : <Package className="w-10 h-10" />}
                           </div>
                           <div>
-                            <h2 className="text-3xl font-bold text-slate-900">Order {currentOrder.orderId || currentOrder._id}</h2>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <h2 className="text-3xl font-bold text-slate-900">Order {currentOrder.orderId || currentOrder._id}</h2>
+                              <span className={cn(
+                                'px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+                                currentOrderType === 'Prescription'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                              )}>
+                                {currentOrderType} order
+                              </span>
+                            </div>
                             <p className="text-slate-500 font-medium">Student: {currentOrder.studentName}</p>
                             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
                               Placed on {new Date(currentOrder.createdAt).toLocaleString()}
@@ -323,7 +382,7 @@ const OrderManagement = () => {
                         <div className="space-y-6">
                           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Order Items</h3>
                           <div className="space-y-4">
-                            {currentOrder.items.map((item, idx) => {
+                            {currentOrder.items.length > 0 ? currentOrder.items.map((item, idx) => {
                               return (
                                 <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4 group">
                                   <div className="flex-1 min-w-0">
@@ -338,7 +397,22 @@ const OrderManagement = () => {
                                   </div>
                                 </div>
                               );
-                            })}
+                            }) : (
+                              <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100">
+                                <div className="flex gap-4">
+                                  <FileText className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+                                  <div>
+                                    <p className="font-bold text-blue-950">Prescription fulfillment</p>
+                                    <p className="text-sm text-blue-700 mt-1">
+                                      This order was created from an approved prescription. Prepare the medicines from the prescription document, then update tracking status below.
+                                    </p>
+                                    {currentOrder.prescriptionId?.notes && (
+                                      <p className="text-xs text-blue-700/80 italic mt-3">"{currentOrder.prescriptionId.notes}"</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <div className="p-6 bg-slate-900 rounded-2xl text-white flex justify-between items-center">
                             <span className="font-bold text-slate-400">Total Amount</span>

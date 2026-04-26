@@ -49,7 +49,7 @@ const PrescriptionProcessing = () => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
 
-  const tabs = ['Pending', 'Approved', 'Rejected'];
+  const tabs = ['Pending', 'Rejected'];
 
   useEffect(() => {
     let active = true;
@@ -137,7 +137,7 @@ const PrescriptionProcessing = () => {
       });
       setIsApproveModalOpen(false);
       setPharmacistNotes('');
-      await refreshPrescriptions();
+      navigate('/pharmacist/orders?type=Prescription');
     } catch (err) {
       setError(err.message || 'Failed to approve prescription');
     } finally {

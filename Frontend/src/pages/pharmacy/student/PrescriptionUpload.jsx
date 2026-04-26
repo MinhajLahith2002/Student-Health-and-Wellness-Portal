@@ -6,7 +6,8 @@ import {
   Clock, 
   ShieldCheck,
   Loader2,
-  FileText
+  FileText,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -18,11 +19,15 @@ const PrescriptionUpload = () => {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [notes, setNotes] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
+  const [addressTouched, setAddressTouched] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+  const isAddressValid = deliveryAddress.trim().length >= 8;
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files && e.target.files[0];
@@ -75,7 +80,8 @@ const PrescriptionUpload = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file) return;
+    setAddressTouched(true);
+    if (!file || !isAddressValid) return;
 
     setIsSubmitting(true);
     setError('');
@@ -83,6 +89,8 @@ const PrescriptionUpload = () => {
       const formData = new FormData();
       formData.append('prescription', file);
       formData.append('notes', notes);
+      formData.append('deliveryAddress', deliveryAddress.trim());
+      formData.append('deliveryInstructions', deliveryInstructions.trim());
 
       await apiFetch('/prescriptions/upload', {
         method: 'POST',
@@ -229,13 +237,40 @@ const PrescriptionUpload = () => {
                 />
               </div>
 
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-secondary-text/80 uppercase tracking-wider flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-accent-primary" /> Delivery Address
+                </label>
+                <textarea
+                  placeholder="Enter your campus delivery address, room number, hostel, or department..."
+                  className={cn(
+                    'w-full p-4 bg-[#eff6f9] border rounded-2xl focus:ring-2 focus:ring-accent-primary focus:bg-white transition-all min-h-[110px]',
+                    addressTouched && !isAddressValid ? 'border-rose-200 focus:border-rose-300' : 'border-transparent'
+                  )}
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  onBlur={() => setAddressTouched(true)}
+                  required
+                />
+                {addressTouched && !isAddressValid && (
+                  <p className="text-xs font-semibold text-rose-600">Delivery address is required before uploading a prescription.</p>
+                )}
+                <input
+                  type="text"
+                  placeholder="Delivery instructions (optional), e.g., call before delivery"
+                  className="w-full p-4 bg-[#eff6f9] border border-transparent rounded-2xl focus:ring-2 focus:ring-accent-primary focus:bg-white transition-all"
+                  value={deliveryInstructions}
+                  onChange={(e) => setDeliveryInstructions(e.target.value)}
+                />
+              </div>
+
               {/* Submit Button */}
               <button 
                 type="submit"
-                disabled={!file || isSubmitting}
+                disabled={!file || !isAddressValid || isSubmitting}
                 className={cn(
                   "w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg",
-                  file && !isSubmitting 
+                  file && isAddressValid && !isSubmitting
                     ? "bg-accent-primary text-white hover:bg-[#105f72] shadow-cyan-100" 
                     : "bg-[#e6f0f4] text-secondary-text/80 cursor-not-allowed shadow-none"
                 )}

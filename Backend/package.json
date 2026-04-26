@@ -9,7 +9,8 @@
     "seed": "node scripts/seed.js",
     "seed:dev": "NODE_ENV=development node scripts/seed.js",
     "seed:prod": "NODE_ENV=production node scripts/seed.js",
-    "start": "node -e \"const path=require('node:path');const {pathToFileURL}=require('node:url');const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,'server.js')).href);\""
+    "start": "node -e \"const path=require('node:path');const {pathToFileURL}=require('node:url');const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,'server.js')).href);\"",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "keywords": [],
   "author": "",
@@ -40,6 +41,8 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "jest": "^30.3.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }

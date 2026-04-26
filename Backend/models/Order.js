@@ -69,6 +69,11 @@ const orderSchema = new Schema({
     enum: ['Pending', 'Verified', 'Packed', 'Dispatched', 'Delivered', 'Cancelled'],
     default: 'Pending'
   },
+  orderType: {
+    type: String,
+    enum: ['Direct', 'Prescription'],
+    default: 'Direct'
+  },
   paymentMethod: {
     type: String,
     enum: ['Campus Card', 'Credit Card', 'Debit Card', 'Cash on Delivery'],
