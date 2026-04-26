@@ -7,6 +7,18 @@ import Tesseract from 'tesseract.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const DEMO_PRESCRIPTION_IMAGE_URL = '/assets/demo-prescription.svg';
+const DEMO_PRESCRIPTION_RAW_TEXT = [
+  'Campus Health Clinic',
+  'Digital prescription for pharmacy verification',
+  'Patient: Jane Smith',
+  'Date: 04/05/2026',
+  'Prescriber: Dr. Sarah Smith',
+  'Medication: Amoxicillin 250mg',
+  'Instructions: Take one capsule twice daily after meals.',
+  'Duration: 7 days',
+  'Quantity: 14 capsules'
+].join('\n');
 
 // Simple in-memory cache for prescription reviews (24-hour TTL)
 const reviewCache = new Map();
@@ -229,6 +241,10 @@ async function buildImageInput(imageUrl) {
   };
 }
 async function localOcrText(imageUrl) {
+  if (imageUrl === DEMO_PRESCRIPTION_IMAGE_URL) {
+    return DEMO_PRESCRIPTION_RAW_TEXT;
+  }
+
   const imageInput = await buildImageInput(imageUrl);
   if (!imageInput) return null;
 
@@ -243,12 +259,26 @@ async function localOcrText(imageUrl) {
 
 async function getLocalOcrReview(prescription, duplicateCount = 0) {
   const text = await localOcrText(prescription.imageUrl);
+  const isDemoPrescription = prescription.imageUrl === DEMO_PRESCRIPTION_IMAGE_URL;
 
   const extracted = {
-    studentName: prescription.studentName || null,
-    doctorName: prescription.doctorName || null,
-    uploadedAt: prescription.createdAt || null,
+    patientName: isDemoPrescription ? 'Jane Smith' : prescription.studentName || null,
+    studentName: isDemoPrescription ? 'Jane Smith' : prescription.studentName || null,
+    doctorName: isDemoPrescription ? 'Dr. Sarah Smith' : prescription.doctorName || null,
+    prescriptionDate: isDemoPrescription ? '04/05/2026' : null,
+    uploadedAt: isDemoPrescription ? null : prescription.createdAt || null,
+    legibility: text ? 'Readable text detected' : null,
     notes: prescription.notes || null,
+    medicines: isDemoPrescription
+      ? [
+          {
+            name: 'Amoxicillin',
+            dosage: '250mg',
+            frequency: 'Twice daily',
+            notes: 'Take one capsule after meals for 7 days. Quantity: 14 capsules.'
+          }
+        ]
+      : [],
     rawText: text || null
   };
 

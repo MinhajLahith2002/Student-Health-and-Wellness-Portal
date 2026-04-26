@@ -201,6 +201,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 app.use('/uploads', expressStatic(UPLOAD_ROOT));
+app.use('/assets', expressStatic(join(__dirname, 'assets')));
 app.use('/public', expressStatic(join(__dirname, 'public')));
 
 app.use((req, res, next) => {

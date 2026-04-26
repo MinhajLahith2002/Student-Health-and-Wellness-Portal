@@ -243,6 +243,7 @@ describe('Pharmacy pharmacist prescription controller', () => {
       },
       studentName: 'John Doe',
       status: 'Pending',
+      medicines: [{ name: 'Amoxicillin 250mg', quantity: 2 }],
       createdAt: new Date('2026-04-23T10:00:00.000Z'),
       deliveryAddress: 'Dorm A, Room 302',
       deliveryInstructions: 'Call before delivery',
@@ -254,6 +255,17 @@ describe('Pharmacy pharmacist prescription controller', () => {
     });
     jest.spyOn(Order, 'findOne').mockResolvedValue(null);
     jest.spyOn(Order, 'create').mockResolvedValue({});
+    jest.spyOn(Medicine, 'find').mockReturnValue({
+      select: jest.fn().mockResolvedValue([
+        {
+          _id: 'medicine-1',
+          name: 'Amoxicillin',
+          price: 12.5,
+          stock: 10,
+          requiresPrescription: true
+        }
+      ])
+    });
     jest.spyOn(Notification, 'create').mockResolvedValue({});
     jest.spyOn(AuditLog, 'create').mockResolvedValue({});
 
@@ -274,7 +286,19 @@ describe('Pharmacy pharmacist prescription controller', () => {
       address: 'Dorm A, Room 302',
       specialInstructions: 'Approved for preparation Call before delivery',
       prescriptionId: 'prescription-1',
-      orderType: 'Prescription'
+      orderType: 'Prescription',
+      items: [
+        {
+          medicineId: 'medicine-1',
+          name: 'Amoxicillin',
+          price: 12.5,
+          quantity: 2,
+          requiresPrescription: true
+        }
+      ],
+      subtotal: 25,
+      deliveryFee: 2.5,
+      total: 27.5
     }));
     expect(res.json).toHaveBeenCalledWith(prescription);
   });

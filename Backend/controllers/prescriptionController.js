@@ -8,8 +8,26 @@ import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import cloudinaryService from '../utils/cloudinaryService.js';
 import { generatePrescriptionReview } from '../utils/prescriptionReviewService.js';
+import { buildPrescriptionOrderPricing } from '../utils/prescriptionOrderBuilder.js';
 
 const { uploadPrescription: uploadPrescriptionImage, isCloudinaryConfigured } = cloudinaryService;
+const DEMO_PRESCRIPTION_NOTES = 'Demo pharmacy prescription for pharmacist review.';
+const DEMO_PRESCRIPTION_IMAGE_URL = '/assets/demo-prescription.svg';
+
+const withDemoPrescriptionImage = (prescription) => {
+  if (!prescription) return prescription;
+
+  const nextPrescription = typeof prescription.toObject === 'function'
+    ? prescription.toObject()
+    : { ...prescription };
+
+  if (!nextPrescription.imageUrl && nextPrescription.notes === DEMO_PRESCRIPTION_NOTES) {
+    nextPrescription.imageUrl = DEMO_PRESCRIPTION_IMAGE_URL;
+    nextPrescription.fileMimeType = 'image/svg+xml';
+  }
+
+  return nextPrescription;
+};
 
 // @desc    Get prescriptions
 // @route   GET /api/prescriptions
@@ -42,7 +60,7 @@ const getPrescriptions = async (req, res) => {
     const total = await Prescription.countDocuments(query);
 
     res.json({
-      prescriptions,
+      prescriptions: prescriptions.map(withDemoPrescriptionImage),
       totalPages: Math.ceil(total / parsedLimit),
       currentPage: parsedPage,
       total
@@ -132,7 +150,7 @@ const getPrescriptionReview = async (req, res) => {
       createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
     });
 
-    const review = await generatePrescriptionReview(prescription, duplicateCount);
+    const review = await generatePrescriptionReview(withDemoPrescriptionImage(prescription), duplicateCount);
     res.json(review);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -170,24 +188,30 @@ const verifyPrescription = async (req, res) => {
       const existingOrder = await Order.findOne({ prescriptionId: prescription._id });
 
       if (!existingOrder) {
+        const pricing = await buildPrescriptionOrderPricing(prescription);
+        const pricingInstructions = pricing.pricingNotes.length
+          ? `Pricing review needed: ${pricing.pricingNotes.join(' ')}`
+          : '';
+
         await Order.create({
           studentId: prescription.studentId._id,
           studentName: prescription.studentName || prescription.studentId.name,
           studentEmail: prescription.studentId.email,
           studentPhone: prescription.studentId.phone,
-          items: [],
-          subtotal: 0,
-          deliveryFee: 0,
-          total: 0,
+          items: pricing.items,
+          subtotal: pricing.subtotal,
+          deliveryFee: pricing.deliveryFee,
+          total: pricing.total,
           paymentMethod: 'Cash on Delivery',
           address: prescription.deliveryAddress || 'Delivery address pending - confirm with student before dispatch',
           specialInstructions: [
             pharmacistNotes || 'Prescription approved for pharmacy preparation.',
-            prescription.deliveryInstructions
+            prescription.deliveryInstructions,
+            pricingInstructions
           ].filter(Boolean).join(' '),
           prescriptionId: prescription._id,
           orderType: 'Prescription',
-          status: 'Pending'
+          status: pricing.items.length > 0 ? 'Pending' : 'Pricing Pending'
         });
       }
     }
@@ -217,7 +241,7 @@ const verifyPrescription = async (req, res) => {
       timestamp: Date.now()
     });
 
-    res.json(prescription);
+    res.json(withDemoPrescriptionImage(prescription));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

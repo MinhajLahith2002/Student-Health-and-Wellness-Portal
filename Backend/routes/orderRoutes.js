@@ -7,6 +7,7 @@ import roleMiddleware from '../middleware/roleMiddleware.js';
 
 const {
   createOrder,
+  resolveOrderPricing,
   getOrders,
   getOrderById,
   updateOrderStatus,
@@ -21,6 +22,7 @@ router.get('/', protect, getOrders);
 router.get('/all', protect, authorize('pharmacist'), getAllOrders);
 router.get('/:id', protect, getOrderById);
 router.post('/', protect, authorize('student'), createOrder);
+router.put('/:id/pricing', protect, authorize('pharmacist'), resolveOrderPricing);
 router.put('/:id/status', protect, authorize('pharmacist'), updateOrderStatus);
 
 export default router;
