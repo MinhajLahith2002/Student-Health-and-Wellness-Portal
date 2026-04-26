@@ -14,7 +14,9 @@ import {
   ChevronLeft,
   User,
   Loader2,
-  FileText
+  FileText,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -32,6 +34,10 @@ const OrderManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState('');
+  const [medicines, setMedicines] = useState([]);
+  const [pricingDraft, setPricingDraft] = useState([]);
+  const [pricingForm, setPricingForm] = useState({ medicineId: '', quantity: 1, price: '' });
+  const [pricingNotes, setPricingNotes] = useState('');
 
   const tabs = ['New', 'Processing', 'Dispatched', 'Delivered'];
 
@@ -89,13 +95,32 @@ const OrderManagement = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadMedicines = async () => {
+      try {
+        const data = await apiFetch('/medicines?limit=500');
+        if (!active) return;
+        setMedicines(Array.isArray(data?.medicines) ? data.medicines.filter((medicine) => medicine.stock > 0) : []);
+      } catch {
+        if (active) setMedicines([]);
+      }
+    };
+
+    loadMedicines();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       const status = order.status || '';
       const orderType = order.orderType || (order.prescriptionId ? 'Prescription' : 'Direct');
       const matchesType = orderTypeFilter === 'All' || orderType === orderTypeFilter;
       const matchesTab =
-        (activeTab === 'New' && ['Pending', 'Verified'].includes(status)) ||
+        (activeTab === 'New' && ['Pricing Pending', 'Pending', 'Verified'].includes(status)) ||
         (activeTab === 'Processing' && status === 'Packed') ||
         (activeTab === 'Dispatched' && status === 'Dispatched') ||
         (activeTab === 'Delivered' && status === 'Delivered');
@@ -121,6 +146,78 @@ const OrderManagement = () => {
     [orders, selectedOrder]
   );
   const currentOrderType = currentOrder?.orderType || (currentOrder?.prescriptionId ? 'Prescription' : 'Direct');
+  const getOrderLabel = (order) => order?.orderId || order?._id || 'Pending ID';
+  const getPricingSummary = (order) => {
+    if (order?.status !== 'Pricing Pending') return '';
+    if ((order.items || []).length > 0) return '';
+
+    return 'No priced inventory items are attached yet. Confirm medicine availability and pricing before packing.';
+  };
+  const selectedMedicine = medicines.find((medicine) => medicine._id === pricingForm.medicineId);
+  const pricingDraftTotal = pricingDraft.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+
+  useEffect(() => {
+    setPricingDraft([]);
+    setPricingNotes('');
+    setPricingForm({ medicineId: '', quantity: 1, price: '' });
+  }, [selectedOrder]);
+
+  const handleMedicineSelect = (medicineId) => {
+    const medicine = medicines.find((item) => item._id === medicineId);
+    setPricingForm({
+      medicineId,
+      quantity: 1,
+      price: medicine ? String(medicine.price) : ''
+    });
+  };
+
+  const addPricingItem = () => {
+    if (!selectedMedicine) return;
+    const quantity = Math.max(1, Number(pricingForm.quantity) || 1);
+    const price = Math.max(0, Number(pricingForm.price) || 0);
+    const safeQuantity = Math.min(quantity, selectedMedicine.stock);
+
+    setPricingDraft((current) => [
+      ...current,
+      {
+        medicineId: selectedMedicine._id,
+        name: selectedMedicine.name,
+        stock: selectedMedicine.stock,
+        quantity: safeQuantity,
+        price,
+        requiresPrescription: selectedMedicine.requiresPrescription
+      }
+    ]);
+    setPricingForm({ medicineId: '', quantity: 1, price: '' });
+  };
+
+  const removePricingItem = (indexToRemove) => {
+    setPricingDraft((current) => current.filter((_, index) => index !== indexToRemove));
+  };
+
+  const submitPricing = async () => {
+    if (!currentOrder || pricingDraft.length === 0) return;
+
+    try {
+      setIsUpdating(true);
+      setError('');
+      await apiFetch(`/orders/${currentOrder._id}/pricing`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          items: pricingDraft.map(({ medicineId, quantity, price }) => ({ medicineId, quantity, price })),
+          deliveryFee: 2.5,
+          pricingNotes
+        })
+      });
+      setPricingDraft([]);
+      setPricingNotes('');
+      await refreshOrders(currentOrder._id);
+    } catch (err) {
+      setError(err.message || 'Failed to resolve pricing');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const refreshOrders = async (preferredId = selectedOrder) => {
     const data = await apiFetch('/orders/all?limit=200');
@@ -208,13 +305,13 @@ const OrderManagement = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Left: Order List */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="flex border-b border-slate-200 mb-6 overflow-x-auto no-scrollbar">
+            <div className="grid grid-cols-4 border-b border-slate-200 mb-6">
               {tabs.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "px-6 py-4 text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap",
+                    "px-2 py-3 text-[11px] font-bold uppercase tracking-wider transition-all relative whitespace-nowrap",
                     activeTab === tab ? "text-emerald-600" : "text-slate-400 hover:text-slate-600"
                   )}
                 >
@@ -246,7 +343,7 @@ const OrderManagement = () => {
                     key={order._id}
                     onClick={() => setSelectedOrder(order._id)}
                     className={cn(
-                      "w-full p-6 rounded-[32px] border-2 text-left transition-all flex flex-col gap-4 group",
+                      "w-full p-5 rounded-3xl border-2 text-left transition-all flex flex-col gap-4 group",
                       selectedOrder === order._id 
                         ? "border-emerald-500 bg-emerald-50/50" 
                         : "border-white bg-white hover:border-emerald-200 shadow-sm"
@@ -262,9 +359,9 @@ const OrderManagement = () => {
                             ? <FileText className="w-6 h-6" />
                             : <Package className="w-6 h-6" />}
                         </div>
-                        <div>
-                          <h3 className={cn("font-bold", selectedOrder === order._id ? "text-emerald-900" : "text-slate-900")}>
-                            Order {order.orderId || order._id}
+                        <div className="min-w-0">
+                          <h3 className={cn("font-bold text-lg leading-tight break-words", selectedOrder === order._id ? "text-emerald-900" : "text-slate-900")}>
+                            Order {getOrderLabel(order)}
                           </h3>
                           <p className="text-xs text-slate-500">{order.studentName}</p>
                           <span className={cn(
@@ -286,7 +383,7 @@ const OrderManagement = () => {
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3 text-slate-400" />
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          {order.items.length} Items | ${Number(order.total || 0).toFixed(2)}
+                          {(order.items || []).length} Items | {order.status === 'Pricing Pending' ? 'Pricing pending' : `$${Number(order.total || 0).toFixed(2)}`}
                         </span>
                       </div>
                       <ChevronRight className={cn(
@@ -331,7 +428,7 @@ const OrderManagement = () => {
                           </div>
                           <div>
                             <div className="flex items-center gap-3 flex-wrap">
-                              <h2 className="text-3xl font-bold text-slate-900">Order {currentOrder.orderId || currentOrder._id}</h2>
+                              <h2 className="text-3xl font-bold text-slate-900">Order {getOrderLabel(currentOrder)}</h2>
                               <span className={cn(
                                 'px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border',
                                 currentOrderType === 'Prescription'
@@ -382,7 +479,7 @@ const OrderManagement = () => {
                         <div className="space-y-6">
                           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Order Items</h3>
                           <div className="space-y-4">
-                            {currentOrder.items.length > 0 ? currentOrder.items.map((item, idx) => {
+                          {(currentOrder.items || []).length > 0 ? currentOrder.items.map((item, idx) => {
                               return (
                                 <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex gap-4 group">
                                   <div className="flex-1 min-w-0">
@@ -398,17 +495,101 @@ const OrderManagement = () => {
                                 </div>
                               );
                             }) : (
-                              <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100">
-                                <div className="flex gap-4">
-                                  <FileText className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
+                              <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100">
+                                <div className="flex gap-3">
+                                  <FileText className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                                   <div>
-                                    <p className="font-bold text-blue-950">Prescription fulfillment</p>
-                                    <p className="text-sm text-blue-700 mt-1">
-                                      This order was created from an approved prescription. Prepare the medicines from the prescription document, then update tracking status below.
+                                    <p className="font-bold text-amber-950">Pricing review needed</p>
+                                    <p className="text-sm text-amber-700 mt-1">
+                                      {getPricingSummary(currentOrder)}
                                     </p>
                                     {currentOrder.prescriptionId?.notes && (
-                                      <p className="text-xs text-blue-700/80 italic mt-3">"{currentOrder.prescriptionId.notes}"</p>
+                                      <p className="text-xs text-amber-700/80 italic mt-3">"{currentOrder.prescriptionId.notes}"</p>
                                     )}
+                                  </div>
+                                </div>
+                                <div className="mt-5 space-y-4 border-t border-amber-100 pt-5">
+                                  <div className="grid grid-cols-1 md:grid-cols-[1fr_80px_96px_auto] gap-3">
+                                    <select
+                                      value={pricingForm.medicineId}
+                                      onChange={(event) => handleMedicineSelect(event.target.value)}
+                                      className="min-w-0 rounded-xl border border-amber-200 bg-white px-3 py-3 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-amber-300"
+                                    >
+                                      <option value="">Select available medicine</option>
+                                      {medicines.map((medicine) => (
+                                        <option key={medicine._id} value={medicine._id}>
+                                          {medicine.name} | stock {medicine.stock} | ${Number(medicine.price || 0).toFixed(2)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max={selectedMedicine?.stock || 1}
+                                      value={pricingForm.quantity}
+                                      onChange={(event) => setPricingForm((current) => ({ ...current, quantity: event.target.value }))}
+                                      className="rounded-xl border border-amber-200 bg-white px-3 py-3 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-amber-300"
+                                      aria-label="Quantity"
+                                    />
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={pricingForm.price}
+                                      onChange={(event) => setPricingForm((current) => ({ ...current, price: event.target.value }))}
+                                      className="rounded-xl border border-amber-200 bg-white px-3 py-3 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-amber-300"
+                                      aria-label="Unit price"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={addPricingItem}
+                                      disabled={!selectedMedicine || isUpdating}
+                                      className="rounded-xl bg-amber-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </button>
+                                  </div>
+
+                                  {pricingDraft.length > 0 && (
+                                    <div className="space-y-2">
+                                      {pricingDraft.map((item, index) => (
+                                        <div key={`${item.medicineId}-${index}`} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-3 text-sm border border-amber-100">
+                                          <div className="min-w-0">
+                                            <p className="font-bold text-slate-900 truncate">{item.name}</p>
+                                            <p className="text-xs text-slate-500">{item.quantity} x ${Number(item.price).toFixed(2)}</p>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => removePricingItem(index)}
+                                            className="p-2 rounded-lg text-rose-600 hover:bg-rose-50"
+                                            aria-label="Remove priced item"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  <textarea
+                                    value={pricingNotes}
+                                    onChange={(event) => setPricingNotes(event.target.value)}
+                                    placeholder="Optional pricing note for this order"
+                                    className="w-full rounded-xl border border-amber-200 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-amber-300 min-h-20"
+                                  />
+
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm font-bold text-amber-900">
+                                      Draft total: ${(pricingDraftTotal + 2.5).toFixed(2)}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={submitPricing}
+                                      disabled={pricingDraft.length === 0 || isUpdating}
+                                      className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
+                                    >
+                                      {isUpdating ? 'Saving...' : 'Confirm pricing'}
+                                    </button>
                                   </div>
                                 </div>
                               </div>
@@ -416,7 +597,9 @@ const OrderManagement = () => {
                           </div>
                           <div className="p-6 bg-slate-900 rounded-2xl text-white flex justify-between items-center">
                             <span className="font-bold text-slate-400">Total Amount</span>
-                            <span className="text-2xl font-bold text-emerald-400">${currentOrder.total.toFixed(2)}</span>
+                            <span className="text-2xl font-bold text-emerald-400">
+                              {currentOrder.status === 'Pricing Pending' ? 'Pending' : `$${currentOrder.total.toFixed(2)}`}
+                            </span>
                           </div>
                         </div>
 
@@ -452,7 +635,11 @@ const OrderManagement = () => {
                           <div className="space-y-4">
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Update Status</h3>
                             <div className="grid grid-cols-1 gap-3">
-                              {currentOrder.status === 'Pending' || currentOrder.status === 'Verified' ? (
+                              {currentOrder.status === 'Pricing Pending' ? (
+                                <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100 text-sm font-semibold text-amber-800">
+                                  Add priced medicine items before packing this prescription order.
+                                </div>
+                              ) : currentOrder.status === 'Pending' || currentOrder.status === 'Verified' ? (
                                 <button 
                                   onClick={() => handleStatusUpdate(currentOrder._id, 'Packed')}
                                   disabled={isUpdating}

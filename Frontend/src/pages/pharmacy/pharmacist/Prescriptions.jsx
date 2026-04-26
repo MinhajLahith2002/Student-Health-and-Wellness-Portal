@@ -31,6 +31,21 @@ function getPrescriptionImageUrl(prescription) {
 function isPdfPrescription(prescription) {
   return prescription?.fileMimeType === 'application/pdf';
 }
+
+function formatReviewDate(value) {
+  if (!value) return 'Not clearly detected';
+  if (typeof value === 'string' && !/^\d{4}-\d{2}-\d{2}T/.test(value)) return value;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
 const PrescriptionProcessing = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Pending');
@@ -455,13 +470,23 @@ const PrescriptionProcessing = () => {
                                       </div>
                                       <div className="p-4 bg-white rounded-2xl border border-slate-200">
                                         <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Date</p>
-                                        <p className="font-medium text-slate-700">{review.extracted.prescriptionDate || review.extracted.uploadedAt || 'Not clearly detected'}</p>
+                                        <p className="font-medium text-slate-700">
+                                          {formatReviewDate(review.extracted.prescriptionDate || review.extracted.uploadedAt)}
+                                        </p>
                                       </div>
                                       <div className="p-4 bg-white rounded-2xl border border-slate-200">
                                         <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Legibility</p>
                                         <p className="font-medium text-slate-700">{review.extracted.legibility || 'Needs manual check'}</p>
                                       </div>
                                     </div>
+                                    {review.extracted.rawText && (
+                                      <div className="mt-3 p-4 bg-white rounded-2xl border border-slate-200">
+                                        <p className="text-xs text-slate-400 uppercase tracking-widest mb-2">Extracted Text</p>
+                                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
+                                          {review.extracted.rawText}
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
 
