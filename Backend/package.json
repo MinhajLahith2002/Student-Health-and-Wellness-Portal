@@ -1,48 +1,50 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "main": "server.js",
-  "scripts": {
-    "predev": "node -e \"const path=require('node:path');const {pathToFileURL}=require('node:url');const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,'scripts/ensure-port-free.js')).href);\" _ 5001",
-    "dev": "node init && nodemon server.js",
-    "prestart": "node -e \"const path=require('node:path');const {pathToFileURL}=require('node:url');const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,'scripts/ensure-port-free.js')).href);\" _ 5001",
-    "seed": "node scripts/seed.js",
-    "seed:dev": "NODE_ENV=development node scripts/seed.js",
-    "seed:prod": "NODE_ENV=production node scripts/seed.js",
-    "start": "node init && node -e \"const path=require('node:path');const {pathToFileURL}=require('node:url');const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,'server.js')).href);\"",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "description": "",
-  "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.9.0",
-    "compression": "^1.8.1",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "express-rate-limit": "^8.3.1",
-    "express-validator": "^7.3.1",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.3.3",
-    "morgan": "^1.10.1",
-    "multer": "^2.1.1",
-    "nodemailer": "^8.0.3",
-    "pg": "^8.20.0",
-    "pg-hstore": "^2.3.4",
-    "sequelize": "^6.37.8",
-    "socket.io": "^4.8.3",
-    "tesseract.js": "^7.0.0",
-    "winston": "^3.19.0"
-  },
-  "devDependencies": {
-    "jest": "^30.3.0",
-    "nodemon": "^3.1.14",
-    "supertest": "^7.2.2"
-  }
+    "name":  "backend",
+    "version":  "1.0.0",
+    "main":  "server.js",
+    "scripts":  {
+                    "predev":  "node -e \"const path=require(\u0027node:path\u0027);const {pathToFileURL}=require(\u0027node:url\u0027);const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,\u0027scripts/ensure-port-free.js\u0027)).href);\" _ 5001",
+                    "dev":  "nodemon server.js",
+                    "prestart":  "node -e \"const path=require(\u0027node:path\u0027);const {pathToFileURL}=require(\u0027node:url\u0027);const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,\u0027scripts/ensure-port-free.js\u0027)).href);\" _ 5001",
+                    "seed":  "node scripts/seed.js",
+                    "seed:dev":  "NODE_ENV=development node scripts/seed.js",
+                    "seed:prod":  "NODE_ENV=production node scripts/seed.js",
+                    "start":  "node -e \"const path=require(\u0027node:path\u0027);const {pathToFileURL}=require(\u0027node:url\u0027);const root=path.dirname(process.env.npm_package_json);process.chdir(root);import(pathToFileURL(path.join(root,\u0027server.js\u0027)).href);\"",
+                    "test":  "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+                },
+    "keywords":  [
+
+                 ],
+    "author":  "",
+    "license":  "ISC",
+    "type":  "module",
+    "description":  "",
+    "dependencies":  {
+                         "bcryptjs":  "^3.0.3",
+                         "cloudinary":  "^2.9.0",
+                         "compression":  "^1.8.1",
+                         "cookie-parser":  "^1.4.7",
+                         "cors":  "^2.8.6",
+                         "dotenv":  "^17.3.1",
+                         "express":  "^5.2.1",
+                         "express-rate-limit":  "^8.3.1",
+                         "express-validator":  "^7.3.1",
+                         "helmet":  "^8.1.0",
+                         "jsonwebtoken":  "^9.0.3",
+                         "mongoose":  "^9.3.3",
+                         "morgan":  "^1.10.1",
+                         "multer":  "^2.1.1",
+                         "nodemailer":  "^8.0.3",
+                         "pg":  "^8.20.0",
+                         "pg-hstore":  "^2.3.4",
+                         "sequelize":  "^6.37.8",
+                         "socket.io":  "^4.8.3",
+                         "tesseract.js":  "^7.0.0",
+                         "winston":  "^3.19.0"
+                     },
+    "devDependencies":  {
+                            "jest":  "^30.3.0",
+                            "nodemon":  "^3.1.14",
+                            "supertest":  "^7.2.2"
+                        }
 }
