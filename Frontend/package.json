@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "predev": "node scripts/ensure-port-free.js 5173",
-    "dev": "node init && vite",
-    "build": "node init && vite build",
+    "dev": "vite",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
